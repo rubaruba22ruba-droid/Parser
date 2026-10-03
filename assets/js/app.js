@@ -6,9 +6,9 @@
    • ссылки строятся только как https://t.me/<handle>, handle проходит проверку по маске;
    • страница не встраивается в чужой <iframe>.
 
-   Анимации: Anime.js (интро, появление кристалла) + Motion (появление при скролле).
-   Только transform/opacity, мягкие кривые, без «прыжков». Учитывает prefers-reduced-motion
-   и слабые устройства.
+   Анимации: Anime.js (интро, счётчики, рисование галочек) + Motion (появление при скролле,
+   смена карточек в ленте). Фон — sky.js (сакура и лепестки), кристалл — gem.js.
+   Учитывает prefers-reduced-motion и слабые устройства.
    ========================================================================== */
 (function () {
   'use strict';
@@ -27,6 +27,7 @@
   var XLINK_NS = 'http://www.w3.org/1999/xlink';
   var HANDLE_RE = /^[A-Za-z][A-Za-z0-9_]{4,31}$/;
   var EASE = [0.16, 1, 0.3, 1];
+  var FX = window.NTFX || {};
 
   var mq = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
   var reduceMotion = mq('(prefers-reduced-motion: reduce)');
@@ -43,12 +44,14 @@
 
   function clean(v, max) { return typeof v === 'string' ? v.trim().slice(0, max || 400) : ''; }
   function list(v, max) { return Array.isArray(v) ? v.slice(0, max || 20) : []; }
+  function num(v, def) { v = Number(v); return isFinite(v) && v >= 0 ? v : def; }
 
   function tgUrl(handle) {
     handle = clean(handle, 40).replace(/^@/, '');
     return HANDLE_RE.test(handle) ? 'https://t.me/' + handle : null;
   }
   function atHandle(handle) { return '@' + clean(handle, 40).replace(/^@/, ''); }
+  function fmt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
 
   function el(tag, cls, text) {
     var n = doc.createElement(tag);
@@ -82,10 +85,11 @@
     if (delay) node.setAttribute('data-delay', String(delay));
     return node;
   }
-  function rule() {
-    var r = el('div', 'rule');
-    r.setAttribute('data-rule', '');
-    return r;
+  /* выполнить cb после окончания анимации (с запасным таймером, если Promise недоступен) */
+  function after(anim, cb, ms) {
+    if (anim && typeof anim.then === 'function') anim.then(cb, cb);
+    else if (anim && anim.finished && typeof anim.finished.then === 'function') anim.finished.then(cb, cb);
+    else setTimeout(cb, ms || 800);
   }
 
   /* ---------- Шапка ---------- */
@@ -95,7 +99,9 @@
 
     var brand = el('a', 'brand');
     brand.href = '#hero';
-    brand.appendChild(icon('gem'));
+    var mark = el('span', 'brand__mark');
+    mark.appendChild(icon('gem'));
+    brand.appendChild(mark);
     brand.appendChild(el('span', '', clean(d.brand, 40)));
     wrap.appendChild(brand);
 
@@ -119,8 +125,12 @@
     var host = $('#hero');
     var wrap = el('div', 'wrap hero__in');
 
-    var copy = el('div', 'hero__copy');
-    copy.appendChild(el('p', 'label kicker', clean(h.kicker, 60)));
+    /* голова: чип, заголовок, подзаголовок */
+    var head = el('div', 'hero__head');
+    var chip = el('p', 'chip');
+    chip.appendChild(el('span', 'dot'));
+    chip.appendChild(el('span', '', clean(h.chip, 60)));
+    head.appendChild(chip);
 
     var title = clean(h.title, 120);
     var h1 = el('h1', 'title');
@@ -135,29 +145,36 @@
       h1.appendChild(outer);
       if (i < words.length - 1) h1.appendChild(doc.createTextNode(' '));
     });
-    copy.appendChild(h1);
-    copy.appendChild(el('p', 'lead', clean(h.lead, 200)));
+    head.appendChild(h1);
+    head.appendChild(el('p', 'lead', clean(h.lead, 200)));
+    wrap.appendChild(head);
 
+    /* низ: шаги и кнопка */
+    var foot = el('div', 'hero__foot');
     var ol = el('ol', 'steps');
     list(h.steps, 4).forEach(function (s, i) {
       var li = el('li');
-      li.appendChild(el('span', '', '0' + (i + 1)));
+      li.appendChild(el('b', '', '0' + (i + 1)));
       li.appendChild(doc.createTextNode(clean(s, 40)));
       ol.appendChild(li);
     });
-    copy.appendChild(ol);
-
-    if (clean(h.scroll, 40)) {
-      var more = el('a', 'more');
-      more.href = '#trackers';
-      more.appendChild(el('span', '', clean(h.scroll, 40)));
-      more.appendChild(icon('down'));
-      copy.appendChild(more);
+    foot.appendChild(ol);
+    if (clean(h.cta, 40)) {
+      var cta = el('div', 'cta');
+      var a = el('a', 'btn btn--solid');
+      a.href = '#trackers';
+      a.appendChild(el('span', '', clean(h.cta, 40)));
+      a.appendChild(icon('down'));
+      cta.appendChild(a);
+      foot.appendChild(cta);
     }
-    wrap.appendChild(copy);
-    wrap.appendChild(renderStage(d.lot || {}));
+    wrap.appendChild(foot);
+
+    wrap.appendChild(renderStage(d.feed || {}));
     host.appendChild(wrap);
   }
+
+  function validLot(l) { return l && clean(l.name, 40) && num(l.price, -1) >= 0; }
 
   function renderStage(m) {
     var stage = el('div', 'stage');
@@ -166,24 +183,60 @@
     canvas.setAttribute('aria-hidden', 'true');
     inner.appendChild(canvas);
 
-    var t = el('div', 'ticket');
-    var top = el('div', 'ticket__top');
-    top.appendChild(el('span', 'label', clean(m.tag, 30)));
-    t.appendChild(top);
-    var name = el('div', 'ticket__name', clean(m.name, 40));
-    name.appendChild(el('small', '', clean(m.number, 16)));
-    t.appendChild(name);
-    var row = el('div', 'ticket__row');
-    var price = el('span', 'ticket__price');
-    price.appendChild(icon('star'));
-    price.appendChild(el('b', '', clean(m.price, 12)));
-    row.appendChild(price);
-    row.appendChild(el('span', 'ticket__below', clean(m.below, 30)));
-    t.appendChild(row);
-    inner.appendChild(t);
+    var lots = list(m.lots, 8).filter(validLot);
+    var first = lots[0];
+    if (first) {
+      var feed = el('div', 'feed');
+      var card = el('div', 'feed__card');
+      card.appendChild(el('div', 'feed__stack'));
+      card.appendChild(el('div', 'feed__stack'));
 
+      var t = el('article', 'ticket');
+      var head = el('div', 'ticket__head');
+      var tag = el('span');
+      tag.appendChild(el('i', 'dot'));
+      tag.appendChild(doc.createTextNode(clean(m.tag, 30)));
+      head.appendChild(tag);
+      t.appendChild(head);
+
+      var body = el('div', 'ticket__body');
+      var name = el('div', 'ticket__name', clean(first.name, 40));
+      name.appendChild(el('small', '', clean(first.number, 16)));
+      body.appendChild(name);
+      var row = el('div', 'ticket__row');
+      var price = el('span', 'ticket__price');
+      price.appendChild(icon('star'));
+      price.appendChild(el('b', '', fmt(num(first.price, 0))));
+      row.appendChild(price);
+      row.appendChild(el('span', 'ticket__off', clean(first.off, 12)));
+      if (clean(m.below, 20)) row.appendChild(el('span', 'ticket__rel', clean(m.below, 20)));
+      body.appendChild(row);
+      body.appendChild(el('div', 'ticket__act', clean(m.button, 16)));
+      t.appendChild(body);
+      card.appendChild(t);
+      feed.appendChild(card);
+      if (clean(m.note, 80)) feed.appendChild(el('p', 'feed__note', clean(m.note, 80)));
+      inner.appendChild(feed);
+    }
     stage.appendChild(inner);
     return stage;
+  }
+
+  /* ---------- Бегущая строка ---------- */
+  function renderMarquee(d) {
+    var items = list(d.marquee, 24).map(function (s) { return clean(s, 30); }).filter(Boolean);
+    var host = $('#marquee');
+    if (!items.length) { host.parentNode.removeChild(host); return; }
+    var track = el('div', 'marquee__track');
+    for (var copy = 0; copy < 4; copy++) {
+      items.forEach(function (s) {
+        var it = el('span', 'marquee__item');
+        it.appendChild(el('span', '', s));
+        it.appendChild(icon('petal'));
+        track.appendChild(it);
+      });
+    }
+    host.appendChild(track);
   }
 
   /* ---------- Трекеры ---------- */
@@ -193,7 +246,6 @@
     var wrap = el('div', 'wrap sec');
 
     var head = el('div', 'sec__head');
-    head.appendChild(rule());
     var h2 = el('h2', 'h2', clean(tr.title, 60));
     h2.id = 'trackers-title';
     head.appendChild(reveal(h2));
@@ -203,22 +255,40 @@
     list(tr.items, 3).forEach(function (t, i) {
       if (!t) return;
       var kind = t.id === 'premium' ? 'premium' : 'free';
-      var card = reveal(el('article', 'plan plan--' + kind), i * 0.12);
+      var slot = reveal(el('div', 'plans__slot'), i * 0.12);
+      var card = el('article', 'plan plan--' + kind);
 
       var top = el('div', 'plan__top');
-      top.appendChild(el('span', 'label', clean(t.label, 30)));
-      top.appendChild(el('span', 'label', '0' + (i + 1)));
+      top.appendChild(el('span', 'plan__label', clean(t.label, 30)));
+      if (clean(t.badge, 24)) top.appendChild(el('span', 'plan__badge', clean(t.badge, 24)));
       card.appendChild(top);
 
       var price = el('p', 'plan__price');
-      price.appendChild(el('b', '', clean(t.price, 20)));
-      if (clean(t.priceNote, 60)) price.appendChild(el('span', '', clean(t.priceNote, 60)));
+      var pn = num(t.priceNum, -1);
+      if (pn >= 0) {
+        var b = el('b', '', fmt(pn));
+        b.setAttribute('data-count', String(pn));
+        price.appendChild(b);
+        if (clean(t.priceUnit, 12)) price.appendChild(el('em', '', clean(t.priceUnit, 12)));
+      } else {
+        price.className += ' plan__price--text';
+        price.appendChild(el('b', '', clean(t.price, 24)));
+      }
       card.appendChild(price);
-
+      if (clean(t.priceNote, 60)) card.appendChild(el('p', 'plan__note', clean(t.priceNote, 60)));
       if (clean(t.lead, 120)) card.appendChild(el('p', 'plan__lead', clean(t.lead, 120)));
 
       var ul = el('ul', 'plan__points');
-      list(t.points, 6).forEach(function (p) { ul.appendChild(el('li', '', clean(p, 90))); });
+      list(t.points, 6).forEach(function (p) {
+        var li = el('li');
+        var tick = el('span', 'tick');
+        var s = svgEl('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true', focusable: 'false' });
+        s.appendChild(svgEl('path', { d: 'M5 12.5l4.5 4.5L19 7.5', fill: 'none', stroke: 'currentColor', 'stroke-width': '3', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+        tick.appendChild(s);
+        li.appendChild(tick);
+        li.appendChild(el('span', '', clean(p, 90)));
+        ul.appendChild(li);
+      });
       card.appendChild(ul);
 
       var foot = el('div', 'plan__foot');
@@ -230,7 +300,8 @@
         foot.appendChild(btn);
       }
       card.appendChild(foot);
-      grid.appendChild(card);
+      slot.appendChild(card);
+      grid.appendChild(slot);
     });
     wrap.appendChild(grid);
     host.appendChild(wrap);
@@ -241,23 +312,22 @@
     var s = d.support || {};
     var host = $('#support');
     var wrap = el('div', 'wrap sec');
-    wrap.appendChild(rule());
+    var box = reveal(el('div', 'support__box'));
 
-    var inner = el('div', 'support__in');
-    var head = el('div', 'support__head');
+    var txt = el('div');
     var h2 = el('h2', 'h2', clean(s.title, 80));
     h2.id = 'support-title';
-    head.appendChild(reveal(h2));
-    inner.appendChild(head);
-    inner.appendChild(reveal(el('p', 'support__text', clean(s.text, 160)), 0.08));
+    txt.appendChild(h2);
+    txt.appendChild(el('p', 'support__text', clean(s.text, 160)));
+    box.appendChild(txt);
 
     var link = tgLink(s.handle, 'support__link');
     if (link) {
       link.appendChild(el('span', '', atHandle(s.handle)));
       link.appendChild(icon('arrow'));
-      inner.appendChild(reveal(link, 0.16));
+      box.appendChild(link);
     }
-    wrap.appendChild(inner);
+    wrap.appendChild(box);
     host.appendChild(wrap);
   }
 
@@ -271,264 +341,208 @@
   }
 
   /* ==========================================================================
-     Кристалл: тонкие линии на canvas. Без свечения и градиентов.
-     Огранка + орбита с точкой («трекер» следит за лотом).
+     Анимации и живость
      ========================================================================== */
-  function createGem(canvas) {
-    var ctx = canvas.getContext && canvas.getContext('2d');
-    if (!ctx) return null;
-
-    var INK = [239, 234, 225];
-    var ACC = [205, 184, 148];
-    var LIGHT = (function () { var x = -0.45, y = 0.75, z = 0.55, l = Math.sqrt(x * x + y * y + z * z); return [x / l, y / l, z / l]; })();
-    var CAM = 4.2;            // дистанция камеры (лёгкая перспектива)
-    var CENTER_Y = -0.1;
-
-    /* геометрия: стол (8) → рундист (16) → калетта */
-    var V = [], F = [], i, k;
-    function addV(x, y, z) { V.push([x, y, z]); return V.length - 1; }
-    var T = [], G = [];
-    for (i = 0; i < 8; i++) { var a = i * Math.PI / 4; T.push(addV(Math.cos(a) * 0.56, 0.42, Math.sin(a) * 0.56)); }
-    for (k = 0; k < 16; k++) { var b = k * Math.PI / 8; G.push(addV(Math.cos(b), 0, Math.sin(b))); }
-    var culet = addV(0, -0.95, 0);
-    F.push(T.slice());
-    for (i = 0; i < 8; i++) {
-      var j = (i + 1) % 8;
-      F.push([T[i], T[j], G[(2 * i + 1) % 16]]);
-      F.push([T[i], G[2 * i], G[(2 * i + 1) % 16]]);
-      F.push([T[j], G[(2 * i + 1) % 16], G[(2 * i + 2) % 16]]);
-    }
-    for (k = 0; k < 16; k++) F.push([G[k], G[(k + 1) % 16], culet]);
-
-    var st = { yaw: 0.55, yawOff: 0, yawT: 0, pitchOff: 0, pitchT: 0, reveal: 1, orbit: 1.1 };
-    var W = 0, H = 0, dpr = 1;
-
-    function resize() {
-      var r = canvas.getBoundingClientRect();
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      W = r.width; H = r.height;
-      canvas.width = Math.max(1, Math.round(W * dpr));
-      canvas.height = Math.max(1, Math.round(H * dpr));
-    }
-
-    function rot(p, yaw, pitch) {
-      var cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
-      var x = p[0] * cy + p[2] * sy;
-      var z = -p[0] * sy + p[2] * cy;
-      var y = p[1] * cp - z * sp;
-      z = p[1] * sp + z * cp;
-      return [x, y, z];
-    }
-    function rgba(c, a) { return 'rgba(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ',' + a.toFixed(3) + ')'; }
-    function mix(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
-
-    function draw() {
-      if (!W || !H) return;
-      var yaw = st.yaw + st.yawOff, pitch = 0.42 + st.pitchOff;
-      var rv = st.reveal;
-      var cx = W / 2, cy = H * 0.5;
-      var S = Math.min(W * 0.31, H * 0.4) * (0.92 + 0.08 * rv);
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, W, H);
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      ctx.lineWidth = 1;
-
-      function proj(r) { var s = CAM / (CAM - r[2]); return [cx + r[0] * S * s, cy - r[1] * S * s]; }
-
-      /* точки орбиты: кольцо вокруг кристалла */
-      var RING = 1.45, N = 120, ring = [];
-      for (i = 0; i <= N; i++) {
-        var q = i / N * Math.PI * 2;
-        var rr = rot([Math.cos(q) * RING, -0.05, Math.sin(q) * RING], 0, pitch);
-        ring.push({ p: proj(rr), z: rr[2] });
-      }
-      function strokeRing(front) {
-        ctx.beginPath();
-        var open = false;
-        for (var n = 0; n <= N; n++) {
-          var inFront = ring[n].z >= 0;
-          if (inFront === front) {
-            if (!open) { ctx.moveTo(ring[n].p[0], ring[n].p[1]); open = true; } else ctx.lineTo(ring[n].p[0], ring[n].p[1]);
-          } else open = false;
-        }
-        ctx.strokeStyle = rgba(INK, (front ? 0.3 : 0.1) * rv);
-        ctx.stroke();
-      }
-      var oq = st.orbit;
-      var orr = rot([Math.cos(oq) * RING, -0.05, Math.sin(oq) * RING], 0, pitch);
-      var op = proj(orr);
-      function drawDot() {
-        var a = (orr[2] >= 0 ? 1 : 0.45) * rv;
-        ctx.fillStyle = rgba(ACC, a);
-        ctx.beginPath(); ctx.arc(op[0], op[1], 3.2, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = rgba(ACC, 0.45 * a);
-        ctx.beginPath(); ctx.arc(op[0], op[1], 8, 0, Math.PI * 2); ctx.stroke();
-      }
-
-      /* задняя часть орбиты → кристалл → передняя часть */
-      strokeRing(false);
-      if (orr[2] < 0) drawDot();
-
-      var P = V.map(function (v) { var r = rot(v, yaw, pitch); return { r: r, p: proj(r) }; });
-      var faces = F.map(function (f) {
-        var a0 = P[f[0]].r, a1 = P[f[1]].r, a2 = P[f[2]].r;
-        var ux = a1[0] - a0[0], uy = a1[1] - a0[1], uz = a1[2] - a0[2];
-        var vx = a2[0] - a0[0], vy = a2[1] - a0[1], vz = a2[2] - a0[2];
-        var nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
-        var cxx = 0, cyy = 0, czz = 0;
-        f.forEach(function (idx) { cxx += P[idx].r[0]; cyy += P[idx].r[1]; czz += P[idx].r[2]; });
-        cxx /= f.length; cyy /= f.length; czz /= f.length;
-        if (nx * cxx + ny * (cyy - CENTER_Y) + nz * czz < 0) { nx = -nx; ny = -ny; nz = -nz; }
-        var l = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
-        return { f: f, n: [nx / l, ny / l, nz / l], z: czz };
-      });
-      faces.sort(function (a, b) { return a.z - b.z; });
-
-      function path(f) {
-        ctx.beginPath();
-        for (var n = 0; n < f.length; n++) { var p = P[f[n]].p; if (n) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); }
-        ctx.closePath();
-      }
-      /* обратные грани — еле заметный каркас (эффект прозрачного кристалла) */
-      ctx.strokeStyle = rgba(INK, 0.08 * rv);
-      faces.forEach(function (o) { if (o.n[2] <= 0) { path(o.f); ctx.stroke(); } });
-
-      /* лицевые грани: плоская заливка по свету + тонкая линия */
-      faces.forEach(function (o) {
-        if (o.n[2] <= 0) return;
-        var lam = Math.max(0, o.n[0] * LIGHT[0] + o.n[1] * LIGHT[1] + o.n[2] * LIGHT[2]);
-        var t = Math.pow(lam, 1.5);
-        path(o.f);
-        ctx.fillStyle = rgba(mix(INK, ACC, Math.min(1, t * 1.6)), (0.03 + 0.34 * t) * rv);
-        ctx.fill();
-        ctx.strokeStyle = rgba(INK, 0.46 * rv);
-        ctx.stroke();
-      });
-
-      strokeRing(true);
-      if (orr[2] >= 0) drawDot();
-    }
-
-    return { st: st, draw: draw, resize: resize };
-  }
-
-  /* ---------- Анимации ---------- */
   function showAll() {
-    $$('[data-reveal]').forEach(function (n) { n.style.opacity = ''; n.style.transform = ''; });
-    $$('[data-rule]').forEach(function (n) { n.style.transform = ''; });
+    $$('[data-reveal]').forEach(function (n) { n.style.opacity = ''; n.style.transform = ''; n.style.filter = ''; });
   }
 
-  function setupGem(A) {
-    var canvas = $('.stage canvas');
+  function clearStyles(node) { node.style.opacity = ''; node.style.transform = ''; node.style.filter = ''; }
+
+  /* прогресс прокрутки, фон шапки, параллакс ветки и сцены, ускорение кристалла */
+  function setupScroll(gem) {
+    var top = $('#top');
+    var bar = $('#progress i');
+    var canopy = $('#canopy');
     var stageIn = $('.stage__in');
-    var stage = $('.stage');
-    var gem = canvas && createGem(canvas);
-    if (!gem) return;
-    var st = gem.st;
-
-    function sizeAndDraw() { gem.resize(); gem.draw(); }
-    sizeAndDraw();
-    if (window.ResizeObserver) new ResizeObserver(sizeAndDraw).observe(canvas);
-    else window.addEventListener('resize', sizeAndDraw);
-
-    if (reduceMotion || !A) { st.reveal = 1; gem.draw(); return; }
-
-    /* появление: кристалл плавно «проявляется» */
-    st.reveal = 0;
-    A.animate(st, { reveal: 1, duration: 2600, delay: 450, ease: 'outQuart', onUpdate: function () { if (!raf) gem.draw(); } });
-
-    /* медленное вращение + мягкая реакция на мышь */
-    var raf = 0, last = 0, visible = true, tabOn = !doc.hidden;
-    function frame(ts) {
-      raf = 0;
-      var dt = last ? Math.min((ts - last) / 1000, 0.05) : 0.016;
-      last = ts;
-      st.yaw += dt * 0.16;
-      st.orbit += dt * 0.42;
-      var k = 1 - Math.exp(-dt * 3.2);
-      st.yawOff += (st.yawT - st.yawOff) * k;
-      st.pitchOff += (st.pitchT - st.pitchOff) * k;
-      gem.draw();
-      if (visible && tabOn) raf = requestAnimationFrame(frame);
-    }
-    function kick() { if (!raf && visible && tabOn) { last = 0; raf = requestAnimationFrame(frame); } }
-    if (window.IntersectionObserver) {
-      new IntersectionObserver(function (en) { visible = en[0].isIntersecting; kick(); }).observe(stage);
-    }
-    doc.addEventListener('visibilitychange', function () { tabOn = !doc.hidden; kick(); });
-    kick();
-
-    if (finePointer && !weak) {
-      window.addEventListener('pointermove', function (e) {
-        if (e.pointerType && e.pointerType !== 'mouse') return;
-        st.yawT = (e.clientX / window.innerWidth - 0.5) * 0.8;
-        st.pitchT = (e.clientY / window.innerHeight - 0.5) * 0.16;
-      }, { passive: true });
+    var wide = mq('(min-width: 980px)');
+    var ticking = false, lastY = window.pageYOffset || 0;
+    var track = $('.marquee__track'), mAnim = null, rate = 1, rateT = 1, rateRaf = 0;
+    function marqueeStep() {
+      rateRaf = 0;
+      rate += (rateT - rate) * 0.08;
+      rateT += (1 - rateT) * 0.04;
+      if (mAnim) mAnim.updatePlaybackRate(rate);
+      if (Math.abs(rate - 1) > 0.015 || Math.abs(rateT - 1) > 0.015) rateRaf = requestAnimationFrame(marqueeStep);
+      else if (mAnim) mAnim.updatePlaybackRate(1);
     }
 
-    /* лёгкий параллакс при прокрутке */
-    var ticking = false;
-    window.addEventListener('scroll', function () {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(function () {
-        ticking = false;
-        var y = window.pageYOffset || 0;
-        if (y < window.innerHeight * 1.3) stageIn.style.transform = 'translate3d(0,' + (y * 0.07).toFixed(1) + 'px,0)';
-      });
-    }, { passive: true });
+    function update() {
+      ticking = false;
+      var y = window.pageYOffset || 0;
+      var max = Math.max(1, root.scrollHeight - window.innerHeight);
+      top.classList.toggle('scrolled', y > 8);
+      if (bar) bar.style.transform = 'scaleX(' + Math.min(1, y / max).toFixed(4) + ')';
+      if (!reduceMotion) {
+        if (canopy && y < window.innerHeight * 1.4) canopy.style.transform = 'translate3d(0,' + (y * 0.2).toFixed(1) + 'px,0)';
+        if (stageIn && wide && y < window.innerHeight * 1.3) stageIn.style.transform = 'translate3d(0,' + (y * 0.07).toFixed(1) + 'px,0)';
+        if (gem) gem.boost((y - lastY) * 0.0016);
+        if (track && track.getAnimations) {
+          if (!mAnim) mAnim = track.getAnimations()[0] || null;
+          if (mAnim) { rateT = Math.min(6, 1 + Math.abs(y - lastY) * 0.12); if (!rateRaf) rateRaf = requestAnimationFrame(marqueeStep); }
+        }
+      }
+      lastY = y;
+    }
+    window.addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
+    update();
   }
 
-  function setupMotion() {
+  /* лента лотов: карточка меняется, цена «набегает» */
+  function setupFeed(d, A, M) {
+    var lots = list(d.feed && d.feed.lots, 8).filter(validLot);
+    var body = $('.ticket__body');
+    if (lots.length < 2 || !body || reduceMotion || !A || !M) return;
+    var nameEl = $('.ticket__name'), numEl = $('.ticket__name small'), nameText = nameEl.firstChild;
+    var priceEl = $('.ticket__price b'), offEl = $('.ticket__off'), stacks = $$('.feed__stack');
+    var idx = 0, visible = true, busy = false;
+
+    function apply(l) {
+      nameText.nodeValue = clean(l.name, 40);
+      numEl.textContent = clean(l.number, 16);
+      offEl.textContent = clean(l.off, 12);
+    }
+    function countUp(target) {
+      var o = { v: 0 };
+      A.animate(o, {
+        v: target, duration: 1100, ease: 'outExpo',
+        onUpdate: function () { priceEl.textContent = fmt(o.v); },
+        onComplete: function () { priceEl.textContent = fmt(target); }
+      });
+    }
+
+    function next() {
+      if (doc.hidden || !visible || busy) { setTimeout(next, 1200); return; }
+      busy = true;
+      var out = M.animate(body,
+        { opacity: [1, 0], transform: ['translateY(0px)', 'translateY(-16px)'], filter: ['blur(0px)', 'blur(8px)'] },
+        { duration: 0.5, ease: [0.5, 0, 0.75, 0] });
+      after(out, function () {
+        idx = (idx + 1) % lots.length;
+        apply(lots[idx]);
+        var inn = M.animate(body,
+          { opacity: [0, 1], transform: ['translateY(18px)', 'translateY(0px)'], filter: ['blur(8px)', 'blur(0px)'] },
+          { duration: 0.85, ease: EASE });
+        after(inn, function () { clearStyles(body); }, 900);
+        countUp(num(lots[idx].price, 0));
+        M.animate(offEl, { transform: ['scale(0.6)', 'scale(1)'] }, { duration: 0.7, ease: EASE });
+        stacks.forEach(function (s, i) {
+          M.animate(s, { transform: ['translateY(10px)', 'translateY(0px)'], opacity: [0.3, 1] }, { duration: 0.8, delay: i * 0.08, ease: EASE });
+        });
+        busy = false;
+        setTimeout(next, 3600);
+      }, 520);
+    }
+    var feed = $('.feed');
+    if (feed && window.IntersectionObserver) new IntersectionObserver(function (en) { visible = en[0].isIntersecting; }).observe(feed);
+    setTimeout(next, 4800);
+  }
+
+  /* магнитные кнопки: тянутся к курсору (только мышь) */
+  function setupMagnetic() {
+    if (!finePointer || reduceMotion || weak) return;
+    $$('.btn, .support__link').forEach(function (n) {
+      var raf = 0, tx = 0, ty = 0;
+      function apply() { raf = 0; n.style.transform = 'translate3d(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px,0)'; }
+      n.addEventListener('pointermove', function (e) {
+        var r = n.getBoundingClientRect();
+        tx = (e.clientX - (r.left + r.width / 2)) * 0.18;
+        ty = (e.clientY - (r.top + r.height / 2)) * 0.28;
+        if (!raf) raf = requestAnimationFrame(apply);
+      });
+      n.addEventListener('pointerleave', function () { tx = 0; ty = 0; if (!raf) raf = requestAnimationFrame(apply); });
+    });
+  }
+
+  /* лёгкий 3D-наклон карточек тарифов (только мышь) */
+  function setupTilt() {
+    if (!finePointer || reduceMotion || weak) return;
+    $$('.plan').forEach(function (n) {
+      n.addEventListener('pointermove', function (e) {
+        var r = n.getBoundingClientRect();
+        var px = (e.clientX - r.left) / r.width - 0.5, py = (e.clientY - r.top) / r.height - 0.5;
+        n.style.setProperty('--ry', (px * 5).toFixed(2) + 'deg');
+        n.style.setProperty('--rx', (-py * 4).toFixed(2) + 'deg');
+      });
+      n.addEventListener('pointerleave', function () { n.style.setProperty('--ry', '0deg'); n.style.setProperty('--rx', '0deg'); });
+    });
+  }
+
+  function setupMotion(d) {
     var NT = window.NT;
     var A = NT && NT.anime;
     var M = NT && NT.motion;
+    var gemCanvas = $('.stage canvas');
+    var gem = (FX.gem && gemCanvas) ? FX.gem.create(gemCanvas, { reduce: reduceMotion, lite: weak, pointer: finePointer && !weak }) : null;
+    if (gem) gem.start();
 
-    /* шапка меняет фон после небольшой прокрутки */
-    var top = $('#top');
-    function onScroll() { top.classList.toggle('scrolled', (window.pageYOffset || 0) > 8); }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
+    setupScroll(gem);
+    setupMagnetic();
+    setupTilt();
 
-    setupGem(reduceMotion ? null : A);
-
-    if (reduceMotion || !A || !M || !window.IntersectionObserver) { showAll(); return; }
+    if (reduceMotion || !A || !M || !window.IntersectionObserver) { showAll(); if (gem) gem.st.reveal = 1; return; }
 
     /* 1. Стартовые состояния (скрыты под экраном загрузки) */
-    $$('.top__in > *, .kicker, .lead, .steps li, .more, .ticket').forEach(function (n) { n.style.opacity = '0'; });
-    $$('.hero .wi').forEach(function (n) { n.style.transform = 'translateY(110%)'; });
-    $$('[data-reveal]').forEach(function (n) { n.style.opacity = '0'; n.style.transform = 'translateY(24px)'; });
-    $$('[data-rule]').forEach(function (n) { n.style.transform = 'scaleX(0)'; });
+    $$('.top__in > *, .chip, .lead, .steps li, .cta, .stage__in').forEach(function (n) { n.style.opacity = '0'; });
+    $$('.hero .wi').forEach(function (n) { n.style.transform = 'translateY(112%)'; });
+    $$('[data-reveal]').forEach(function (n) { n.style.opacity = '0'; n.style.transform = 'translateY(28px)'; n.style.filter = 'blur(8px)'; });
+    if (gem) gem.st.reveal = 0;
 
-    /* 2. Интро — Anime.js: мягкие кривые, небольшие смещения */
+    /* 2. Интро — Anime.js */
     var tl = A.createTimeline({ defaults: { ease: 'outQuart', duration: 1200 } });
-    tl.add('.top__in > *', { opacity: [0, 1], duration: 1000, delay: A.stagger(100) }, 100)
-      .add('.kicker', { opacity: [0, 1], translateY: [10, 0] }, 250)
-      .add('.hero .wi', { translateY: ['110%', '0%'], duration: 1500, delay: A.stagger(90) }, 350)
-      .add('.lead', { opacity: [0, 1], translateY: [14, 0] }, 1000)
-      .add('.steps li', { opacity: [0, 1], translateY: [14, 0], delay: A.stagger(110) }, 1200)
-      .add('.more', { opacity: [0, 1] }, 1700)
-      .add('.ticket', { opacity: [0, 1], translateY: [14, 0], duration: 1400 }, 1900);
+    tl.add('.top__in > *', { opacity: [0, 1], translateY: [-12, 0], duration: 1000, delay: A.stagger(100) }, 150)
+      .add('.chip', { opacity: [0, 1], translateY: [12, 0] }, 300)
+      .add('.hero .wi', { translateY: ['112%', '0%'], duration: 1500, delay: A.stagger(95) }, 420)
+      .add('.lead', { opacity: [0, 1], translateY: [16, 0] }, 1050)
+      .add('.steps li', { opacity: [0, 1], translateY: [18, 0], delay: A.stagger(120) }, 1250)
+      .add('.cta', { opacity: [0, 1], translateY: [18, 0] }, 1600)
+      .add('.stage__in', { opacity: [0, 1], translateY: [24, 0], duration: 1600 }, 700);
 
-    /* 3. Появление при скролле — Motion (inView), один раз */
+    /* «фокус»: слова заголовка и подзаголовок проявляются из размытия */
+    $$('.hero .wi').forEach(function (w, i) {
+      var a = M.animate(w, { filter: ['blur(12px)', 'blur(0px)'] }, { duration: 1.3, delay: 0.45 + i * 0.095, ease: EASE });
+      after(a, function () { w.style.filter = ''; }, 2200);
+    });
+    var lead = $('.lead');
+    if (lead) {
+      var la = M.animate(lead, { filter: ['blur(8px)', 'blur(0px)'] }, { duration: 1.2, delay: 1.1, ease: EASE });
+      after(la, function () { lead.style.filter = ''; }, 2400);
+    }
+
+    /* кристалл проявляется + лента лотов запускается */
+    if (gem) A.animate(gem.st, { reveal: 1, duration: 2600, delay: 600, ease: 'outQuart', onUpdate: function () { if (!gem.isLoopRunning()) gem.draw(); } });
+    var priceEl = $('.ticket__price b');
+    if (priceEl) {
+      var target = parseInt(String(priceEl.textContent).replace(/\D/g, ''), 10) || 0;
+      var o = { v: 0 };
+      priceEl.textContent = '0';
+      A.animate(o, { v: target, duration: 1500, delay: 1700, ease: 'outExpo', onUpdate: function () { priceEl.textContent = fmt(o.v); }, onComplete: function () { priceEl.textContent = fmt(target); } });
+    }
+    setupFeed(d, A, M);
+
+    /* 3. Появление при скролле — Motion (inView), один раз: сдвиг + фокус */
     M.inView('[data-reveal]', function (node) {
       var delay = parseFloat(node.getAttribute('data-delay')) || 0;
       var a = M.animate(node,
-        { opacity: [0, 1], transform: ['translateY(24px)', 'translateY(0px)'] },
-        { duration: 1.1, delay: delay, ease: EASE });
-      var done = function () { node.style.opacity = ''; node.style.transform = ''; };
-      if (a && a.finished && a.finished.then) a.finished.then(done, done);
-      else setTimeout(done, (1.1 + delay) * 1000 + 80);
-    }, { amount: 0.2, margin: '0px 0px -6% 0px' });
+        { opacity: [0, 1], transform: ['translateY(28px)', 'translateY(0px)'], filter: ['blur(8px)', 'blur(0px)'] },
+        { duration: 1.15, delay: delay, ease: EASE });
+      after(a, function () { clearStyles(node); }, (1.15 + delay) * 1000 + 80);
+    }, { amount: 0.18, margin: '0px 0px -6% 0px' });
 
-    M.inView('[data-rule]', function (node) {
-      var a = M.animate(node, { transform: ['scaleX(0)', 'scaleX(1)'] }, { duration: 1.6, ease: EASE });
-      var done = function () { node.style.transform = ''; };
-      if (a && a.finished && a.finished.then) a.finished.then(done, done);
-      else setTimeout(done, 1700);
-    }, { amount: 0.1 });
+    /* 4. Карточки тарифов: цена «набегает», галочки рисуются */
+    M.inView('.plan', function (card) {
+      var cnt = $('[data-count]', card);
+      if (cnt) {
+        var tv = parseInt(cnt.getAttribute('data-count'), 10) || 0, ob = { v: 0 };
+        cnt.textContent = '0';
+        A.animate(ob, { v: tv, duration: 1400, delay: 400, ease: 'outExpo', onUpdate: function () { cnt.textContent = fmt(ob.v); }, onComplete: function () { cnt.textContent = fmt(tv); } });
+      }
+      var paths = $$('.tick path', card);
+      if (paths.length) {
+        paths.forEach(function (p) { p.style.strokeDashoffset = '24'; });
+        A.animate(paths, { strokeDashoffset: [24, 0], duration: 650, delay: A.stagger(160, { start: 650 }), ease: 'outQuad' });
+      }
+    }, { amount: 0.35 });
   }
 
   /* ---------- Запуск ---------- */
@@ -536,7 +550,7 @@
     var node = $('#boot');
     if (!node) return;
     node.classList.add('done');
-    setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); }, 800);
+    setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); }, 900);
   }
 
   function fail() {
@@ -549,6 +563,7 @@
   function render(d) {
     renderHeader(d);
     renderHero(d);
+    renderMarquee(d);
     renderTrackers(d);
     renderSupport(d);
     renderFooter(d);
@@ -566,7 +581,8 @@
       .then(function (d) { return fontsReady().then(function () { return d; }); })
       .then(function (d) {
         render(d);
-        setupMotion();
+        setupMotion(d);
+        if (FX.sky) FX.sky.init({ lite: weak, reduce: reduceMotion });
         bootDone();
       })
       .catch(function (err) {

@@ -7,32 +7,46 @@
   ],
 
   "hero": {
-    "kicker": "Telegram · NFT-подарки",
+    "chip": "Лоты в реальном времени",
     "title": "Лови NFT-подарки ниже рынка",
     "accentWords": 2,
-    "lead": "Бот следит за лотами в реальном времени и присылает те, что дешевле рынка.",
+    "lead": "Бот следит за лотами и присылает в Telegram те, что дешевле рынка.",
     "steps": ["Открой бота", "Выбери темы", "Жми WORK"],
-    "scroll": "Выбрать трекер"
+    "cta": "Выбрать трекер"
   },
 
-  "lot": {
-    "tag": "Пример лота",
-    "name": "Plush Pepe",
-    "number": "#1337",
-    "price": "1 240",
-    "below": "−18% к рынку"
+  "feed": {
+    "tag": "Лента лотов",
+    "note": "Пример. Цифры условные.",
+    "below": "к рынку",
+    "button": "WORK",
+    "lots": [
+      { "name": "Plush Pepe", "number": "#1337", "price": 1240, "off": "−18%" },
+      { "name": "Durov's Cap", "number": "#842", "price": 2890, "off": "−11%" },
+      { "name": "Astral Shard", "number": "#5120", "price": 760, "off": "−23%" },
+      { "name": "Swiss Watch", "number": "#209", "price": 4350, "off": "−9%" },
+      { "name": "Mini Oscar", "number": "#3317", "price": 1980, "off": "−15%" }
+    ]
   },
+
+  "marquee": [
+    "Plush Pepe", "Durov's Cap", "Astral Shard", "Swiss Watch", "Mini Oscar",
+    "Loot Bag", "Low Rider", "Scared Cat", "Nail Bracelet", "Westside Sign"
+  ],
 
   "trackers": {
-    "title": "Трекеры",
+    "title": "Выбери трекер",
     "items": [
       {
         "id": "premium",
         "label": "Премиум",
+        "badge": "Полный доступ",
         "handle": "BrawlikKrutoy_Bot",
-        "lead": "Полный доступ ко всем темам.",
-        "price": "30 TON",
-        "priceNote": "один платёж · навсегда",
+        "lead": "Все темы без ограничений.",
+        "price": "10 TON",
+        "priceNum": 10,
+        "priceUnit": "TON",
+        "priceNote": "подписка навсегда",
         "points": [
           "Фильтры по цене и редкости",
           "Данные продавца в карточке",
@@ -43,10 +57,11 @@
       {
         "id": "free",
         "label": "Бесплатный",
+        "badge": "Старт",
         "handle": "FreeTrackNft_bot",
         "lead": "Чтобы познакомиться с трекером.",
-        "price": "0 TON",
-        "priceNote": "без оплаты и подписок",
+        "price": "Бесплатно",
+        "priceNote": "без оплаты",
         "points": [
           "Базовые возможности"
         ],
