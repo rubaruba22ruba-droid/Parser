@@ -1,0 +1,16 @@
+# Секреты и данные бота — НИКОГДА не коммитить в этот репозиторий (он публичный)
+.env
+.env.*
+!.env.example
+*.session
+*.session-journal
+*.db
+sessions/
+
+# Сборка/окружение
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store

@@ -1,0 +1,3 @@
+/* Подключается только если JavaScript выключен (через <noscript> в index.html). */
+.boot { display: none; }
+.fallback { display: grid; }

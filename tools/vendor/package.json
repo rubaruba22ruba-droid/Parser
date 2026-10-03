@@ -1,0 +1,15 @@
+{
+  "name": "nft-tracker-site-vendor",
+  "private": true,
+  "description": "Собирает минимальный бандл анимаций (Anime.js + Motion) в assets/js/vendor.js",
+  "scripts": {
+    "build": "esbuild entry.mjs --bundle --minify --format=iife --target=es2019 --legal-comments=none --banner:js=\"/*! vendor bundle: animejs@4.5.0 (MIT, Julian Garnier) + motion@14.0.0 (MIT, Matt Perry). See vendor.LICENSE.txt */\" --outfile=../../assets/js/vendor.js"
+  },
+  "dependencies": {
+    "animejs": "4.5.0",
+    "motion": "14.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
