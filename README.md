@@ -14,7 +14,6 @@ assets/js/app.js      рендер из site.json + анимации
 assets/js/vendor.js   Anime.js + Motion (урезанная сборка, ~21 КБ gzip)
 assets/fonts, img     шрифт Inter (свой), иконки, превью для Telegram
 404.html, robots.txt, site.webmanifest, .nojekyll
-parser-app/           прежний мини-апп «NFT Parser Pro» (перенесён из корня, не удалён)
 tools/vendor/         исходники сборки vendor.js
 ```
 
