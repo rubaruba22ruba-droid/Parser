@@ -103,7 +103,7 @@ main, .top, .foot { position: relative; z-index: 2; }
   transition: opacity 3.2s ease;
   contain: strict;
 }
-.canopy.on { opacity: .92; }
+.canopy.on { opacity: 1; }
 .canopy canvas {
   position: absolute;
   display: block;
@@ -211,6 +211,7 @@ main, .top, .foot { position: relative; z-index: 2; }
 .btn--line { border-color: var(--line-2); color: var(--ink); }
 
 /* ---------- Hero ---------- */
+.hero { overflow-x: clip; }
 .hero { padding: 18px 0 clamp(36px, 6vw, 80px); }
 .hero__in {
   display: grid;
@@ -397,7 +398,6 @@ main, .top, .foot { position: relative; z-index: 2; }
 }
 @media (max-width: 759px) {
   .stage { max-width: 420px; aspect-ratio: 1 / 1; }
-  .canopy.on { opacity: .86; }
 }
 @media (max-width: 370px) {
   .brand > span:last-child { display: none; }

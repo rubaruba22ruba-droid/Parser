@@ -1047,9 +1047,9 @@
       { fx: 0.99, fy: 0.10, cx: 0.98, cy: 0.30 }
     ];
     var VARS_N = [
-      { fx: 0.80, fy: -0.02, cx: 0.86, cy: 0.40 },
-      { fx: 0.78, fy: 0.01, cx: 0.60, cy: 0.06 },
-      { fx: 0.82, fy: -0.04, cx: 0.90, cy: 0.24 }
+      { fx: 0.80, fy: 0.14, cx: 0.86, cy: 0.42 },
+      { fx: 0.78, fy: 0.16, cx: 0.60, cy: 0.10 },
+      { fx: 0.82, fy: 0.12, cx: 0.92, cy: 0.26 }
     ];
     var lastVar = -1, vr = null;
     var P0 = { x: 0, y: 0 }, P1 = { x: 0, y: 0 }, P2 = { x: 0, y: 0 };
@@ -1296,6 +1296,14 @@
   var GROUND = 0.935;                  /* линия «земли» в долях высоты сцены */
   var PERSP = 900;                     /* перспектива наклона, px */
 
+  /* кэш кадров: цикл запекается один раз (60 кадров, шаг 3) и дальше играется простым копированием.
+     Так нагрузка постоянна и мала на любом устройстве, а Lottie больше не рисует 28 слоёв каждый кадр. */
+  var N_SLOTS = 60, SLOT_STEP = CYC / N_SLOTS;
+  var MEM_BUD = 58e6;                  /* байт на кэш кадров */
+  var LIVE_MAX = 6.5;                  /* мс: если кадр с растеризацией дешевле — рисуем вживую (только мышь/десктоп) */
+  var FILL_COST = 18;                  /* мс: целевая цена одного кадра при запекании (подгоняет разрешение) */
+  var FILL_MS = 7;                     /* мс на тик, которые можно тратить на запекание */
+
   /* подгоняем данные: обрезаем пустые поля композиции, чтобы холст был минимальным.
      Если файл не тот (другие размеры/слои) — показываем композицию целиком, без обрезки. */
   function prepareData(d) {
@@ -1326,7 +1334,7 @@
     var mode = 'wait';                 /* wait — грузим оригинал; lottie; vector — запасной рисунок */
     var ready = false;                 /* персонаж показан */
     var G = null;                      /* геометрия оригинала в координатах композиции */
-    var anim = null, lotHost = null, lotLoaded = false, lotFailed = false, onWinErr = null;
+    var anim = null, lotLoaded = false, lotFailed = false, onWinErr = null;
     var fb = null, fbReady = false;
     var kiss = null;
 
@@ -1358,30 +1366,28 @@
       c.fillStyle = g; c.beginPath(); c.arc(0, 0, w * 0.41, 0, TAU); c.fill();
     })();
 
+    /* экран оригинала: размеры в CSS задаёт layout(), разрешение — плеер */
+    var dc = doc.createElement('canvas');
+    abs(dc); dc.style.display = 'block';
+    var dctx = null;
+    rig.appendChild(dc);
+
     /* ---------- размеры и положение ---------- */
     var lay = { cw: 0, ch: 0, mx: 0, my: 0, ok: false, narrow: false };
     var sc = 1;                         /* css-пикселей на единицу композиции */
-    var level = lite ? 1 : 0;           /* 0: до 60 к/с; 1: 30 к/с; 2: 30 к/с и меньше пикселей; 3: ещё экономнее */
-    var QUAL = [1, 1, 0.78, 0.62], MINI = [15, 30, 30, 44];
-    function wantDpr() {
-      var cap = lite ? 1.25 : (hasPtr ? 2 : 1.5);
-      return Math.max(0.7, Math.min(win.devicePixelRatio || 1, cap) * QUAL[level]);
-    }
+    var onSized = noop;
     function layout() {
       var cw = container.clientWidth, ch = container.clientHeight;
       if (cw < 40 || ch < 40) return false;
       lay.cw = cw; lay.ch = ch; lay.narrow = cw < 470;
-      var s, gy = ch * GROUND;
+      var gy = ch * GROUND;
       if (G) {
         sc = Math.min(ch * FILL / G.ch, cw * 0.92 / G.cw);
-        s = sc;
-        if (lotHost) {
-          var hs = lotHost.style;
-          hs.width = fx(G.w * s, 1) + 'px'; hs.height = fx(G.h * s, 1) + 'px';
-          hs.left = fx(cw / 2 - G.ax * s, 1) + 'px'; hs.top = fx(gy - G.gy * s, 1) + 'px';
-        }
-        lay.mx = cw / 2 - G.ax * s + G.mx * s;
-        lay.my = gy - G.gy * s + G.my * s;
+        var hs = dc.style;
+        hs.width = fx(G.w * sc, 1) + 'px'; hs.height = fx(G.h * sc, 1) + 'px';
+        hs.left = fx(cw / 2 - G.ax * sc, 1) + 'px'; hs.top = fx(gy - G.gy * sc, 1) + 'px';
+        lay.mx = cw / 2 - G.ax * sc + G.mx * sc;
+        lay.my = gy - G.gy * sc + G.my * sc;
       } else if (fb) {
         lay.mx = cw * ((650 + OX) / VIEW); lay.my = ch * ((380 + OY) / VIEW);
       } else { lay.mx = cw * 0.58; lay.my = ch * 0.38; }
@@ -1418,8 +1424,183 @@
       return rect;
     }
 
-    /* ---------- Lottie: загрузка (JSON и библиотека параллельно) ---------- */
+    /* ==========================================================================
+       Плеер оригинала
+       rc — рабочий холст за кадром (сюда рисует Lottie), dc — экран.
+       live: каждый кадр рисуем заново; cache: цикл запечён в атласы, играем копированием.
+       ========================================================================== */
+    var rc = doc.createElement('canvas'), rctx = null;
+    var pm = 'none';                    /* none | still | live | fill | cache */
+    var pw = 0, ph = 0, dprUse = 1;     /* размер рабочего холста и текущее разрешение */
+    var cache = null, bld = null;       /* готовый кэш и кэш в сборке */
+    var fillCool = 0, probeMs = 0, lastKey = -1, xfade = true;
     var costEma = 0, costN = 0;
+
+    function baseDpr() { return Math.max(0.8, Math.min(win.devicePixelRatio || 1, lite ? 1.25 : (hasPtr ? 2 : 1.5))); }
+    function applySize() {
+      pw = Math.max(8, Math.round(G.w * sc * dprUse)); ph = Math.max(8, Math.round(G.h * sc * dprUse));
+      rc.width = pw; rc.height = ph;
+      if (anim) { try { anim.resize(); } catch (e0) { /* игнор */ } }
+    }
+    /* кадр оригинала -> rc; false, если что-то сломалось */
+    function renderLot(frame) {
+      if (!anim) return false;
+      var t0 = now();
+      try { anim.goToAndStop(frame, true); } catch (e8) { return false; }
+      var c = now() - t0;
+      costEma = costN ? costEma * 0.88 + c * 0.12 : c;
+      costN++;
+      return true;
+    }
+    function present() {
+      if (dc.width !== pw || dc.height !== ph) { dc.width = pw; dc.height = ph; dctx = null; }
+      if (!dctx) dctx = dc.getContext('2d');
+      if (!dctx) return;
+      dctx.globalCompositeOperation = 'copy';
+      dctx.globalAlpha = 1;
+      dctx.drawImage(rc, 0, 0);
+      dctx.globalCompositeOperation = 'source-over';
+    }
+    /* реальная цена кадра вместе с растеризацией (3 пробных кадра за кадром) */
+    function probe() {
+      var t = [], i, t0, pc = doc.createElement('canvas'), pcx = null;
+      pc.width = 1; pc.height = 1;
+      try { pcx = pc.getContext('2d', { willReadFrequently: true }); } catch (e1) { pcx = null; }
+      for (i = 0; i < 4; i++) {
+        t0 = now();
+        if (!renderLot(21 + i * 38)) return -1;
+        try { if (pcx) { pcx.drawImage(rc, 0, 0, 1, 1, 0, 0, 1, 1); pcx.getImageData(0, 0, 1, 1); } } catch (e3) { /* игнор */ }
+        t.push(now() - t0);
+      }
+      t.shift(); t.sort(function (a, b) { return a - b; });
+      return t[1];
+    }
+
+    function newBuild() {
+      var cols = Math.max(1, Math.min(5, Math.floor(4096 / pw))), per = cols * 3;
+      return { w: pw, h: ph, n: 0, cols: cols, per: per, atl: [], ctx: [] };
+    }
+    function putSlot(b, i) {
+      var a = Math.floor(i / b.per), j = i % b.per;
+      if (!b.atl[a]) {
+        var left = Math.min(b.per, N_SLOTS - a * b.per), cv2 = doc.createElement('canvas');
+        cv2.width = b.cols * b.w; cv2.height = Math.ceil(left / b.cols) * b.h;
+        b.atl[a] = cv2; b.ctx[a] = cv2.getContext('2d');
+        if (!b.ctx[a]) return false;
+      }
+      b.ctx[a].drawImage(rc, (j % b.cols) * b.w, Math.floor(j / b.cols) * b.h);
+      return true;
+    }
+    function startBuild() {
+      bld = newBuild();
+      fillCool = 0;
+    }
+    function fillStep(dRaw) {
+      if (fillCool > 0) { fillCool--; return; }
+      var b = bld, t0 = now();
+      do {
+        if (!renderLot(b.n * SLOT_STEP)) { lotFail(); return; }
+        try { if (!putSlot(b, b.n)) { cacheFail(); return; } } catch (e2) { cacheFail(); return; }
+        b.n++;
+      } while (b.n < N_SLOTS && now() - t0 < FILL_MS);
+      if (dRaw > 30) fillCool = 1;                      /* не душим главный поток */
+      if (b.n >= N_SLOTS) {
+        cache = b; bld = null; lastKey = -1;
+        pm = 'cache';
+        if (dc.width !== cache.w || dc.height !== cache.h) { dc.width = cache.w; dc.height = cache.h; dctx = null; }
+        if (!dctx) dctx = dc.getContext('2d');
+        showSlot(0, 0);
+        reveal();
+      }
+    }
+    /* не вышло запечь (нет памяти и т.п.): играем вживую в сниженном разрешении */
+    function cacheFail() {
+      bld = null; cache = null;
+      dprUse = Math.max(0.8, dprUse * 0.75); applySize();
+      pm = 'live'; level = 1;
+      present(); reveal();
+    }
+    function showSlot(i, q) {
+      var c = cache, a, j, x, y, i1 = (i + 1) % c.n;
+      function blit(k, op, al) {
+        a = Math.floor(k / c.per); j = k % c.per;
+        x = (j % c.cols) * c.w; y = Math.floor(j / c.cols) * c.h;
+        dctx.globalCompositeOperation = op; dctx.globalAlpha = al;
+        dctx.drawImage(c.atl[a], x, y, c.w, c.h, 0, 0, c.w, c.h);
+      }
+      if (q <= 0) blit(i, 'copy', 1);
+      else { blit(i, 'copy', 1 - q); blit(i1, 'lighter', q); }
+      dctx.globalCompositeOperation = 'source-over'; dctx.globalAlpha = 1;
+    }
+    /* кадр времени -> кэш; между соседними слотами плавное «перекрытие» (честный кроссфейд) */
+    function playCache(frame) {
+      var c = cache, pos = frame / SLOT_STEP, i = Math.floor(pos), f = pos - i, q = xfade ? Math.round(f * 3) : Math.round(f);
+      i %= c.n;
+      if (q >= (xfade ? 3 : 1)) { i = (i + 1) % c.n; q = 0; }
+      var key = i * 4 + q;
+      if (key === lastKey) return;
+      lastKey = key;
+      showSlot(i, xfade ? q / 3 : 0);
+    }
+
+    /* подготовка плеера после загрузки данных: меряем цену кадра и выбираем режим */
+    function setupPlayer() {
+      rctx = rc.getContext('2d');
+      if (!rctx) { lotFail(); return; }
+      dprUse = baseDpr();
+      applySize();
+      if (reduce) {
+        if (!renderLot(0)) { lotFail(); return; }
+        present(); pm = 'still'; reveal();
+        return;
+      }
+      var c = probe();
+      if (c < 0) { lotFail(); return; }
+      probeMs = c;
+      if (hasPtr && !lite && c <= LIVE_MAX) {
+        pm = 'live';
+        present(); reveal();
+        return;
+      }
+      /* кэш: разрешение — по цене кадра и объёму памяти */
+      var cssW = G.w * sc, cssH = G.h * sc;
+      var dm = Math.sqrt(MEM_BUD / (4 * N_SLOTS * cssW * cssH));
+      var dtm = dprUse * Math.sqrt(FILL_COST / Math.max(c, 0.5));
+      var d = clamp(Math.min(dprUse, dm, dtm), 0.8, dprUse);
+      if (d < dprUse - 0.02) { dprUse = d; applySize(); }
+      pm = 'fill';
+      startBuild();
+    }
+    /* вживую стало тяжело -> запекаем (кадр на экране замирает на пару секунд) */
+    function toCache() {
+      if (pm !== 'live') return;
+      var c = probe();
+      if (c < 0) { lotFail(); return; }
+      probeMs = c;
+      var cssW = G.w * sc, cssH = G.h * sc;
+      var dm = Math.sqrt(MEM_BUD / (4 * N_SLOTS * cssW * cssH));
+      var dtm = dprUse * Math.sqrt(FILL_COST / Math.max(c, 0.5));
+      var d = clamp(Math.min(dprUse, dm, dtm), 0.8, dprUse);
+      if (d < dprUse - 0.02) { dprUse = d; applySize(); }
+      pm = 'fill';
+      startBuild();
+    }
+    /* размер сцены изменился */
+    function resizePlayer() {
+      if (!G || !rctx || pm === 'none') return;
+      if (pm === 'live') {
+        dprUse = Math.min(dprUse, baseDpr());
+        applySize(); present();
+      } else if (pm === 'still') {
+        dprUse = baseDpr(); applySize(); renderLot(0); present();
+      } else {
+        var want = Math.max(8, Math.round(G.w * sc * dprUse));
+        var cur = cache ? cache.w : (bld ? bld.w : want);
+        if (Math.abs(want - cur) / cur > 0.2) { applySize(); startBuild(); }   /* сильно другой размер — перезапекаем в фоне */
+      }
+    }
+
+    /* ---------- Lottie: загрузка (JSON и библиотека параллельно) ---------- */
     function useFallback() {
       if (!alive || fb) return;
       mode = 'vector';
@@ -1438,9 +1619,8 @@
     function lotDrop() {
       if (onWinErr) { win.removeEventListener('error', onWinErr); onWinErr = null; }
       try { if (anim) anim.destroy(); } catch (e1) { /* игнор */ }
-      anim = null;
-      if (lotHost && lotHost.parentNode) lotHost.parentNode.removeChild(lotHost);
-      lotHost = null;
+      anim = null; bld = null; cache = null; pm = 'none';
+      dc.style.display = 'none';
     }
     function lotFail() {
       if (lotFailed) return;
@@ -1454,17 +1634,15 @@
       lotLoaded = true;
       mode = 'lottie';
       try { anim.setSubframe(true); } catch (e2) { /* игнор */ }
-      if (layout()) { try { anim.resize(); } catch (e3) { /* игнор */ } }
-      if (!renderLot(0)) { lotFail(); return; }
-      reveal();
+      if (layout()) setupPlayer(); else onSized = setupPlayer;     /* сцена ещё без размера — дождёмся */
     }
     function attach(d) {
       var L = win.lottie;
       if (!alive || mode !== 'wait' || !L || typeof L.loadAnimation !== 'function') { if (alive && mode === 'wait') useFallback(); return; }
       G = prepareData(d);
-      lotHost = doc.createElement('div');
-      abs(lotHost);
-      rig.insertBefore(lotHost, rig.firstChild);
+      rctx = rc.getContext('2d');
+      if (!rctx) { lotFail(); return; }
+      rc.width = 8; rc.height = 8;
       layout();
       /* сбой внутри самой библиотеки (в том числе позже, при отрисовке): тихо возвращаем запасной рисунок */
       onWinErr = function (ev) {
@@ -1476,8 +1654,8 @@
       win.addEventListener('error', onWinErr);
       try {
         anim = L.loadAnimation({
-          container: lotHost, renderer: 'canvas', loop: false, autoplay: false, animationData: d,
-          rendererSettings: { preserveAspectRatio: 'xMidYMid meet', clearCanvas: true, dpr: wantDpr() }
+          renderer: 'canvas', loop: false, autoplay: false, animationData: d,
+          rendererSettings: { context: rctx, preserveAspectRatio: 'xMidYMid meet', clearCanvas: true }
         });
       } catch (e5) { lotFail(); return; }
       if (!anim) { lotFail(); return; }
@@ -1515,17 +1693,6 @@
       setTimeout(function () { if (alive && mode === 'wait') useFallback(); }, 15000);
     }
 
-    /* рисует кадр оригинала; false — если что-то сломалось */
-    function renderLot(frame) {
-      if (!anim) return false;
-      var t0 = now();
-      try { anim.goToAndStop(frame, true); } catch (e8) { return false; }
-      var c = now() - t0;
-      costEma = costN ? costEma * 0.88 + c * 0.12 : c;
-      costN++;
-      return true;
-    }
-
     /* ---------- появление ---------- */
     function reveal() {
       if (ready || !alive) return;
@@ -1540,30 +1707,32 @@
       } else sync();
     }
 
-    /* ---------- «саморегуляция»: если кадры долгие — переходим в экономный режим ---------- */
+    /* ---------- «саморегуляция»: если кадры долгие — упрощаем ---------- */
+    var level = 0;                     /* только вживую: 0 — до 60 к/с, 1 — 30 к/с */
     var gov = { n: 0, bad: 0, strikes: 0, t0: 0 };
-    function degrade() {
-      if (level >= 3) return;
-      level++;
-      if (mode === 'lottie' && anim) {
-        try { anim.renderer.renderConfig.dpr = wantDpr(); anim.resize(); } catch (e9) { /* игнор */ }
-      }
-    }
     function govern(dRaf) {
-      if (!ready || simT - gov.t0 < 2.4 || dRaf > 250) return;
+      if (!ready || simT - gov.t0 < 2.4 || dRaf > 250 || bld) return;
       gov.n++;
       if (dRaf > 26) gov.bad++;
       if (gov.n >= 48) {
-        if (gov.bad > 14) { gov.strikes++; if (gov.strikes >= 2) { degrade(); gov.strikes = 0; } } else gov.strikes = 0;
+        if (gov.bad > 14) {
+          gov.strikes++;
+          if (gov.strikes >= 2) {
+            gov.strikes = 0;
+            if (win.__pd && win.__pd.nogov) { /* отладка */ }
+            else if (mode === 'lottie' && pm === 'live') toCache();
+            else if (pm === 'cache' && xfade) xfade = false;
+          }
+        } else gov.strikes = 0;
         gov.n = 0; gov.bad = 0;
       }
-      /* рендер кадра Lottie сам по себе дорогой (>8 мс) — сразу 30 к/с */
-      if (level === 0 && costN > 24 && costEma > 8) { level = 1; }
+      /* вживую один кадр сам по себе дорогой (>8 мс) — запекаем */
+      if (pm === 'live' && costN > 24 && costEma > 8 && !(win.__pd && win.__pd.nogov)) toCache();
     }
 
     /* ---------- главный цикл ---------- */
     function run() { return alive && started && visible && !doc.hidden && !reduce; }
-    var lastRender = -99, lastWall = 0, shScale = 1;
+    var lastRender = -99;
     function aim(wall) {
       var nx, ny, k = 1;
       if (hasPtr && ptr.on && wall - ptr.t < 7) {
@@ -1592,12 +1761,18 @@
       var K = lay.ch / 527;
       govern(dRaw);
 
-      /* оригинал: кадр по честному времени; при нагрузке рисуем реже, но время идёт как есть */
-      if (ready && mode === 'lottie') {
-        lotT += dt;
-        if (ts - lastRender >= MINI[level] - 2.5) {
-          lastRender = ts;
-          if (!renderLot((lotT * FPS) % CYC)) { lotFail(); return; }
+      if (mode === 'lottie') {
+        if (bld) fillStep(dRaw);
+        /* время идёт честно; кадр берём из кэша или рисуем заново (при нагрузке — реже) */
+        if (ready) {
+          lotT += dt;
+          var fr = (lotT * FPS) % CYC;
+          if (pm === 'cache' && cache) { if (!(win.__pd && win.__pd.norender)) playCache(fr); }
+          else if (pm === 'live' && ts - lastRender >= (level ? 30 : 15) - 2.5 && !(win.__pd && win.__pd.norender)) {
+            lastRender = ts;
+            if (!renderLot(fr)) { lotFail(); return; }
+            present();
+          }
         }
       } else if (mode === 'vector' && fb && fbReady) fb.step(ts);
 
@@ -1623,17 +1798,16 @@
       var sx = (1 + br * 0.6 - sq * 0.5) * sa, sy = (1 + br + sq) * sa;
       var fy = lay.ch * (GROUND - 0.58);
       var tf = 'perspective(' + PERSP + 'px) translate3d(' + fx(tx, 2) + 'px,' + fx(ty, 2) + 'px,0) rotateX(' + fx(rx, 3) + 'deg) rotateY(' + fx(ry, 3) + 'deg) rotateZ(' + fx(rz, 3) + 'deg) translate(0,' + fx(fy, 1) + 'px) scale(' + fx(sx, 4) + ',' + fx(sy, 4) + ') translate(0,' + fx(-fy, 1) + 'px)';
-      if (tf !== lastTf) { rig.style.transform = tf; lastTf = tf; }
+      if (tf !== lastTf && !(win.__pd && win.__pd.notilt)) { rig.style.transform = tf; lastTf = tf; }
       rig.style.opacity = fx(ready ? ease(clamp(ap / 0.55, 0, 1)) : 0, 3);
 
       /* тень: параллакс (уходит против наклона), сжимается, когда персонаж выше */
       var lift = clamp((-(fl * 5.2 - 4) - 4) / 14, -0.5, 1);
       var sh = (1 - lift * 0.07) * (0.94 + 0.06 * ap);
-      var shx = -ry * 1.5 * K + sRY.x * 0.0;
+      var shx = -ry * 1.5 * K;
       var shTf = 'translate3d(' + fx(shx, 2) + 'px,0,0) scale(' + fx(sh, 3) + ',' + fx(sh * (1 - rx * 0.012), 3) + ')';
       if (shTf !== lastShTf) { shadow.style.transform = shTf; lastShTf = shTf; }
-      var shTarget = (mode === 'vector' && fb) ? 0 : 1;
-      sSh.t = shTarget;
+      sSh.t = (mode === 'vector' && fb) ? 0 : 1;
       shadow.style.opacity = fx(clamp(shA, 0, 1) * (1 - lift * 0.18), 3);
     }
     function sync() {
@@ -1650,16 +1824,19 @@
       rectDirty = true;
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(function () {
-        var had = lay.ok;
         if (!layout()) return;
-        if (anim) { try { anim.renderer.renderConfig.dpr = wantDpr(); anim.resize(); } catch (e10) { /* игнор */ } }
+        if (onSized !== noop) { var f = onSized; onSized = noop; f(); return; }
+        resizePlayer();
         if (fb) fb.resize();
         if (kiss && reduce && ready) kiss.showStatic();
-        if (!had && mode === 'lottie' && !ready) reveal();
       }, 140);
     }
 
-    return {
+    var api = {
+      info: function () {
+        return { mode: mode, pm: pm, level: level, dpr: dprUse, probe: probeMs, cost: costEma, ready: ready, w: lay.cw,
+                 canvas: [dc.width, dc.height], cache: cache ? [cache.w, cache.h, cache.n] : null, bld: bld ? bld.n : null, xfade: xfade };
+      },
       start: function () {
         if (started) return;
         started = true;
@@ -1670,7 +1847,6 @@
           if (kiss) layout();
         }
         sSh.t = 1;
-        gov.t0 = 0;
         if (hasPtr) {
           win.addEventListener('pointermove', onPointer, { passive: true });
           doc.documentElement.addEventListener('mouseleave', onLeave);
@@ -1696,6 +1872,8 @@
         if (fb) fb.nudge(v);
       }
     };
+    FX.pepe.last = api;
+    return api;
   }
 
   FX.pepe = { create: create };
