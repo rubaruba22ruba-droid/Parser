@@ -28,6 +28,8 @@
   var HANDLE_RE = /^[A-Za-z][A-Za-z0-9_]{4,31}$/;
   var EASE = [0.16, 1, 0.3, 1];
   var FX = window.NTFX || {};
+  var BUILD = (function () { var m = document.querySelector('meta[name="build"]'); return m ? String(m.content).replace(/\D/g, '').slice(0, 14) : ''; })();
+  function vq(u) { return BUILD ? u + '?v=' + BUILD : u; }
 
   var mq = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
   var reduceMotion = mq('(prefers-reduced-motion: reduce)');
@@ -183,7 +185,7 @@
     box.setAttribute('aria-label', clean(m && m.alt, 120) || 'Plush Pepe');
     /* путь к оригинальной анимации (Lottie) — только внутри assets/ */
     var src = clean(m && m.src, 120);
-    if (/^assets\/[A-Za-z0-9_\-\/.]+\.json$/.test(src) && src.indexOf('..') === -1) box.setAttribute('data-src', src);
+    if (/^assets\/[A-Za-z0-9_\-\/.]+\.json$/.test(src) && src.indexOf('..') === -1) box.setAttribute('data-src', vq(src));
     inner.appendChild(box);
     stage.appendChild(inner);
     return stage;
@@ -482,7 +484,7 @@
   }
 
   function start() {
-    fetch('data/site.json', { credentials: 'same-origin' })
+    fetch(vq('data/site.json'), { credentials: 'same-origin' })
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(function (d) { return fontsReady().then(function () { return d; }); })
       .then(function (d) {

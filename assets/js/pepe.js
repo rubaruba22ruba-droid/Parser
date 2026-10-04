@@ -952,15 +952,15 @@
     var gid = 'pkg' + (++kissUid);
     var defs = svgEl('defs', {}, sv);
     var rg = svgEl('radialGradient', { id: gid, cx: '.34', cy: '.26', r: '.92' }, defs);
-    svgEl('stop', { offset: '0', 'stop-color': '#ffc6dc' }, rg);
-    svgEl('stop', { offset: '.5', 'stop-color': '#ff9fc4' }, rg);
-    svgEl('stop', { offset: '1', 'stop-color': '#ea739d' }, rg);
+    svgEl('stop', { offset: '0', 'stop-color': '#ffbfd5' }, rg);
+    svgEl('stop', { offset: '.5', 'stop-color': '#f7a8c5' }, rg);
+    svgEl('stop', { offset: '1', 'stop-color': '#ec88ac' }, rg);
     svgEl('path', { d: HEART_D, fill: 'url(#' + gid + ')', stroke: RIM, 'stroke-width': '3.6', 'stroke-linejoin': 'round' }, sv);
     /* блики: крупный глянцевый, малый, точка и отражённый свет по нижнему краю */
-    svgEl('ellipse', { cx: '40', cy: '31', rx: '17', ry: '8.2', transform: 'rotate(-36 40 31)', fill: '#fff', 'fill-opacity': '.9' }, sv);
-    svgEl('circle', { cx: '22.5', cy: '53', r: '3.3', fill: '#fff', 'fill-opacity': '.9' }, sv);
-    svgEl('ellipse', { cx: '150', cy: '24', rx: '9.5', ry: '3.4', transform: 'rotate(-20 150 24)', fill: '#fff', 'fill-opacity': '.7' }, sv);
-    svgEl('path', { d: 'M178 70 C174 100 142 134 110 154', fill: 'none', stroke: '#ffd3e3', 'stroke-width': '3', 'stroke-linecap': 'round', 'stroke-opacity': '.75' }, sv);
+    svgEl('ellipse', { cx: '40', cy: '31', rx: '17', ry: '8.2', transform: 'rotate(-36 40 31)', fill: '#fff', 'fill-opacity': '.28' }, sv);
+    svgEl('circle', { cx: '22.5', cy: '53', r: '3.3', fill: '#fff', 'fill-opacity': '.25' }, sv);
+    svgEl('ellipse', { cx: '150', cy: '24', rx: '9.5', ry: '3.4', transform: 'rotate(-20 150 24)', fill: '#fff', 'fill-opacity': '.15' }, sv);
+    svgEl('path', { d: 'M178 70 C174 100 142 134 110 154', fill: 'none', stroke: '#ffd3e3', 'stroke-width': '3', 'stroke-linecap': 'round', 'stroke-opacity': '.2' }, sv);
     svgEl('path', { d: HEART_D, fill: 'none', stroke: RIM, 'stroke-width': '3.6', 'stroke-linejoin': 'round' }, sv);
 
     function mkText(wt) {
@@ -1005,9 +1005,9 @@
     var plan = null;
     function makePlan() {
       var narrow = lay.narrow;
-      var base = narrow ? 178 : 210;
-      var minPx = narrow ? 13 : 12.5;
-      var wmax = Math.min(narrow ? 236 : 250, lay.cw * 0.7);
+      var base = narrow ? 132 : 146;
+      var minPx = narrow ? 10.5 : 10.5;
+      var wmax = Math.min(narrow ? 170 : 184, lay.cw * 0.5);
       var per2 = tw(full2, 100, 700) / 100;
       var per1 = title ? tw(title, 100, 600) / 100 : 0;
       var f2 = Math.min(148 / per2, 21);
@@ -1286,7 +1286,7 @@
   /* ==========================================================================
      ОРИГИНАЛ (Lottie): геометрия, измеренная по альфа-каналу всех кадров цикла
      ========================================================================== */
-  var CYC = 180, FPS = 60;
+  var CYC = 180, FPS = 60, RATE = 0.5;   /* RATE: цикл идёт медленнее (≈6 с вместо 3 с) */
   /* рамка, в которую персонаж укладывается во ВСЕХ кадрах (композиция 512×512, масштаб слоя 63% учтён) */
   var CROP = { x: 96, y: 88, w: 332, h: 340 };
   /* объединённый bbox персонажа, центр масс по горизонтали (ax) и «земля» (gy — низ стоп) */
@@ -1436,7 +1436,7 @@
     var fillCool = 0, probeMs = 0, lastKey = -1, xfade = true;
     var costEma = 0, costN = 0;
 
-    function baseDpr() { return Math.max(0.8, Math.min(win.devicePixelRatio || 1, lite ? 1.25 : (hasPtr ? 2 : 1.5))); }
+    function baseDpr() { return Math.max(0.8, Math.min(win.devicePixelRatio || 1, lite ? 1.25 : (hasPtr ? 2 : 1.15))); }
     function applySize() {
       pw = Math.max(8, Math.round(G.w * sc * dprUse)); ph = Math.max(8, Math.round(G.h * sc * dprUse));
       rc.width = pw; rc.height = ph;
@@ -1708,7 +1708,7 @@
     }
 
     /* ---------- «саморегуляция»: если кадры долгие — упрощаем ---------- */
-    var level = 0;                     /* только вживую: 0 — до 60 к/с, 1 — 30 к/с */
+    var level = hasPtr ? 0 : 1;        /* только вживую: 0 — до 60 к/с, 1 — 30 к/с (на телефоне сразу 30) */
     var gov = { n: 0, bad: 0, strikes: 0, t0: 0 };
     function govern(dRaf) {
       if (!ready || simT - gov.t0 < 2.4 || dRaf > 250 || bld) return;
@@ -1766,7 +1766,7 @@
         /* время идёт честно; кадр берём из кэша или рисуем заново (при нагрузке — реже) */
         if (ready) {
           lotT += dt;
-          var fr = (lotT * FPS) % CYC;
+          var fr = (lotT * FPS * RATE) % CYC;
           if (pm === 'cache' && cache) { if (!(win.__pd && win.__pd.norender)) playCache(fr); }
           else if (pm === 'live' && ts - lastRender >= (level ? 30 : 15) - 2.5 && !(win.__pd && win.__pd.norender)) {
             lastRender = ts;
@@ -1792,7 +1792,7 @@
       var fl = Math.sin(simT * 1.17) * 0.62 + Math.sin(simT * 0.71 + 0.7) * 0.38;
       var ty = (fl * 5.2 - 4) * K + sScr.x * 1.1 * K + (1 - ap) * 16 * K;
       var tx = sRY.x * 0.9 * K;
-      var cyc = (lotT * FPS) / CYC;
+      var cyc = (lotT * FPS * RATE) / CYC;
       var br = Math.sin(cyc * TAU + 0.5) * 0.0055;
       var sa = 0.86 + 0.14 * ap;
       var sx = (1 + br * 0.6 - sq * 0.5) * sa, sy = (1 + br + sq) * sa;
