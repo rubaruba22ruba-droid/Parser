@@ -1,39 +1,43 @@
 {
   "brand": "NFT Tracker",
-
   "nav": [
-    { "label": "Трекеры", "href": "#trackers" },
-    { "label": "Поддержка", "href": "#support" }
+    {
+      "label": "Трекеры",
+      "href": "#trackers"
+    },
+    {
+      "label": "Поддержка",
+      "href": "#support"
+    }
   ],
-
   "hero": {
     "chip": "Лоты в реальном времени",
     "title": "Лови NFT-подарки ниже рынка",
     "accentWords": 2,
     "lead": "Бот следит за лотами и присылает в Telegram те, что дешевле рынка.",
-    "steps": ["Открой бота", "Выбери темы", "Жми WORK"],
+    "steps": [
+      "Открой бота",
+      "Выбери темы",
+      "Жми WORK"
+    ],
     "cta": "Выбрать трекер"
   },
-
-  "feed": {
-    "tag": "Лента лотов",
-    "note": "Пример. Цифры условные.",
-    "below": "к рынку",
-    "button": "WORK",
-    "lots": [
-      { "name": "Plush Pepe", "number": "#1337", "price": 1240, "off": "−18%" },
-      { "name": "Durov's Cap", "number": "#842", "price": 2890, "off": "−11%" },
-      { "name": "Astral Shard", "number": "#5120", "price": 760, "off": "−23%" },
-      { "name": "Swiss Watch", "number": "#209", "price": 4350, "off": "−9%" },
-      { "name": "Mini Oscar", "number": "#3317", "price": 1980, "off": "−15%" }
-    ]
+  "pepe": {
+    "alt": "Plush Pepe обнимает сердце",
+    "src": ""
   },
-
   "marquee": [
-    "Plush Pepe", "Durov's Cap", "Astral Shard", "Swiss Watch", "Mini Oscar",
-    "Loot Bag", "Low Rider", "Scared Cat", "Nail Bracelet", "Westside Sign"
+    "Plush Pepe",
+    "Durov's Cap",
+    "Astral Shard",
+    "Swiss Watch",
+    "Mini Oscar",
+    "Loot Bag",
+    "Low Rider",
+    "Scared Cat",
+    "Nail Bracelet",
+    "Westside Sign"
   ],
-
   "trackers": {
     "title": "Выбери трекер",
     "items": [
@@ -69,13 +73,11 @@
       }
     ]
   },
-
   "support": {
     "title": "Остались вопросы?",
     "text": "Оплата, доступ, сотрудничество — пишите напрямую.",
     "handle": "entoni"
   },
-
   "footer": {
     "left": "NFT Tracker",
     "right": "Независимый проект, не связан с Telegram."

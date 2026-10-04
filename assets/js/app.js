@@ -7,7 +7,7 @@
    • страница не встраивается в чужой <iframe>.
 
    Анимации: Anime.js (интро, счётчики, рисование галочек) + Motion (появление при скролле,
-   смена карточек в ленте). Фон — sky.js (сакура и лепестки), кристалл — gem.js.
+   Фон — sky.js (сакура и лепестки), герой — pepe.js (анимированный Plush Pepe).
    Учитывает prefers-reduced-motion и слабые устройства.
    ========================================================================== */
 (function () {
@@ -100,7 +100,7 @@
     var brand = el('a', 'brand');
     brand.href = '#hero';
     var mark = el('span', 'brand__mark');
-    mark.appendChild(icon('gem'));
+    mark.appendChild(icon('flower'));
     brand.appendChild(mark);
     brand.appendChild(el('span', '', clean(d.brand, 40)));
     wrap.appendChild(brand);
@@ -170,54 +170,21 @@
     }
     wrap.appendChild(foot);
 
-    wrap.appendChild(renderStage(d.feed || {}));
+    wrap.appendChild(renderStage(d.pepe || {}));
     host.appendChild(wrap);
   }
 
-  function validLot(l) { return l && clean(l.name, 40) && num(l.price, -1) >= 0; }
-
+  /* Сцена героя: контейнер для анимированного Plush Pepe (рисует pepe.js) */
   function renderStage(m) {
     var stage = el('div', 'stage');
     var inner = el('div', 'stage__in');
-    var canvas = el('canvas');
-    canvas.setAttribute('aria-hidden', 'true');
-    inner.appendChild(canvas);
-
-    var lots = list(m.lots, 8).filter(validLot);
-    var first = lots[0];
-    if (first) {
-      var feed = el('div', 'feed');
-      var card = el('div', 'feed__card');
-      card.appendChild(el('div', 'feed__stack'));
-      card.appendChild(el('div', 'feed__stack'));
-
-      var t = el('article', 'ticket');
-      var head = el('div', 'ticket__head');
-      var tag = el('span');
-      tag.appendChild(el('i', 'dot'));
-      tag.appendChild(doc.createTextNode(clean(m.tag, 30)));
-      head.appendChild(tag);
-      t.appendChild(head);
-
-      var body = el('div', 'ticket__body');
-      var name = el('div', 'ticket__name', clean(first.name, 40));
-      name.appendChild(el('small', '', clean(first.number, 16)));
-      body.appendChild(name);
-      var row = el('div', 'ticket__row');
-      var price = el('span', 'ticket__price');
-      price.appendChild(icon('star'));
-      price.appendChild(el('b', '', fmt(num(first.price, 0))));
-      row.appendChild(price);
-      row.appendChild(el('span', 'ticket__off', clean(first.off, 12)));
-      if (clean(m.below, 20)) row.appendChild(el('span', 'ticket__rel', clean(m.below, 20)));
-      body.appendChild(row);
-      body.appendChild(el('div', 'ticket__act', clean(m.button, 16)));
-      t.appendChild(body);
-      card.appendChild(t);
-      feed.appendChild(card);
-      if (clean(m.note, 80)) feed.appendChild(el('p', 'feed__note', clean(m.note, 80)));
-      inner.appendChild(feed);
-    }
+    var box = el('div', 'pepe');
+    box.setAttribute('role', 'img');
+    box.setAttribute('aria-label', clean(m && m.alt, 120) || 'Plush Pepe');
+    /* путь к оригинальной анимации (Lottie) — только внутри assets/ */
+    var src = clean(m && m.src, 120);
+    if (/^assets\/[A-Za-z0-9_\-\/.]+\.json$/.test(src) && src.indexOf('..') === -1) box.setAttribute('data-src', src);
+    inner.appendChild(box);
     stage.appendChild(inner);
     return stage;
   }
@@ -350,7 +317,7 @@
   function clearStyles(node) { node.style.opacity = ''; node.style.transform = ''; node.style.filter = ''; }
 
   /* прогресс прокрутки, фон шапки, параллакс ветки и сцены, ускорение кристалла */
-  function setupScroll(gem) {
+  function setupScroll(pepe) {
     var top = $('#top');
     var bar = $('#progress i');
     var canopy = $('#canopy');
@@ -376,7 +343,7 @@
       if (!reduceMotion) {
         if (canopy && y < window.innerHeight * 1.4) canopy.style.transform = 'translate3d(0,' + (y * 0.2).toFixed(1) + 'px,0)';
         if (stageIn && wide && y < window.innerHeight * 1.3) stageIn.style.transform = 'translate3d(0,' + (y * 0.07).toFixed(1) + 'px,0)';
-        if (gem) gem.boost((y - lastY) * 0.0016);
+        if (pepe && pepe.nudge) pepe.nudge((y - lastY) * 0.0016);
         if (track && track.getAnimations) {
           if (!mAnim) mAnim = track.getAnimations()[0] || null;
           if (mAnim) { rateT = Math.min(6, 1 + Math.abs(y - lastY) * 0.12); if (!rateRaf) rateRaf = requestAnimationFrame(marqueeStep); }
@@ -386,56 +353,6 @@
     }
     window.addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
     update();
-  }
-
-  /* лента лотов: карточка меняется, цена «набегает» */
-  function setupFeed(d, A, M) {
-    var lots = list(d.feed && d.feed.lots, 8).filter(validLot);
-    var body = $('.ticket__body');
-    if (lots.length < 2 || !body || reduceMotion || !A || !M) return;
-    var nameEl = $('.ticket__name'), numEl = $('.ticket__name small'), nameText = nameEl.firstChild;
-    var priceEl = $('.ticket__price b'), offEl = $('.ticket__off'), stacks = $$('.feed__stack');
-    var idx = 0, visible = true, busy = false;
-
-    function apply(l) {
-      nameText.nodeValue = clean(l.name, 40);
-      numEl.textContent = clean(l.number, 16);
-      offEl.textContent = clean(l.off, 12);
-    }
-    function countUp(target) {
-      var o = { v: 0 };
-      A.animate(o, {
-        v: target, duration: 1100, ease: 'outExpo',
-        onUpdate: function () { priceEl.textContent = fmt(o.v); },
-        onComplete: function () { priceEl.textContent = fmt(target); }
-      });
-    }
-
-    function next() {
-      if (doc.hidden || !visible || busy) { setTimeout(next, 1200); return; }
-      busy = true;
-      var out = M.animate(body,
-        { opacity: [1, 0], transform: ['translateY(0px)', 'translateY(-16px)'], filter: ['blur(0px)', 'blur(8px)'] },
-        { duration: 0.5, ease: [0.5, 0, 0.75, 0] });
-      after(out, function () {
-        idx = (idx + 1) % lots.length;
-        apply(lots[idx]);
-        var inn = M.animate(body,
-          { opacity: [0, 1], transform: ['translateY(18px)', 'translateY(0px)'], filter: ['blur(8px)', 'blur(0px)'] },
-          { duration: 0.85, ease: EASE });
-        after(inn, function () { clearStyles(body); }, 900);
-        countUp(num(lots[idx].price, 0));
-        M.animate(offEl, { transform: ['scale(0.6)', 'scale(1)'] }, { duration: 0.7, ease: EASE });
-        stacks.forEach(function (s, i) {
-          M.animate(s, { transform: ['translateY(10px)', 'translateY(0px)'], opacity: [0.3, 1] }, { duration: 0.8, delay: i * 0.08, ease: EASE });
-        });
-        busy = false;
-        setTimeout(next, 3600);
-      }, 520);
-    }
-    var feed = $('.feed');
-    if (feed && window.IntersectionObserver) new IntersectionObserver(function (en) { visible = en[0].isIntersecting; }).observe(feed);
-    setTimeout(next, 4800);
   }
 
   /* магнитные кнопки: тянутся к курсору (только мышь) */
@@ -472,21 +389,20 @@
     var NT = window.NT;
     var A = NT && NT.anime;
     var M = NT && NT.motion;
-    var gemCanvas = $('.stage canvas');
-    var gem = (FX.gem && gemCanvas) ? FX.gem.create(gemCanvas, { reduce: reduceMotion, lite: weak, pointer: finePointer && !weak }) : null;
-    if (gem) gem.start();
+    var pepeBox = $('.pepe');
+    var pepe = (FX.pepe && pepeBox) ? FX.pepe.create(pepeBox, { reduce: reduceMotion, lite: weak, pointer: finePointer && !weak, src: pepeBox.getAttribute('data-src') || '' }) : null;
+    if (pepe) pepe.start();
 
-    setupScroll(gem);
+    setupScroll(pepe);
     setupMagnetic();
     setupTilt();
 
-    if (reduceMotion || !A || !M || !window.IntersectionObserver) { showAll(); if (gem) gem.st.reveal = 1; return; }
+    if (reduceMotion || !A || !M || !window.IntersectionObserver) { showAll(); return; }
 
     /* 1. Стартовые состояния (скрыты под экраном загрузки) */
     $$('.top__in > *, .chip, .lead, .steps li, .cta, .stage__in').forEach(function (n) { n.style.opacity = '0'; });
     $$('.hero .wi').forEach(function (n) { n.style.transform = 'translateY(112%)'; });
     $$('[data-reveal]').forEach(function (n) { n.style.opacity = '0'; n.style.transform = 'translateY(28px)'; n.style.filter = 'blur(8px)'; });
-    if (gem) gem.st.reveal = 0;
 
     /* 2. Интро — Anime.js */
     var tl = A.createTimeline({ defaults: { ease: 'outQuart', duration: 1200 } });
@@ -508,17 +424,6 @@
       var la = M.animate(lead, { filter: ['blur(8px)', 'blur(0px)'] }, { duration: 1.2, delay: 1.1, ease: EASE });
       after(la, function () { lead.style.filter = ''; }, 2400);
     }
-
-    /* кристалл проявляется + лента лотов запускается */
-    if (gem) A.animate(gem.st, { reveal: 1, duration: 2600, delay: 600, ease: 'outQuart', onUpdate: function () { if (!gem.isLoopRunning()) gem.draw(); } });
-    var priceEl = $('.ticket__price b');
-    if (priceEl) {
-      var target = parseInt(String(priceEl.textContent).replace(/\D/g, ''), 10) || 0;
-      var o = { v: 0 };
-      priceEl.textContent = '0';
-      A.animate(o, { v: target, duration: 1500, delay: 1700, ease: 'outExpo', onUpdate: function () { priceEl.textContent = fmt(o.v); }, onComplete: function () { priceEl.textContent = fmt(target); } });
-    }
-    setupFeed(d, A, M);
 
     /* 3. Появление при скролле — Motion (inView), один раз: сдвиг + фокус */
     M.inView('[data-reveal]', function (node) {
