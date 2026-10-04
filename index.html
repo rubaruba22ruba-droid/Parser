@@ -53,8 +53,8 @@
     <symbol id="i-petal" viewBox="0 0 24 24"><path d="M12 22C6 18 4 11 8 5c1.2-1.7 2.6-2.4 4-2.4S14.800 3.300 16 5c4 6 2 13-4 17z" fill="currentColor"/></symbol>
   </svg>
 
-  <div class="canopy" id="canopy" aria-hidden="true"><canvas></canvas></div>
-  <canvas class="sky sky--back" id="skyBack" aria-hidden="true"></canvas>
+  <!-- Ночная сакура на весь экран: слои ветвей (canvas создаёт sky.js) под страницей, лепестки и искры — над ней -->
+  <div class="canopy" id="canopy" aria-hidden="true"></div>
 
   <div class="progress" id="progress" aria-hidden="true"><i></i></div>
   <div class="boot" id="boot" aria-hidden="true"><i></i></div>
@@ -70,7 +70,7 @@
 
   <footer class="foot" id="foot"></footer>
 
-  <canvas class="sky sky--front" id="skyFront" aria-hidden="true"></canvas>
+  <canvas class="sky" id="skyFront" aria-hidden="true"></canvas>
 
   <!-- Запаска на случай сбоя загрузки данных (или выключенного JS). Здесь нет ни ссылок, ни данных:
        вся информация лежит в data/site.json. Показывается только при сбое. -->

@@ -87,34 +87,43 @@ button { font: inherit; color: inherit; }
 
 main, .top, .foot { position: relative; z-index: 2; }
 
-/* ---------- Небо: лепестки и ветка ---------- */
-.sky { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
-.sky--front { z-index: 6; opacity: .5; }
-
+/* ---------- Небо: сакура на весь сайт ---------- */
+/* Фон фиксирован на весь экран. Высота 100vh (а не 100%): на iPhone при сворачивании панели браузера слой не пересчитывается.
+   Три слоя ветвей (canvas рисуются один раз) под контентом смещаются параллаксом из sky.js; лепестки и искры — один canvas над страницей. */
 .canopy {
-  position: absolute;
+  position: fixed;
   top: 0;
-  right: 0;
-  width: min(1180px, 100vw);
-  height: min(800px, 105vh);
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
   z-index: 0;
   pointer-events: none;
   opacity: 0;
   transition: opacity 3.2s ease;
-  will-change: transform;
+  contain: strict;
 }
-.canopy.on { opacity: .9; }
+.canopy.on { opacity: .92; }
 .canopy canvas {
+  position: absolute;
   display: block;
+  pointer-events: none;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.sky {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 100%;
-  transform-origin: 100% 0;
-  animation: sway 19s ease-in-out infinite alternate;
+  height: 100vh;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 2.4s ease;
 }
-@keyframes sway {
-  from { transform: rotate(-.7deg) translate3d(0, 0, 0); }
-  to { transform: rotate(.9deg) translate3d(-8px, 6px, 0); }
-}
+.sky.on { opacity: 1; }
 
 /* ---------- Прогресс прокрутки ---------- */
 .progress { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 70; pointer-events: none; }
@@ -388,8 +397,7 @@ main, .top, .foot { position: relative; z-index: 2; }
 }
 @media (max-width: 759px) {
   .stage { max-width: 420px; aspect-ratio: 1 / 1; }
-  .canopy { width: 100vw; height: min(520px, 62vh); }
-  .canopy.on { opacity: .78; }
+  .canopy.on { opacity: .86; }
 }
 @media (max-width: 370px) {
   .brand > span:last-child { display: none; }
@@ -402,7 +410,6 @@ main, .top, .foot { position: relative; z-index: 2; }
 
 /* ---------- Слабые устройства / экономия трафика (класс ставит app.js) ---------- */
 .lite .top.scrolled { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(7, 5, 6, .95); }
-.lite .canopy canvas { animation: none; }
 .lite .marquee__track { animation-duration: 70s; }
 
 /* ---------- Уважение к «уменьшить движение» ---------- */

@@ -332,63 +332,124 @@
   }
 
   /* ==========================================================================
-     Ветка: строится один раз, кусками, чтобы не блокировать главный поток
+     Очередь заданий: кусками по ~10 мс на кадр, чтобы не блокировать главный поток
      ========================================================================== */
-  /* маска «где ветка может быть»: от угла, с тёмными полями слева (там текст) */
-  function makeMask(W, H, narrow) {
-    var small = W < 600;
-    return function (x, y) {
-      var nx = x / W, ny = y / H, m;
-      if (small) {
-        var rr = Math.sqrt(Math.pow((1 - nx) * 1.0, 2) + Math.pow(ny * 0.8, 2));
-        m = 1 - smooth(0.26, 0.98, rr);
-        m *= 1 - smooth(0.34, 0.82, ny) * 0.85;
-        m *= 1 - 0.5 * smooth(0.3, 0.46, ny) * (1 - smooth(0.74, 0.96, nx));      // заголовок: приглушаем
-      } else if (narrow) {                  // планшет: одна колонка, заголовок на всю ширину
-        var r3 = Math.sqrt(Math.pow((1 - nx) * 0.98, 2) + Math.pow(ny * 1.12, 2));
-        m = 1 - smooth(0.34, 1.0, r3);
-        m *= 1 - 0.78 * smooth(120, 190, y) * (1 - smooth(430, 520, y)) * (1 - smooth(0.78 * W, 0.97 * W, x));
-      } else {
-        var r2 = Math.sqrt(Math.pow((1 - nx) * 0.98, 2) + Math.pow(ny * 1.12, 2));
-        m = 1 - smooth(0.34, 1.0, r2);
-        var tl = lerp(0.04, 0.4, smooth(0.14, 0.42, ny));
-        m *= smooth(tl, tl + 0.26, nx);
-      }
-      return m;
+  function makeQueue(stats) {
+    var q = { jobs: [], i: 0, cancel: false };
+    q.add = function (f) { q.jobs.push(f); };
+    q.insert = function (list) { q.jobs.splice.apply(q.jobs, [q.i, 0].concat(list)); };
+    q.chunk = function (len, size, fn) {
+      var list = [], s;
+      for (s = 0; s < len; s += size) (function (a) { list.push(function () { fn(a, Math.min(len, a + size)); }); })(s);
+      return list;
     };
+    q.run = function (onEnd) {
+      function pump() {
+        if (q.cancel) return;
+        var t = now(), s;
+        do {
+          s = now();
+          q.jobs[q.i++]();
+          s = now() - s;
+          if (stats) { stats.work += s; if (s > stats.maxSlice) stats.maxSlice = s; stats.jobs.push(Math.round(s)); }
+        } while (q.i < q.jobs.length && now() - t < 10);
+        if (q.i < q.jobs.length) {
+          if (win.requestAnimationFrame && !doc.hidden) win.requestAnimationFrame(pump); else setTimeout(pump, 30);
+        } else if (onEnd) onEnd();
+      }
+      pump();
+    };
+    return q;
   }
 
-  function buildCanopy(canvas, opts, done) {
-    var token = { cancel: false, stats: { work: 0, wall: 0, maxSlice: 0, jobs: [] } };
-    var t0 = now();
-    var W = Math.max(200, canvas.offsetWidth || canvas.getBoundingClientRect().width), H = Math.max(200, canvas.offsetHeight || canvas.getBoundingClientRect().height);
-    var lite = !!opts.lite, small = W < 600, seed = opts.seed || 11;
-    var dpr = Math.min(win.devicePixelRatio || 1, lite ? 1 : 2);
-    while (W * H * dpr * dpr > 4.6e6 && dpr > 1) dpr -= 0.25;
-    if (dpr < 1) dpr = 1;
-    var PW = Math.round(W * dpr), PH = Math.round(H * dpr);
+  /* ==========================================================================
+     Сцена: три слоя глубины (дальний, средний, ближний), рисуются один раз.
+     Цветение собрано в «пулы» у краёв экрана и в правом верхнем углу; центр спокойный (там текст).
+     Слои выше экрана на величину «хода» параллакса: при прокрутке они плавно сдвигаются с разной скоростью.
+     ========================================================================== */
+  function buildScene(o, done) {
+    var stats = { work: 0, wall: 0, maxSlice: 0, jobs: [] };
+    var q = makeQueue(stats), t0 = now();
+    var W = o.W, H = o.H, lite = !!o.lite, reduce = !!o.reduce, seed = o.seed || 11;
+    var small = W < 600, narrow = W < 980;
     var U = clamp(W / 1180, 0.4, 1.15);                 // масштаб толщин/шагов
     var FS = small ? 0.8 : 1;                           // масштаб цветов
-    var narrow = !!opts.narrow, M = makeMask(W, H, narrow);
+    var mx = small ? 16 : 26, my = 14;                  // поля слоя под качание и параллакс курсора
+    var TM = reduce ? 0 : Math.round(H * 0.75), TF = reduce ? 0 : Math.round(H * 0.3), TN = reduce ? 0 : Math.round(H * 1.2);
+    var SH = H + TM, cw = W + 2 * mx, hm = SH + 2 * my;
+    var X0 = mx, X1 = mx + W, Y0 = my, Y1 = my + SH;    // левый/правый край экрана и верх/низ сцены в координатах слоя
+    var dpr = Math.min(win.devicePixelRatio || 1, lite ? 1 : small ? 1.25 : 1.5), cap = small ? 4.0e6 : 4.4e6;
+    while (cw * hm * dpr * dpr > cap && dpr > 1) dpr -= 0.25;
+    if (dpr < 1) dpr = 1;
+    var PW = Math.round(cw * dpr), PH = Math.round(hm * dpr);
     var S = lite ? 64 : small ? 96 : 128;
-    token.dims = { w: W, h: H, narrow: narrow };
 
-    /* первая сборка — прямо в видимый (ещё прозрачный) canvas: растеризация распределяется по кадрам;
-       пересборка при ресайзе — в запасной canvas с мгновенной подменой */
-    var direct = !!opts.direct, work;
-    if (direct) { canvas.width = PW; canvas.height = PH; work = canvas; } else work = mk(PW, PH);
-    var ctx = work.getContext('2d');
+    var work = mk(PW, PH), ctx = work.getContext('2d');
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-    var sp, tree, ops = [], bokeh = [];
-
+    var sp, tree, ops = [], bokeh = [], farC = null, nearC = null;
     function reset() { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
     reset();
 
-    /* свет — сверху справа */
-    var LX = 0.62, LY = -0.78, Dref = small ? 470 : Math.max(W, 900);
-    function lightAt(x, y) {
-      var d = Math.hypot((W - x) * 0.95, y * 1.1) / Dref;
-      return clamp((1.22 - d * 1.15) * (small ? 0.82 : 1), 0, 1);
+    /* ---------- пулы цветения ---------- */
+    var pools = [];
+    /* крона: правый верхний угол, как в первом экране */
+    var bw = Math.min(W, 1180), bh = (small || narrow) ? Math.min(520, 0.62 * H) : Math.min(800, 1.05 * H), ox = X1 - bw;
+    var Dref = small ? 470 : Math.max(bw, 900);
+    pools.push({
+      crown: true,
+      m: function (x, y) {
+        var nx = (x - ox) / bw, ny = (y - Y0) / bh, mm;
+        if (small) {
+          var rr = Math.sqrt(Math.pow(1 - nx, 2) + Math.pow(ny * 0.8, 2));
+          mm = 1 - smooth(0.26, 0.98, rr);
+          mm *= 1 - smooth(0.34, 0.82, ny) * 0.85;
+          mm *= 1 - 0.5 * smooth(0.3, 0.46, ny) * (1 - smooth(0.74, 0.96, nx));      // заголовок: приглушаем
+        } else if (narrow) {                  // планшет: одна колонка, заголовок на всю ширину
+          var r3 = Math.sqrt(Math.pow((1 - nx) * 0.98, 2) + Math.pow(ny * 1.12, 2));
+          mm = 1 - smooth(0.34, 1.0, r3);
+          mm *= 1 - 0.78 * smooth(120, 190, y - Y0) * (1 - smooth(430, 520, y - Y0)) * (1 - smooth(0.78 * bw, 0.97 * bw, x - ox));
+        } else {
+          var r2 = Math.sqrt(Math.pow((1 - nx) * 0.98, 2) + Math.pow(ny * 1.12, 2));
+          mm = 1 - smooth(0.34, 1.0, r2);
+          var tl = lerp(0.04, 0.4, smooth(0.14, 0.42, ny));
+          mm *= smooth(tl, tl + 0.26, nx);
+        }
+        return mm;
+      },
+      light: function (x, y) {
+        var d = Math.hypot((X1 - x) * 0.95, (y - Y0) * 1.1) / Dref;
+        return clamp((1.22 - d * 1.15) * (small ? 0.82 : 1), 0, 1);
+      }
+    });
+    /* края: ветка заходит из-за левого/правого края или снизу; side -1 слева, +1 справа */
+    function addEdge(side, fy, reach, ry, lit, rise) {
+      var p = { side: side, cx: side < 0 ? X0 : X1, cy: Y0 + fy * SH, rx: reach * W, ry: ry * H, lit: lit, rise: rise, ns: seed + 9 + pools.length * 7 };
+      p.r = function (x, y) { var a = (x - p.cx) / p.rx, b = (y - p.cy) / p.ry; return Math.sqrt(a * a + b * b); };
+      p.m = function (x, y) {                              // неровный контур: пятна цветения, а не эллипс
+        var n = vnoise(x / (120 * U), y / (120 * U), p.ns);
+        return 1 - smooth(0.1, 1.0, p.r(x, y) * (0.8 + 0.4 * n));
+      };
+      p.light = function (x, y) { return p.lit * clamp(1.12 - p.r(x, y) * 1.05, 0, 1); };
+      pools.push(p);
+    }
+    var EP = small
+      ? (reduce ? [[-1, 0.62, 0.6, 0.24, 0.78, 0], [1, 0.86, 0.6, 0.24, 0.8, 0], [-1, 1.0, 0.5, 0.2, 0.7, 1]]
+                : [[-1, 0.40, 0.62, 0.26, 0.80, 0], [1, 0.58, 0.62, 0.26, 0.82, 0], [-1, 0.76, 0.60, 0.26, 0.76, 0], [1, 0.94, 0.56, 0.24, 0.72, 1]])
+      : (reduce ? [[-1, 0.50, 0.27, 0.36, 0.80, 0], [1, 0.80, 0.28, 0.34, 0.80, 0], [-1, 1.0, 0.30, 0.34, 0.72, 1]]
+                : [[-1, 0.50, 0.27, 0.40, 0.80, 0], [1, 0.71, 0.30, 0.42, 0.82, 0], [-1, 0.94, 0.32, 0.45, 0.76, 1], [1, 1.0, 0.20, 0.30, 0.62, 1]]);
+    EP.forEach(function (e) { addEdge(e[0], e[1], e[2], e[3], e[4], e[5]); });
+
+    function M(x, y) { var v = 0, i, t; for (i = 0; i < pools.length; i++) { t = pools[i].m(x, y); if (t > v) v = t; } return v; }
+    var LX = 0.62, LY = -0.78;                          // свет — сверху справа
+    function lightAt(x, y) { var v = 0, i, t; for (i = 0; i < pools.length; i++) { t = pools[i].light(x, y); if (t > v) v = t; } return v; }
+    /* случайная точка внутри пула: для боке и световых кругов */
+    function samplePool(R) {
+      var pi = R() < 0.4 ? 0 : 1 + ((R() * (pools.length - 1)) | 0), p = pools[pi], u, x, y;
+      if (p.crown) return { x: ox + lerp(0.45, 1.05, R()) * bw, y: Y0 + lerp(-0.04, 0.85, Math.pow(R(), 1.2)) * bh };
+      u = Math.pow(R(), 1.3);
+      x = p.side < 0 ? X0 - 0.03 * W + u * p.rx * 0.95 : X1 + 0.03 * W - u * p.rx * 0.95;
+      y = p.cy + (R() - 0.5) * 1.7 * p.ry;
+      return { x: x, y: y };
     }
 
     /* ---------- дерево ---------- */
@@ -439,11 +500,26 @@
         [1.08, 0.00, 2.86, 0.95, 18, 0.85], [1.08, 0.10, 2.58, 0.80, 15, 0.55], [1.04, -0.04, 3.05, 0.72, 11, 0.3],
         [1.08, 0.26, 2.22, 0.62, 12, 0.8], [1.08, 0.42, 1.95, 0.5, 10, 0.45], [0.98, -0.05, 2.45, 0.52, 8, 0.15]
       ];
-      var i, lm, ang;
+      var i, j, lm, ang, p, nl, x0, y0, dev, len;
       for (i = 0; i < limbs.length; i++) {
         lm = limbs[i];
         ang = lm[2] + (R() - 0.5) * 0.1 - (small ? 0.22 : 0);
-        grow(lm[0] * W, lm[1] * H, ang, lm[3] * W, lm[4] * U * (small ? 1.25 : 1), 0, false, lm[5], null);
+        grow(ox + lm[0] * bw, Y0 + lm[1] * bh, ang, lm[3] * bw, lm[4] * U * (small ? 1.25 : 1), 0, false, lm[5], null);
+      }
+      /* пулы у краёв: 2–3 ветви от края внутрь, слегка провисают */
+      for (i = 1; i < pools.length; i++) {
+        p = pools[i]; nl = small ? 2 : 3;
+        for (j = 0; j < nl; j++) {
+          if (p.rise) {                                  // растёт снизу вверх
+            x0 = p.cx - p.side * (R() * 0.1 - 0.02) * W; y0 = Y1 + (0.02 + R() * 0.04) * H;
+            dev = 0.6 + R() * 0.6; ang = p.side < 0 ? -dev : -Math.PI + dev;
+          } else {
+            x0 = p.cx + p.side * (0.04 + R() * 0.03) * W; y0 = p.cy + (R() - 0.5) * p.ry * 0.9;
+            dev = (R() - 0.5) * 0.9 + 0.1; ang = p.side < 0 ? dev : Math.PI - dev;
+          }
+          len = p.rx * (small ? 1.0 : 1.05) * (0.9 + R() * 0.5) * (j === 0 ? 1.1 : 0.88);
+          grow(x0, y0, ang, len, (12 + R() * 4) * U * (small ? 1.25 : 1), 0, false, 0.25 + R() * 0.6, null);
+        }
       }
       /* передние ветви: часть крупных рисуется поверх цветов */
       branches.forEach(function (b) { if (b.depth >= 1 && b.depth <= 2 && b.z > 0.55 && R() < 0.3) b.front = true; });
@@ -452,8 +528,8 @@
 
     /* соцветия: цветы по 2–5 на черешках от узла + бутоны */
     function genFlowers() {
-      var R = rng(seed * 977 + 31), nodes = tree.nodes, maxN = lite ? 110 : small ? 150 : 520;
-      var g = [], cell = 18 * Math.max(U, 0.6), gw = Math.ceil(W / cell) + 2, gh = Math.ceil(H / cell) + 2, i, j, k, nd;
+      var R = rng(seed * 977 + 31), nodes = tree.nodes, maxN = lite ? 150 : small ? 260 : 1100;
+      var g = [], cell = 18 * Math.max(U, 0.6), gw = Math.ceil(cw / cell) + 2, gh = Math.ceil(hm / cell) + 2, i, j, k, nd;
       for (i = 0; i < gw * gh; i++) g.push(0);
       var cand = [];
       for (i = 0; i < nodes.length; i++) {
@@ -462,7 +538,7 @@
         if (m < 0.04) continue;
         var nz = vnoise(nd.x / (150 * U), nd.y / (150 * U), seed);
         var pr = Math.pow(m, 0.7) * (0.1 + 1.7 * smooth(0.28, 0.68, nz));
-        if (R() < pr + (nd.tip ? 0.12 : 0)) { nd.nz = nz; cand.push(nd); }
+        if (R() < pr + (nd.tip ? 0.12 : 0)) { nd.nz = nz; nd.m = m; cand.push(nd); }
       }
       if (cand.length > maxN) {                              // равномерно прореживаем
         var keep = [], stepN = cand.length / maxN;
@@ -474,7 +550,7 @@
         nd = cand[i];
         var rn = R(), nF = (rn < 0.2 ? 2 : rn < 0.55 ? 3 : rn < 0.82 ? 4 : 5) + (nd.nz > 0.62 && R() < 0.6 ? 1 : 0);
         var zz = nd.z;
-        var baseS = (nd.depth === 2 ? 36 : nd.depth === 3 ? 29 : 23) * FS * lerp(0.58, 1.22, zz) * lerp(1, 0.8, smooth(0, 0.9, Math.hypot((W - nd.x) / W, nd.y / H)));
+        var baseS = (nd.depth === 2 ? 36 : nd.depth === 3 ? 29 : 23) * FS * lerp(0.58, 1.22, zz) * lerp(0.82, 1, smooth(0.1, 0.8, nd.m));
         var fan = 0.5 + R() * 0.45, budDone = false, near = zz > 0.7 && R() < 0.16;
         var nzc = vnoise(nd.x / (110 * U) + 7, nd.y / (110 * U) + 3, seed + 5);
         var Lc = lightAt(nd.x, nd.y) * lerp(0.62, 1.05, zz) + (nzc - 0.5) * 0.9 + (R() - 0.5) * 0.18;
@@ -501,16 +577,16 @@
       }
       /* самозатенение: чем больше цветов между цветком и источником света, тем темнее */
       for (i = 0; i < ops.length; i++) {
-        var o = ops[i], occ = 0, dd;
+        var o2 = ops[i], occ = 0, dd;
         for (dd = 1; dd <= 3; dd++) {
-          var cxx = Math.floor((o.x + LX * cell * dd) / cell) + 1, cyy = Math.floor((o.y + LY * cell * dd) / cell) + 1;
+          var cxx = Math.floor((o2.x + LX * cell * dd) / cell) + 1, cyy = Math.floor((o2.y + LY * cell * dd) / cell) + 1;
           if (cxx >= 0 && cxx < gw && cyy >= 0 && cyy < gh) occ += g[cxx + cyy * gw] * (dd === 1 ? 1 : dd === 2 ? 0.7 : 0.45);
         }
-        o.L = clamp(o.L * (1 - clamp(occ * 0.21, 0, 0.8)) + (o.n - 0.5) * 0.1, 0, 1);
-        o.z = o.z * 0.45 + o.L * 0.55;
+        o2.L = clamp(o2.L * (1 - clamp(occ * 0.21, 0, 0.8)) + (o2.n - 0.5) * 0.1, 0, 1);
+        o2.z = o2.z * 0.45 + o2.L * 0.55;
       }
       ops.sort(function (a, b) { return a.lay - b.lay || a.z - b.z; });
-      token.stats.clusters = nCl; token.stats.flowers = ops.length;
+      stats.clusters = nCl; stats.flowers = ops.length;
     }
 
     /* ---------- рисование ---------- */
@@ -518,27 +594,27 @@
       return clamp(Math.round(L * 3.3 + (n - 0.5) * 0.9), 0, 4);
     }
     function drawOps(list, from, to, c, sets) {
-      var i, o, spr, l, set;
+      var i, o2, spr, l, set;
       for (i = from; i < to; i++) {
-        o = list[i];
-        l = levelOf(o.L, o.n);
-        if (o.soft && l > (o.lay === 2 ? 2 : 3)) l = o.lay === 2 ? 2 : 3;
-        set = o.soft === 2 ? sets.s2 : o.soft === 1 ? sets.s1 : sets.f;
-        spr = set[o.k][l] || sets.f[o.k][l];
-        put(c, dpr, spr, o.x, o.y, o.s, o.r, 0.62 + 0.38 * o.L);
+        o2 = list[i];
+        l = levelOf(o2.L, o2.n);
+        if (o2.soft && l > (o2.lay === 2 ? 2 : 3)) l = o2.lay === 2 ? 2 : 3;
+        set = o2.soft === 2 ? sets.s2 : o2.soft === 1 ? sets.s1 : sets.f;
+        spr = set[o2.k][l] || sets.f[o2.k][l];
+        put(c, dpr, spr, o2.x, o2.y, o2.s, o2.r, 0.62 + 0.38 * o2.L);
       }
       reset();
     }
     /* черешки соцветий */
     function drawPedicels(c) {
-      var i, o;
+      var i, o2;
       c.lineCap = 'round';
       for (i = 0; i < ops.length; i++) {
-        o = ops[i];
-        c.strokeStyle = rgba(mixc([70, 36, 46], [168, 112, 124], o.L), 0.5 + 0.3 * o.L);
-        c.lineWidth = Math.max(0.55, (o.k >= 6 ? 1.0 : 0.8) * Math.max(U, 0.75));
-        var mx = (o.nx + o.x) / 2, my = (o.ny + o.y) / 2 + Math.hypot(o.x - o.nx, o.y - o.ny) * 0.1;
-        c.beginPath(); c.moveTo(o.nx, o.ny); c.quadraticCurveTo(mx, my, o.x, o.y); c.stroke();
+        o2 = ops[i];
+        c.strokeStyle = rgba(mixc([70, 36, 46], [168, 112, 124], o2.L), 0.5 + 0.3 * o2.L);
+        c.lineWidth = Math.max(0.55, (o2.k >= 6 ? 1.0 : 0.8) * Math.max(U, 0.75));
+        var mx2 = (o2.nx + o2.x) / 2, my2 = (o2.ny + o2.y) / 2 + Math.hypot(o2.x - o2.nx, o2.y - o2.ny) * 0.1;
+        c.beginPath(); c.moveTo(o2.nx, o2.ny); c.quadraticCurveTo(mx2, my2, o2.x, o2.y); c.stroke();
       }
     }
     /* ветка: лента с сужением, тёмная кора, светлая кромка со стороны света, чечевички */
@@ -594,18 +670,31 @@
 
     /* ---------- дымка и лучи ---------- */
     function drawHaze(c) {
-      var rad = Math.min(W, H * 1.4) * 0.9;
-      var g = c.createRadialGradient(W * 1.0, 0, 0, W * 1.0, 0, rad);
-      g.addColorStop(0, 'rgba(255,190,214,.07)'); g.addColorStop(0.35, 'rgba(226,120,164,.03)'); g.addColorStop(1, 'rgba(160,50,100,0)');
-      c.fillStyle = g; c.fillRect(0, 0, W, H);
+      var i, p, g, rad;
+      for (i = 0; i < pools.length; i++) {
+        p = pools[i];
+        if (p.crown) {
+          rad = Math.min(bw, bh * 1.4) * 0.9;
+          g = c.createRadialGradient(X1, Y0, 0, X1, Y0, rad);
+          g.addColorStop(0, 'rgba(255,190,214,.07)'); g.addColorStop(0.35, 'rgba(226,120,164,.03)'); g.addColorStop(1, 'rgba(160,50,100,0)');
+          c.fillStyle = g; c.fillRect(X1 - rad, Y0 - rad, 2 * rad, 2 * rad);
+        } else {
+          rad = p.rx * 1.25;
+          c.save(); c.translate(p.cx, p.cy); c.scale(1, p.ry / p.rx);
+          g = c.createRadialGradient(0, 0, 0, 0, 0, rad);
+          g.addColorStop(0, 'rgba(255,190,214,.05)'); g.addColorStop(0.4, 'rgba(226,120,164,.022)'); g.addColorStop(1, 'rgba(160,50,100,0)');
+          c.fillStyle = g; c.fillRect(-rad, -rad, 2 * rad, 2 * rad);
+          c.restore();
+        }
+      }
     }
     function drawRays(c) {
-      var defs = [[2.62, 70, 0.045], [2.38, 120, 0.04], [2.1, 56, 0.05], [2.8, 90, 0.035], [1.9, 140, 0.03]], i, j, d, len = Math.hypot(W, H) * 1.05;
+      var defs = [[2.62, 70, 0.045], [2.38, 120, 0.04], [2.1, 56, 0.05], [2.8, 90, 0.035], [1.9, 140, 0.03]], i, j, d, len = Math.hypot(bw, bh) * 1.05;
       c.save(); c.globalCompositeOperation = 'lighter';
       for (i = 0; i < defs.length; i++) {
         d = defs[i];
         for (j = 0; j < 3; j++) {
-          c.save(); c.translate(W * 1.04, -H * 0.06); c.rotate(d[0]);
+          c.save(); c.translate(ox + bw * 1.04, Y0 - bh * 0.06); c.rotate(d[0]);
           var wd = d[1] * U * (0.5 + j * 0.5), g = c.createLinearGradient(0, 0, len, 0);
           g.addColorStop(0, 'rgba(255,208,230,' + (d[2] / 3).toFixed(4) + ')'); g.addColorStop(0.55, 'rgba(255,190,220,' + (d[2] / 6).toFixed(4) + ')'); g.addColorStop(1, 'rgba(255,190,220,0)');
           c.fillStyle = g; c.beginPath(); c.moveTo(0, -wd * 0.15); c.lineTo(len, -wd * 1.4); c.lineTo(len, wd * 1.4); c.lineTo(0, wd * 0.15); c.closePath(); c.fill();
@@ -643,13 +732,13 @@
       bloomAdd(s2, w, h, 7, 0.2 * bk);
       s2.width = s2.height = 0; bl.a.width = bl.a.height = 0; bl = null;
     }
-    /* виньетка: ветка растворяется в темноте; поля слева — тёмные (под текстом) */
+    /* виньетка: ветка растворяется в темноте; центр (под текстом) пустой */
     function applyMask() {
-      var mw = Math.ceil(W / 8), mh = Math.ceil(H / 8), m = mk(mw, mh), mc = m.getContext('2d');
-      var id = mc.createImageData(mw, mh), x, y, v, o = 0;
+      var mw = Math.ceil(cw / 8), mh = Math.ceil(hm / 8), m = mk(mw, mh), mc = m.getContext('2d');
+      var id = mc.createImageData(mw, mh), x, y, v, o2 = 0;
       for (y = 0; y < mh; y++) for (x = 0; x < mw; x++) {
-        v = clamp(M((x + 0.5) * 8, (y + 0.5) * 8) * 1.35 + 0.0, 0, 1);
-        id.data[o++] = 0; id.data[o++] = 0; id.data[o++] = 0; id.data[o++] = Math.round(smooth(0, 1, v) * 255);
+        v = clamp(M((x + 0.5) * 8, (y + 0.5) * 8) * 1.35, 0, 1);
+        id.data[o2++] = 0; id.data[o2++] = 0; id.data[o2++] = 0; id.data[o2++] = Math.round(smooth(0, 1, v) * 255);
       }
       mc.putImageData(id, 0, 0);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -659,28 +748,20 @@
       reset();
     }
 
-    /* ---------- задания ---------- */
-    var jobs = [], ji = 0, farLayer = null;
-    function insert(list) { jobs.splice.apply(jobs, [ji, 0].concat(list)); }
-    function chunk(len, size, fn) {
-      var list = [], s;
-      for (s = 0; s < len; s += size) (function (a) { list.push(function () { fn(a, Math.min(len, a + size)); }); })(s);
-      return list;
-    }
-
-    jobs.push(function () { sp = newSprites(); });
-    (function () { for (var k = 0; k < 8; k++) (function (kk) { jobs.push(function () { addKind(sp, S, seed, kk); }); })(k); })();
-    (function () { for (var k = 0; k < 8; k++) (function (kk) { jobs.push(function () { addSoft(sp, S, kk); }); })(k); })();
-    jobs.push(function () { tree = genTree(); });
-    jobs.push(function () { genFlowers(); });
-    /* дальний план: мелкие тёмные цветы и тонкие ветки, размытые */
-    jobs.push(function () {
+    /* ---------- задания: общие спрайты и средний слой ---------- */
+    q.add(function () { sp = newSprites(); });
+    (function () { for (var k = 0; k < 8; k++) (function (kk) { q.add(function () { addKind(sp, S, seed, kk); }); })(k); })();
+    (function () { for (var k = 0; k < 8; k++) (function (kk) { q.add(function () { addSoft(sp, S, kk); }); })(k); })();
+    q.add(function () { tree = genTree(); });
+    q.add(function () { genFlowers(); });
+    /* дальний план внутри среднего слоя: мелкие тёмные цветы и тонкие ветки, размытые */
+    var farLayer = null;
+    q.add(function () {
       var sc = 0.5, lw = Math.round(PW * sc), lh = Math.round(PH * sc);
       farLayer = mk(lw, lh);
-      var c = farLayer.getContext('2d'), R = rng(seed * 53 + 9), i, o, n = lite ? 70 : small ? 150 : 260, tries = 0;
+      var c = farLayer.getContext('2d'), R = rng(seed * 53 + 9), i, o2, n = lite ? 80 : small ? 170 : 360, tries = 0;
       c.imageSmoothingQuality = 'high';
       var d = dpr * sc;
-      /* дальние ветки */
       c.setTransform(d, 0, 0, d, 0, 0); c.lineCap = 'round';
       tree.branches.forEach(function (b) {
         if (b.depth < 1 || !b.used || R() < 0.5) return;
@@ -689,13 +770,12 @@
         for (k = 0; k < p.length - 1; k++) { c.lineWidth = Math.max(0.8, p[k].w * 0.9); c.beginPath(); c.moveTo(p[k].x + 14, p[k].y - 10); c.lineTo(p[k + 1].x + 14, p[k + 1].y - 10); c.stroke(); }
       });
       /* «тело» гроздьев: мягкие светящиеся пятна под цветами — склеивают кластеры в облака */
-      var mc2 = c;
       for (i = 0; i < ops.length; i += 3) {
-        o = ops[i];
-        var Lm = clamp(o.L, 0, 1), rad = (22 + R() * 26) * U * (o.s / 30) * 1.6;
-        var gm = mc2.createRadialGradient(o.x, o.y, 0, o.x, o.y, rad);
+        o2 = ops[i];
+        var Lm = clamp(o2.L, 0, 1), rad = (22 + R() * 26) * U * (o2.s / 30) * 1.6;
+        var gm = c.createRadialGradient(o2.x, o2.y, 0, o2.x, o2.y, rad);
         gm.addColorStop(0, rgba(mixc([120, 44, 82], [236, 150, 186], Lm), 0.12 + 0.14 * Lm)); gm.addColorStop(1, rgba([120, 44, 82], 0));
-        mc2.fillStyle = gm; mc2.beginPath(); mc2.arc(o.x, o.y, rad, 0, TAU); mc2.fill();
+        c.fillStyle = gm; c.beginPath(); c.arc(o2.x, o2.y, rad, 0, TAU); c.fill();
       }
       var arr = [];
       while (arr.length < n && tries < n * 6) {
@@ -707,12 +787,12 @@
       }
       arr.sort(function (a, b) { return a.z - b.z; });
       for (i = 0; i < arr.length; i++) {
-        o = arr[i];
-        put(c, d, sp.f[o.k][levelOf(o.L, o.n)], o.x, o.y, o.s, o.r, 0.4 + 0.35 * o.L);
+        o2 = arr[i];
+        put(c, d, sp.f[o2.k][levelOf(o2.L, o2.n)], o2.x, o2.y, o2.s, o2.r, 0.4 + 0.35 * o2.L);
       }
       c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1;
     });
-    jobs.push(function () {
+    q.add(function () {
       drawHaze(ctx);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       blurInto(ctx, farLayer, 1.8 * dpr, 0, 0, PW, PH);
@@ -720,53 +800,53 @@
       reset();
     });
     /* ветви (задний план), черешки */
-    jobs.push(function () {
+    q.add(function () {
       var rr = rng(seed * 17 + 3), list = tree.branches.filter(function (b) { return !b.front && b.used; });
       list.sort(function (a, b) { return a.depth - b.depth; });
       list.forEach(function (b) { drawBranch(ctx, b, rr); });
-      drawPedicels(ctx);
     });
+    q.add(function () { drawPedicels(ctx); });
     /* средний план: цветы кусками */
-    jobs.push(function () {
-      insert(chunk(ops.length, lite ? 80 : 130, function (a, b) { drawOps(ops, a, b, ctx, sp); }));
+    q.add(function () {
+      q.insert(q.chunk(ops.length, lite ? 80 : 130, function (a, b) { drawOps(ops, a, b, ctx, sp); }));
     });
     /* передние ветви поверх цветов */
-    jobs.push(function () {
+    q.add(function () {
       var rr = rng(seed * 19 + 5);
       tree.branches.forEach(function (b) { if (b.front && b.used) drawBranch(ctx, b, rr); });
     });
     /* передний план: боке — крупные размытые цветы и световые круги */
-    jobs.push(function () {
-      var R = rng(seed * 71 + 13), i, n = lite ? 3 : small ? 5 : 11, tries = 0, c = ctx;
+    q.add(function () {
+      var R = rng(seed * 71 + 13), i, n = lite ? 3 : small ? 6 : 14, tries = 0, c = ctx, pt;
       c.globalCompositeOperation = 'lighter';
-      while (bokeh.length < n && tries < 200) {
+      while (bokeh.length < n && tries < 300) {
         tries++;
-        var x = lerp(0.45, 1.05, R()) * W, y = lerp(-0.04, 0.85, Math.pow(R(), 1.2)) * H;
-        if (M(x, y) < 0.18) continue;
-        bokeh.push({ x: x, y: y, s: (small ? 46 : 100) + R() * (small ? 50 : 150), r: R() * TAU, k: [0, 1, 2, 5][(R() * 4) | 0], l: 2 + ((R() * 2) | 0), a: (0.12 + R() * 0.12) * (small ? 0.7 : 1) });
+        pt = samplePool(R);
+        if (M(pt.x, pt.y) < 0.18) continue;
+        bokeh.push({ x: pt.x, y: pt.y, s: (small ? 46 : 100) + R() * (small ? 50 : 150), r: R() * TAU, k: [0, 1, 2, 5][(R() * 4) | 0], l: 2 + ((R() * 2) | 0), a: (0.12 + R() * 0.12) * (small ? 0.7 : 1) });
       }
       for (i = 0; i < bokeh.length; i++) {
-        var o = bokeh[i], spr = sp.s2[o.k][o.l];
-        put(c, dpr, spr, o.x, o.y, o.s, o.r, o.a * M(o.x, o.y));
+        var o2 = bokeh[i], spr = sp.s2[o2.k][o2.l];
+        put(c, dpr, spr, o2.x, o2.y, o2.s, o2.r, o2.a * M(o2.x, o2.y));
       }
       reset();
       /* линзовые круги с лёгким кольцевым краем */
-      var nd = lite ? 6 : small ? 12 : 26;
+      var nd = lite ? 6 : small ? 12 : 30;
       c.globalCompositeOperation = 'lighter';
       for (i = 0; i < nd; i++) {
-        var bx = lerp(0.3, 1.02, R()) * W, by = Math.pow(R(), 1.3) * H * 0.95, br = (4 + R() * R() * 34) * Math.max(U, 0.7);
-        var mm = M(bx, by);
+        pt = samplePool(R);
+        var br = (4 + R() * R() * 34) * Math.max(U, 0.7), mm = M(pt.x, pt.y);
         if (mm < 0.12) continue;
-        var a = (0.03 + R() * 0.07) * mm, g = c.createRadialGradient(bx, by, 0, bx, by, br);
+        var a = (0.03 + R() * 0.07) * mm, g = c.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, br);
         g.addColorStop(0, 'rgba(255,196,222,' + (a * 0.6).toFixed(3) + ')'); g.addColorStop(0.8, 'rgba(255,196,222,' + (a * 0.8).toFixed(3) + ')');
         g.addColorStop(0.94, 'rgba(255,222,236,' + (a * 1.5).toFixed(3) + ')'); g.addColorStop(1, 'rgba(255,196,222,0)');
-        c.fillStyle = g; c.beginPath(); c.arc(bx, by, br, 0, TAU); c.fill();
+        c.fillStyle = g; c.beginPath(); c.arc(pt.x, pt.y, br, 0, TAU); c.fill();
       }
       c.globalCompositeOperation = 'source-over';
     });
-    /* россыпь мелких лепестков вокруг кроны: даёт «мерцание» и фактуру, как на плёнке */
-    jobs.push(function () {
-      var R = rng(seed * 83 + 21), n = lite ? 30 : small ? 60 : 140, i, set = [], v, spr, tries = 0, cnt = 0;
+    /* россыпь мелких лепестков вокруг цветения: даёт «мерцание» и фактуру, как на плёнке */
+    q.add(function () {
+      var R = rng(seed * 83 + 21), n = lite ? 40 : small ? 80 : 260, i, set = [], v, spr, tries = 0, cnt = 0;
       for (v = 0; v < 4; v++) set.push(petalSprite(lite ? 32 : 48, [3, 4, 2, 3][v], v + 5, 0));
       while (cnt < n && tries < n * 8) {
         tries++;
@@ -781,45 +861,120 @@
       }
       reset();
     });
-    jobs.push(function () {                       // спрайты больше не нужны: сразу освобождаем память
+
+    /* ---------- дальний слой: тусклые силуэты ветвей и мелких цветов, едва двигается ---------- */
+    var FP = small
+      ? (reduce ? [[-1, 0.35, 0.5], [1, 0.62, 0.5], [-1, 0.9, 0.5]] : [[-1, 0.08, 0.55], [1, 0.26, 0.55], [-1, 0.45, 0.5], [1, 0.62, 0.5], [-1, 0.8, 0.55], [1, 0.96, 0.5]])
+      : (reduce ? [[-1, 0.4, 0.34], [1, 0.66, 0.34], [-1, 0.92, 0.34]] : [[-1, 0.08, 0.36], [1, 0.26, 0.36], [-1, 0.44, 0.32], [1, 0.62, 0.36], [-1, 0.8, 0.38], [1, 0.96, 0.32]]);
+    var fsc = small ? 0.62 : 0.5, fh = H + TF + 2 * my;
+    q.add(function () {
+      if (lite) return;
+      farC = mk(cw * fsc, fh * fsc);
+      var c = farC.getContext('2d');
+      c.imageSmoothingQuality = 'high';
+      FP.forEach(function (def, idx) {
+        q.insert([function () { farPool(c, def, idx); }]);
+      });
+    });
+    function farPool(c, def, idx) {
+      var R = rng(seed * 53 + 9 + idx * 31), s = def[0], SHf = H + TF, cy = Y0 + def[1] * SHf, reach = def[2] * W, cx = s < 0 ? X0 : X1, dir = -s;
+      var n = small ? 22 : 36, i, b, arr = [], o2, k, t, g;
+      c.setTransform(fsc, 0, 0, fsc, 0, 0); c.lineCap = 'round';
+      /* тонкие тёмные ветви */
+      for (b = 0; b < 3; b++) {
+        var xs = cx + s * 0.05 * W, ys = cy + (R() - 0.5) * 0.3 * H, xe = xs + dir * reach * (0.7 + R() * 0.5), ye = ys + (R() - 0.35) * 0.3 * H;
+        var xc = (xs + xe) / 2, yc = (ys + ye) / 2 - (R() * 0.1 - 0.02) * H, px = xs, py = ys, w0 = (3 + R() * 2.5) * Math.max(U, 0.7);
+        for (k = 1; k <= 18; k++) {
+          t = k / 18;
+          var qx = (1 - t) * (1 - t) * xs + 2 * (1 - t) * t * xc + t * t * xe, qy = (1 - t) * (1 - t) * ys + 2 * (1 - t) * t * yc + t * t * ye;
+          c.strokeStyle = 'rgba(52,26,38,' + (0.62 * (1 - 0.55 * t)).toFixed(3) + ')'; c.lineWidth = w0 * (1 - t) + 0.7;
+          c.beginPath(); c.moveTo(px, py); c.lineTo(qx, qy); c.stroke();
+          px = qx; py = qy;
+        }
+      }
+      for (i = 0; i < n; i++) {
+        var rl = Math.pow(R(), 1.5) * reach * 1.12, fr = rl / reach;
+        var L = clamp(0.06 + R() * 0.3 + 0.28 * (1 - fr), 0, 0.62);
+        arr.push({ k: R() < 0.12 ? 6 : (R() * 4) | 0, x: cx + s * 0.04 * W + dir * rl, y: cy + (R() + R() + R() - 1.5) * 0.36 * H * (1 - 0.35 * fr),
+          s: (10 + R() * 13) * FS * (1 - 0.25 * fr), r: R() * TAU, L: L, n: R() });
+      }
+      arr.sort(function (a, b2) { return a.L - b2.L; });
+      /* мягкие пятна под цветами */
+      for (i = 0; i < arr.length; i += 2) {
+        o2 = arr[i];
+        var rad = o2.s * 2.4;
+        g = c.createRadialGradient(o2.x, o2.y, 0, o2.x, o2.y, rad);
+        g.addColorStop(0, rgba(mixc([120, 44, 82], [236, 150, 186], o2.L), 0.1 + 0.12 * o2.L)); g.addColorStop(1, rgba([120, 44, 82], 0));
+        c.fillStyle = g; c.beginPath(); c.arc(o2.x, o2.y, rad, 0, TAU); c.fill();
+      }
+      for (i = 0; i < arr.length; i++) {
+        o2 = arr[i];
+        var l = levelOf(o2.L, o2.n), spr = sp.s1[o2.k][l] || sp.f[o2.k][l];
+        put(c, fsc, spr, o2.x, o2.y, o2.s, o2.r, 0.36 + 0.4 * o2.L);
+      }
+      c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1;
+    }
+
+    /* ---------- ближний слой: крупные размытые цветы и световые круги у краёв, быстрее всех ---------- */
+    var nsc = small ? 0.5 : 0.4, nh = H + TN + 2 * my;
+    q.add(function () {
+      if (lite) return;
+      nearC = mk(cw * nsc, nh * nsc);
+      var c = nearC.getContext('2d'), R = rng(seed * 91 + 17), n = small ? 5 : 10, i, SHn = H + TN;
+      c.imageSmoothingQuality = 'high';
+      c.globalCompositeOperation = 'lighter';
+      for (i = 0; i < n; i++) {
+        var s = (i & 1) ? 1 : -1, y = Y0 + ((i + 0.5) / n + (R() - 0.5) * 0.05) * SHn, inw = R() * 0.07 * W;
+        var x = s < 0 ? X0 - 0.02 * W + inw : X1 + 0.02 * W - inw;
+        var size = (small ? 90 : 170) + R() * (small ? 80 : 220), k = [0, 1, 2, 5][(R() * 4) | 0], l = 2 + ((R() * 2) | 0);
+        put(c, nsc, sp.s2[k][l], x, y, size, R() * TAU, 0.15 + R() * 0.13);
+      }
+      c.setTransform(nsc, 0, 0, nsc, 0, 0); c.globalAlpha = 1;
+      for (i = 0; i < (small ? 8 : 18); i++) {
+        var s2 = R() < 0.5 ? 1 : -1, by = Y0 + R() * SHn, bx = s2 < 0 ? X0 + R() * R() * 0.14 * W : X1 - R() * R() * 0.14 * W;
+        var br = (4 + R() * R() * 34) * Math.max(U, 0.7), a = 0.04 + R() * 0.08;
+        var g = c.createRadialGradient(bx, by, 0, bx, by, br);
+        g.addColorStop(0, 'rgba(255,196,222,' + (a * 0.6).toFixed(3) + ')'); g.addColorStop(0.8, 'rgba(255,196,222,' + (a * 0.8).toFixed(3) + ')');
+        g.addColorStop(0.94, 'rgba(255,222,236,' + (a * 1.5).toFixed(3) + ')'); g.addColorStop(1, 'rgba(255,196,222,0)');
+        c.fillStyle = g; c.beginPath(); c.arc(bx, by, br, 0, TAU); c.fill();
+      }
+      c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+    });
+
+    q.add(function () {                       // спрайты больше не нужны: сразу освобождаем память
       ['f', 's1', 's2'].forEach(function (g) { sp[g].forEach(function (row) { row.forEach(function (x) { if (x) x.c.width = x.c.height = 0; }); }); });
       sp = null;
     });
-    jobs.push(function () { if (!lite) drawRays(ctx); });
-    jobs.push(bloomPrep);
-    jobs.push(bloom1);
-    jobs.push(bloom2);
-    jobs.push(function () { applyMask(); });
-    /* показать готовое */
-    jobs.push(function () {
-      if (!direct) {
-        canvas.width = PW; canvas.height = PH;
-        canvas.getContext('2d').drawImage(work, 0, 0);
-        work.width = work.height = 0;
-      }
-      if (done) done(token);
+    q.add(function () { if (!lite) drawRays(ctx); });
+    q.add(bloomPrep);
+    q.add(bloom1);
+    q.add(bloom2);
+    q.add(applyMask);
+    /* отдать готовое */
+    var finished = false;
+    q.add(function () {
+      finished = true;
+      stats.wall = now() - t0;
+      stats.px = PW * PH + (farC ? farC.width * farC.height : 0) + (nearC ? nearC.width * nearC.height : 0);
+      done({
+        mid: work, far: farC, near: nearC, stats: stats,
+        dims: { w: W, h: H, mx: mx, my: my, cw: cw, hm: hm, fh: fh, nh: nh, TM: TM, TF: TF, TN: TN, small: small }
+      });
     });
 
-    function pump() {
-      if (token.cancel) { if (!direct) work.width = work.height = 0; return; }
-      var t = now(), s;
-      do {
-        s = now();
-        jobs[ji++]();
-        s = now() - s;
-        token.stats.work += s; if (s > token.stats.maxSlice) token.stats.maxSlice = s;
-        token.stats.jobs.push(Math.round(s));
-      } while (ji < jobs.length && now() - t < 10);
-      if (ji < jobs.length) {
-        if (win.requestAnimationFrame && !doc.hidden) win.requestAnimationFrame(pump); else setTimeout(pump, 16);
-      } else token.stats.wall = now() - t0;
-    }
-    token.start = pump;
-    return token;
+    return {
+      start: function () { q.run(); },
+      cancel: function () {                      // незавершённая сборка освобождает память; готовые слои уже на странице
+        q.cancel = true;
+        if (!finished) { work.width = work.height = 0; if (farC) farC.width = farC.height = 0; if (nearC) nearC.width = nearC.height = 0; }
+      },
+      stats: stats
+    };
   }
 
   /* ==========================================================================
-     Падающие лепестки
+     Лепестки и искры: один полноэкранный canvas над страницей.
+     Мелкие частицы — точные по размеру спрайты (без масштабирования: нет мерцания), лепестки кувыркаются в 3D.
      ========================================================================== */
   function petalSprite(h, lvl, variant, side) {
     var pal = PAL[lvl], r = rng(variant * 977 + 13), sh = petalShape(r, 0.5, 0.4), pad = Math.ceil(h * 0.14);
@@ -858,195 +1013,379 @@
     return { c: cv, fd: h, cx: bx, cy: by - h * 0.46 };
   }
 
-  function createPetals(back, front, opts) {
-    opts = opts || {};
-    var ctxB = back.getContext('2d'), ctxF = front.getContext('2d');
-    var W = 0, H = 0, dpr = 1, lite = !!opts.lite, small = !!opts.small;
-    /* на телефоне и слабых устройствах второй полноэкранный слой не нужен: крупные лепестки рисуем в заднем */
-    var oneLayer = small || lite;
-    if (oneLayer) front.style.display = 'none';
-    var ctxFront = oneLayer ? ctxB : ctxF;
-
-    var HS = lite ? 56 : 80, VARS = [[3, 0], [4, 1], [4, 2], [3, 3]], sets = [[], [], []], dof, v, sd, spr;
-    for (dof = 0; dof < 3; dof++) for (v = 0; v < VARS.length; v++) {
-      sets[dof][v] = [];
-      for (sd = 0; sd < 3; sd++) {
-        spr = petalSprite(HS, VARS[v][0], VARS[v][1] + 5, sd);
-        sets[dof][v][sd] = dof ? soften(spr, HS * (dof === 1 ? 0.035 : 0.08)) : spr;
-      }
+  /* Точка/круг заданного диаметра в пикселях устройства; kind: 0 чёткая искра, 1 мягкий диск, 2 диск с ободком (боке), 3 тёплый огонёк */
+  function dotSprite(d, kind, col) {
+    var n = Math.max(4, Math.ceil(d) + 4), cv = mk(n, n), c = cv.getContext('2d'), r = d / 2, m = n / 2;
+    var g = c.createRadialGradient(m, m, 0, m, m, r + 1);
+    var k = Math.max(0, r - 0.5) / (r + 1);
+    if (kind === 0) {
+      g.addColorStop(0, rgba(col, 1)); g.addColorStop(Math.min(0.92, k * 0.5), rgba(col, 0.98)); g.addColorStop(Math.min(0.98, k + 0.02), rgba(col, 0.5)); g.addColorStop(1, rgba(col, 0));
+    } else if (kind === 1) {
+      g.addColorStop(0, rgba(col, 0.95)); g.addColorStop(0.45, rgba(col, 0.5)); g.addColorStop(1, rgba(col, 0));
+    } else if (kind === 2) {
+      g.addColorStop(0, rgba(col, 0.34)); g.addColorStop(0.7, rgba(col, 0.5)); g.addColorStop(0.9, rgba(col, 0.95)); g.addColorStop(1, rgba(col, 0));
+    } else {
+      g.addColorStop(0, 'rgba(255,246,206,1)'); g.addColorStop(0.18, 'rgba(255,224,150,.92)'); g.addColorStop(0.5, 'rgba(255,184,92,.3)'); g.addColorStop(1, 'rgba(255,170,70,0)');
     }
+    c.fillStyle = g; c.fillRect(0, 0, n, n);
+    return { c: cv, h: n / 2 };
+  }
 
-    var nBack = lite ? 16 : small ? 26 : 60;
-    var nFront = lite ? 1 : small ? 2 : 4;
-    var P = [], i;
-
+  function createField(cv, opts, S) {
+    var ctx = cv.getContext('2d');
+    var lite = !!opts.lite, phone = !!opts.small, reduce = !!opts.reduce;
+    var W = 0, H = 0, dpr = 1;
+    var CNT = lite ? { dust: 40, bokeh: 0, small: 20, mid: 10, big: 0, gold: 2 }
+      : phone ? { dust: 80, bokeh: 6, small: 40, mid: 24, big: 0, gold: 4 }
+      : { dust: 170, bokeh: 14, small: 110, mid: 60, big: 4, gold: 7 };
+    var DUST_D = [1.2, 1.7, 2.3, 3.1], BOKEH_D = [5, 7.5, 11], GOLD_D = [9, 14, 22];
+    var WHITE = [255, 251, 253], PINK = [255, 222, 236];
+    var sets = null, sprReady = false, spDpr = 0;              // спрайты строятся по частям, чтобы не блокировать поток
+    var Pd = [], Pb = [], Ps = [], Pm = [], Pg = [], Pk = [];  // искры, боке, мелкие, средние, крупные лепестки, огоньки
+    var raf = 0, running = false, tabOn = !doc.hidden, lastT = 0, t0 = 0, dtS = 0.0167, frame = 0;
     var ptr = { x: -9999, y: -9999, vx: 0, vy: 0, on: false };
-    var gust = 0, lastY = win.pageYOffset || 0, lastT = 0, t0 = 0, raf = 0, running = false, tabOn = !doc.hidden;
 
     function rand(a, b) { return a + Math.random() * (b - a); }
 
-    function spawn(p, initial) {
-      var fr = p.front;
-      var d = fr ? rand(0.85, 1) : Math.pow(Math.random(), 0.9) * 0.82;
-      p.d = d;
-      p.size = fr ? rand(56, 96) : (d < 0.3 ? rand(5, 10) : d < 0.62 ? rand(10, 20) : rand(20, 36));     // длина лепестка, px
-      p.vy0 = fr ? rand(54, 92) : lerp(12, 44, d);
-      p.sway = lerp(8, 30, d) * rand(0.7, 1.3);
-      p.f1 = rand(0, TAU); p.f1v = rand(0.9, 2.4) * (Math.random() < 0.5 ? -1 : 1) * (fr ? 0.6 : 1);
-      p.f2 = rand(0, TAU); p.f2v = rand(0.5, 1.3);
-      p.rot = rand(0, TAU); p.spin = rand(-0.9, 0.9) * (fr ? 0.5 : 1);
-      p.alpha = fr ? rand(0.5, 0.8) : lerp(0.6, 1, d);
-      p.v = (Math.random() * VARS.length) | 0;
-      p.dof = fr ? 2 : (d < 0.2 ? 1 : 0);
-      p.vx = 0; p.vy = p.vy0;
-      p.x = initial ? rand(0, W) : (W * (1.12 - 0.85 * Math.pow(Math.random(), 1.4)) + rand(0, 60));
-      p.y = initial ? rand(-H * 0.1, H) : -rand(30, 240) - p.size;
-    }
-    for (i = 0; i < nBack + nFront; i++) P.push({ front: i >= nBack });
-
-    function resize() {
-      dpr = Math.min(win.devicePixelRatio || 1, lite ? 1 : small ? 1.25 : 1.75);
-      W = win.innerWidth; H = win.innerHeight;
-      while (W * H * dpr * dpr > 2.6e6 && dpr > 1) dpr -= 0.25;
+    function sizeDpr() {
+      dpr = Math.min(win.devicePixelRatio || 1, lite ? 1 : phone ? 1.25 : 1.5);
+      var cap = phone ? 1.4e6 : 3.0e6;
+      while (W * H * dpr * dpr > cap && dpr > 1) dpr -= 0.25;
       if (dpr < 1) dpr = 1;
-      (oneLayer ? [back] : [back, front]).forEach(function (c) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); });
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     }
 
+    function buildSprites(done) {
+      var q = makeQueue(null), ns = { dust: [[], []], bokeh: [[], []], gold: [], sm: [], md: [], bg: [] }, d = dpr, i, v;
+      q.add(function () {
+        for (i = 0; i < DUST_D.length; i++) { ns.dust[0][i] = dotSprite(DUST_D[i] * d, 0, WHITE); ns.dust[1][i] = dotSprite(DUST_D[i] * d, 0, PINK); }
+        for (i = 0; i < BOKEH_D.length; i++) { ns.bokeh[0][i] = dotSprite(BOKEH_D[i] * d, 1, PINK); ns.bokeh[1][i] = dotSprite(BOKEH_D[i] * d, 2, PINK); }
+        for (i = 0; i < GOLD_D.length; i++) ns.gold[i] = dotSprite(GOLD_D[i] * d, 3, WHITE);
+      });
+      var VT = [[4, 0], [4, 1], [3, 2], [4, 3]], VM = [[3, 0], [4, 1], [4, 2], [3, 3]];
+      q.add(function () {
+        var sd;
+        for (v = 0; v < 4; v++) {
+          ns.sm[v] = []; ns.md[v] = [];
+          for (sd = 0; sd < 3; sd++) { ns.sm[v][sd] = petalSprite(16, VT[v][0], VT[v][1] + 5, sd); ns.md[v][sd] = petalSprite(36, VM[v][0], VM[v][1] + 5, sd); }
+        }
+      });
+      if (CNT.big) for (v = 0; v < 3; v++) (function (vv) {
+        q.add(function () { ns.bg[vv] = []; for (var s2 = 0; s2 < 3; s2++) ns.bg[vv][s2] = soften(petalSprite(88, [3, 2, 3][vv], [0, 1, 3][vv] + 5, s2), 88 * 0.08); });
+      })(v);
+      q.add(function () { sets = ns; spDpr = d; sprReady = true; });
+      q.run(done);
+    }
+
+    /* ---------- появление частиц ---------- */
+    function spawnDust(p, init) {
+      var d = Math.pow(Math.random(), 0.8);
+      p.d = d; p.cls = d < 0.34 ? 0 : d < 0.62 ? 1 : d < 0.86 ? 2 : 3; if (Math.random() < 0.12) p.cls = Math.min(3, p.cls + 1);
+      p.col = Math.random() < 0.72 ? 0 : 1;
+      p.alpha = lerp(0.4, 0.95, d) * rand(0.65, 1);
+      p.vy0 = rand(2, 12) * lerp(0.5, 1, d); p.sway = lerp(2, 9, d) * rand(0.7, 1.3);
+      p.tw = rand(0, TAU); p.twv = rand(0.5, 2.0); p.f1 = rand(0, TAU);
+      p.vx = 0; p.vy = p.vy0;
+      place(p, init);
+    }
+    function spawnBokeh(p, init) {
+      p.d = rand(0.3, 1); p.cls = (Math.random() * 3) | 0; p.col = Math.random() < 0.5 ? 0 : 1;
+      p.alpha = rand(0.16, 0.36); p.vy0 = rand(2, 9); p.sway = rand(3, 8);
+      p.tw = rand(0, TAU); p.twv = rand(0.2, 0.6); p.f1 = rand(0, TAU);
+      p.vx = 0; p.vy = p.vy0;
+      place(p, init);
+    }
+    function spawnPetal(p, init, kind) {                       // 0 мелкий, 1 средний, 2 крупный
+      var d = kind === 2 ? rand(0.85, 1) : Math.pow(Math.random(), 0.9);
+      p.d = d;
+      p.size = kind === 0 ? lerp(4, 9, d * rand(0.6, 1)) : kind === 1 ? lerp(10, 22, d * rand(0.5, 1)) : rand(60, 100);
+      p.vy0 = kind === 2 ? rand(36, 66) : kind === 1 ? lerp(12, 40, d) : lerp(8, 30, d);
+      p.sway = lerp(6, 28, d) * rand(0.7, 1.3) * (kind === 2 ? 0.8 : 1);
+      p.f1 = rand(0, TAU); p.f1v = rand(0.9, 2.4) * (kind === 0 ? 1.3 : 1) * (Math.random() < 0.5 ? -1 : 1) * (kind === 2 ? 0.6 : 1);
+      p.f2 = rand(0, TAU); p.f2v = rand(0.5, 1.3);
+      p.rot = rand(0, TAU); p.spin = rand(-0.9, 0.9) * (kind === 2 ? 0.5 : 1);
+      p.alpha = kind === 2 ? rand(0.3, 0.45) : kind === 1 ? lerp(0.5, 0.82, d) : lerp(0.42, 0.95, d);
+      p.v = (Math.random() * (kind === 2 ? 3 : 4)) | 0;
+      p.vx = 0; p.vy = p.vy0;
+      place(p, init);
+    }
+    function spawnGold(p, init) {
+      p.d = rand(0.4, 1); p.cls = (Math.random() * 3) | 0;
+      p.alpha = rand(0.45, 0.85); p.vy0 = -rand(2, 8); p.sway = rand(3, 8);
+      p.tw = rand(0, TAU); p.twv = rand(0.5, 1.1); p.f1 = rand(0, TAU);
+      p.vx = 0; p.vy = p.vy0;
+      place(p, init);
+    }
+    function place(p, init) {
+      if (init) { p.x = rand(0, W); p.y = rand(0, H); }
+      else if (Math.random() < 0.5) { p.x = W + 20; p.y = rand(-40, H); }
+      else { p.x = rand(0, W + 20); p.y = -30; }
+    }
+    function spawnAll(init) {
+      var i;
+      for (i = 0; i < Pd.length; i++) spawnDust(Pd[i], init);
+      for (i = 0; i < Pb.length; i++) spawnBokeh(Pb[i], init);
+      for (i = 0; i < Ps.length; i++) spawnPetal(Ps[i], init, 0);
+      for (i = 0; i < Pm.length; i++) spawnPetal(Pm[i], init, 1);
+      for (i = 0; i < Pg.length; i++) spawnPetal(Pg[i], init, 2);
+      for (i = 0; i < Pk.length; i++) spawnGold(Pk[i], init);
+    }
+    (function () {
+      function fill(arr, n) { for (var i = 0; i < n; i++) arr.push({}); }
+      fill(Pd, CNT.dust); fill(Pb, CNT.bokeh); fill(Ps, CNT.small); fill(Pm, CNT.mid); fill(Pg, CNT.big); fill(Pk, CNT.gold);
+    })();
+
+    /* ---------- рисование ---------- */
     /* кувырок в 3D: поворот вокруг длинной оси (ширина = cos), качка вокруг поперечной (длина) */
-    function drawOne(c, p) {
+    function drawPetal(p, set, aMul) {
       var cs = Math.cos(p.f1), thick = Math.abs(cs), sy = Math.cos(0.75 * Math.sin(p.f2));
       var side = cs >= 0 ? 0 : 1;
       if (thick < 0.26) side = 2;
-      var s = sets[p.dof][p.v][side];
+      var s = set[p.v][side];
       var k = p.size / s.fd * dpr, sx = Math.max(0.09, thick);
-      var co = Math.cos(p.rot), si = Math.sin(p.rot), a = p.alpha;
-      /* слева — текст: лепестки там слабее и прозрачнее */
-      if (W >= 980) a *= p.front ? 0.15 + 0.85 * smooth(0.3, 0.8, p.x / W) : 0.4 + 0.6 * smooth(0.16, 0.6, p.x / W);
-      else if (p.front) a *= 0.7;
+      var co = Math.cos(p.rot), si = Math.sin(p.rot), a = p.alpha * aMul;
       if (thick < 0.4) a *= 0.8 + 0.2 * thick / 0.4;
-      /* быстрые: размытие движением — бледная копия сзади по ходу */
-      var spd = Math.hypot(p.vx, p.vy), thr = p.front ? 120 : 80;
-      if (spd > thr) {
-        var gk = Math.min(0.06, (spd - thr) / 3000 + 0.02), ga = a * 0.38;
-        c.globalAlpha = ga;
-        c.setTransform(co * sx * k, si * sx * k, -si * sy * k, co * sy * k, (p.x - p.vx * gk) * dpr, (p.y - p.vy * gk) * dpr);
-        c.drawImage(s.c, -s.cx, -s.cy);
+      ctx.globalAlpha = a;
+      ctx.setTransform(co * sx * k, si * sx * k, -si * sy * k, co * sy * k, p.x * dpr, p.y * dpr);
+      ctx.drawImage(s.c, -s.cx, -s.cy);
+    }
+    function draw(t) {
+      var i, p, s, a;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.globalCompositeOperation = 'source-over';
+      for (i = 0; i < Pb.length; i++) {
+        p = Pb[i]; s = sets.bokeh[p.col][p.cls];
+        a = p.alpha * (0.7 + 0.3 * Math.sin(t * p.twv + p.tw));
+        ctx.globalAlpha = a;
+        ctx.drawImage(s.c, p.x * dpr - s.h, p.y * dpr - s.h);
       }
-      c.globalAlpha = a;
-      c.setTransform(co * sx * k, si * sx * k, -si * sy * k, co * sy * k, p.x * dpr, p.y * dpr);
-      c.drawImage(s.c, -s.cx, -s.cy);
+      for (i = 0; i < Pd.length; i++) {
+        p = Pd[i]; s = sets.dust[p.col][p.cls];
+        a = Math.sin(t * p.twv + p.tw); a = a * a;
+        ctx.globalAlpha = p.alpha * (0.3 + 0.7 * a);
+        ctx.drawImage(s.c, p.x * dpr - s.h, p.y * dpr - s.h);
+      }
+      for (i = 0; i < Ps.length; i++) drawPetal(Ps[i], sets.sm, 1);
+      for (i = 0; i < Pm.length; i++) drawPetal(Pm[i], sets.md, 1);
+      for (i = 0; i < Pg.length; i++) drawPetal(Pg[i], sets.bg, 1);
+      ctx.globalCompositeOperation = 'lighter';
+      for (i = 0; i < Pk.length; i++) {
+        p = Pk[i]; s = sets.gold[p.cls];
+        a = 0.5 + 0.5 * Math.sin(t * p.twv + p.tw);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = p.alpha * (0.25 + 0.75 * a);
+        ctx.drawImage(s.c, p.x * dpr - s.h, p.y * dpr - s.h);
+      }
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
     }
 
-    function draw() {
-      ctxB.setTransform(1, 0, 0, 1, 0, 0); ctxB.clearRect(0, 0, back.width, back.height);
-      if (!oneLayer) { ctxF.setTransform(1, 0, 0, 1, 0, 0); ctxF.clearRect(0, 0, front.width, front.height); }
-      for (var n = 0; n < P.length; n++) drawOne(P[n].front ? ctxFront : ctxB, P[n]);
-      ctxB.globalAlpha = ctxF.globalAlpha = 1;
+    /* ---------- движение ---------- */
+    function push(p, R, dt, k) {                               // курсор отталкивает: импульс в скорость, дальше воздух возвращает ход
+      var dx = p.x - ptr.x, dy = p.y - ptr.y, d2 = dx * dx + dy * dy, R2 = R * R;
+      if (d2 < R2 && d2 > 1) {
+        var d = Math.sqrt(d2), f = 1 - d / R;
+        p.vx += dx / d * f * f * 620 * dt * k + ptr.vx * f * 0.5 * k;
+        p.vy += dy / d * f * f * 620 * dt * k + ptr.vy * f * 0.5 * k;
+        if (p.spin !== undefined) p.spin += (dx > 0 ? 1 : -1) * f * 3 * dt;
+      }
     }
-
+    function wrap(p, m) {
+      if (p.y > H + m) { p.y = -m; p.x = rand(-m, W + m); }
+      else if (p.y < -m) { p.y = H + m; p.x = rand(-m, W + m); }
+      if (p.x < -m) { p.x = W + m; p.y = rand(-m, H + m); }
+      else if (p.x > W + m) { p.x = -m; p.y = rand(-m, H + m); }
+    }
     function step(ts) {
       raf = 0;
-      var dt = lastT ? Math.min((ts - lastT) / 1000, 0.05) : 0.016;
+      var rawDt = lastT ? Math.min((ts - lastT) / 1000, 0.05) : 0.0167;
       lastT = ts;
-      t0 += dt;
+      dtS += (rawDt - dtS) * 0.3;                              // сглаживаем неровные кадры: движение без рывков
+      var dt = dtS;
+      t0 += dt; frame++;
+      if (S.tick) S.tick(dt, t0, frame);
 
-      /* порыв от прокрутки затухает */
-      gust *= Math.exp(-dt * 2.2);
-      var wind = -(26 + 14 * Math.sin(t0 * 0.21));
-      var rate = 1 - Math.exp(-dt * 1.7);
+      /* порыв от прокрутки затухает; параллакс: ближние частицы смещаются сильнее дальних */
+      S.gust *= Math.exp(-dt * 2.2);
+      var take = S.acc * (1 - Math.exp(-dt * 9)); S.acc -= take;
+      var wind = -(22 + 14 * Math.sin(t0 * 0.21) + 6 * Math.sin(t0 * 0.53)), rate = 1 - Math.exp(-dt * 1.7);
+      var gust = S.gust, i, p, df, area, tvx, tvy, m;
+      var hasPtr = ptr.on;
 
-      for (var n = 0; n < P.length; n++) {
-        var p = P[n], df = lerp(0.35, 1, p.d);
-        p.f1 += p.f1v * dt; p.f2 += p.f2v * dt; p.rot += p.spin * dt;
-        /* лепесток ребром падает быстрее, плашмя — парит и скользит вбок */
-        var area = Math.abs(Math.cos(p.f1)) * 0.6 + 0.4;
-        var tvy = p.vy0 * lerp(1.3, 0.72, area) + gust * (0.3 + p.d) * 0.7;
-        var tvx = (wind + 10 * Math.sin(t0 * 0.7 + p.y * 0.004) + 6 * Math.sin(t0 * 1.7 + p.x * 0.006)) * df
-          + Math.sin(p.f1) * p.sway * 0.7 - gust * 0.2;
-        p.vx += (tvx - p.vx) * rate;
-        p.vy += (tvy - p.vy) * rate;
-
-        /* курсор отталкивает лепестки: импульс в скорость, дальше сопротивление воздуха возвращает ход */
-        if (ptr.on) {
-          var dx = p.x - ptr.x, dy = p.y - ptr.y, d2 = dx * dx + dy * dy, R2 = 150 * 150;
-          if (d2 < R2 && d2 > 1) {
-            var d = Math.sqrt(d2), f = (1 - d / 150);
-            p.vx += dx / d * f * f * 620 * dt + ptr.vx * f * 0.5;
-            p.vy += dy / d * f * f * 620 * dt + ptr.vy * f * 0.5;
-            p.spin += (dx > 0 ? 1 : -1) * f * 3 * dt;
-          }
+      for (i = 0; i < Pd.length; i++) {                        // искры
+        p = Pd[i]; df = lerp(0.35, 1, p.d);
+        tvx = wind * df * 0.55 + Math.sin(t0 * 0.6 * p.twv + p.f1) * p.sway - gust * 0.12 * df;
+        tvy = p.vy0 + Math.cos(t0 * 0.45 + p.tw * 1.3) * p.sway * 0.6;
+        p.vx += (tvx - p.vx) * rate; p.vy += (tvy - p.vy) * rate;
+        if (hasPtr) push(p, 110, dt, 0.6);
+        p.x += p.vx * dt; p.y += p.vy * dt - take * (0.08 + 0.5 * p.d);
+        wrap(p, 12);
+      }
+      for (i = 0; i < Pb.length; i++) {                        // боке
+        p = Pb[i]; df = lerp(0.35, 1, p.d);
+        tvx = wind * df * 0.4 + Math.sin(t0 * 0.3 + p.f1) * p.sway; tvy = p.vy0 + Math.cos(t0 * 0.25 + p.tw) * p.sway * 0.5;
+        p.vx += (tvx - p.vx) * rate; p.vy += (tvy - p.vy) * rate;
+        p.x += p.vx * dt; p.y += p.vy * dt - take * (0.1 + 0.55 * p.d);
+        wrap(p, 20);
+      }
+      for (m = 0; m < 3; m++) {                                // лепестки: мелкие, средние, крупные
+        var arr = m === 0 ? Ps : m === 1 ? Pm : Pg;
+        for (i = 0; i < arr.length; i++) {
+          p = arr[i]; df = lerp(0.35, 1, p.d);
+          p.f1 += p.f1v * dt; p.f2 += p.f2v * dt; p.rot += p.spin * dt;
+          /* лепесток ребром падает быстрее, плашмя — парит и скользит вбок */
+          area = Math.abs(Math.cos(p.f1)) * 0.6 + 0.4;
+          tvy = p.vy0 * lerp(1.3, 0.72, area);
+          tvx = (wind + 10 * Math.sin(t0 * 0.7 + p.y * 0.004) + 6 * Math.sin(t0 * 1.7 + p.x * 0.006)) * df + Math.sin(p.f1) * p.sway * 0.7 - gust * 0.22 * (0.3 + p.d);
+          p.vx += (tvx - p.vx) * rate; p.vy += (tvy - p.vy) * rate;
+          if (hasPtr) push(p, 150, dt, 1);
+          p.spin *= Math.exp(-dt * 0.5);
+          p.x += p.vx * dt; p.y += p.vy * dt - take * (0.1 + 0.6 * p.d);
+          wrap(p, p.size + 30);
         }
-        p.spin *= Math.exp(-dt * 0.5);
-        p.x += p.vx * dt; p.y += p.vy * dt;
-        if (p.y > H + 90 || p.x < -140) spawn(p, false);
+      }
+      for (i = 0; i < Pk.length; i++) {                        // тёплые огоньки: медленно всплывают
+        p = Pk[i];
+        tvx = wind * 0.3 + Math.sin(t0 * 0.4 + p.f1) * p.sway; tvy = p.vy0 + Math.cos(t0 * 0.3 + p.tw) * p.sway * 0.5;
+        p.vx += (tvx - p.vx) * rate; p.vy += (tvy - p.vy) * rate;
+        p.x += p.vx * dt; p.y += p.vy * dt - take * (0.1 + 0.4 * p.d);
+        wrap(p, 30);
       }
       ptr.vx *= 0.85; ptr.vy *= 0.85;
-      draw();
-      if (running && tabOn) raf = requestAnimationFrame(step);
+      draw(t0);
+      if (running && tabOn) raf = win.requestAnimationFrame(step);
     }
 
-    function kick() { if (!raf && running && tabOn) { lastT = 0; raf = requestAnimationFrame(step); } }
+    function kick() { if (!raf && running && tabOn) { lastT = 0; raf = win.requestAnimationFrame(step); } }
 
-    function onScroll() {
-      var y = win.pageYOffset || 0, now2 = performance.now();
-      var dtS = Math.max(16, now2 - (onScroll.t || now2 - 16)) / 1000;
-      gust = clamp(gust + clamp((y - lastY) / dtS, -2400, 2400) * 0.05, -140, 220);
-      lastY = y; onScroll.t = now2;
+    function resize() {
+      var w = cv.offsetWidth || win.innerWidth, h = cv.offsetHeight || win.innerHeight;
+      if (W && Math.abs(w - W) < 2 && Math.abs(h - H) < 2) return false;
+      var ow = W, oh = H, i, all = [Pd, Pb, Ps, Pm, Pg, Pk], j, p;
+      W = w; H = h;
+      sizeDpr();
+      if (ow) for (j = 0; j < all.length; j++) for (i = 0; i < all[j].length; i++) { p = all[j][i]; p.x *= W / ow; p.y *= H / oh; }
+      return true;
     }
-
-    resize();
-    for (i = 0; i < P.length; i++) spawn(P[i], true);
 
     return {
-      start: function () {
-        if (opts.reduce) { draw(); win.addEventListener('resize', function () { resize(); for (var k = 0; k < P.length; k++) spawn(P[k], true); draw(); }); return; }
-        running = true; kick();
-        win.addEventListener('resize', function () { resize(); });
-        win.addEventListener('scroll', onScroll, { passive: true });
-        doc.addEventListener('visibilitychange', function () { tabOn = !doc.hidden; kick(); });
+      start: function (onReady) {
+        resize();
+        spawnAll(true);
+        buildSprites(function () {
+          if (reduce) draw(0); else { running = true; kick(); }
+          if (onReady) onReady();
+        });
+        win.addEventListener('resize', function () {
+          if (!resize()) return;
+          if (sprReady && spDpr !== dpr) { sprReady = false; buildSprites(function () { if (reduce) draw(0); }); }
+          else if (reduce && sprReady) draw(0);
+        });
+        if (reduce) return;
+        doc.addEventListener('visibilitychange', function () { tabOn = !doc.hidden; if (tabOn) kick(); });
         win.addEventListener('pointermove', function (e) {
           if (e.pointerType === 'touch') return;
           ptr.vx = e.clientX - (ptr.x === -9999 ? e.clientX : ptr.x);
           ptr.vy = e.clientY - (ptr.y === -9999 ? e.clientY : ptr.y);
           ptr.x = e.clientX; ptr.y = e.clientY; ptr.on = true;
+          S.px = e.clientX / W - 0.5; S.py = e.clientY / H - 0.5;
         }, { passive: true });
         doc.addEventListener('pointerleave', function () { ptr.on = false; ptr.x = ptr.y = -9999; });
       }
     };
   }
 
+  /* ==========================================================================
+     Подключение: слои сцены под страницей и поле частиц над ней
+     ========================================================================== */
   FX.sky = {
     stats: null,
     init: function (o) {
       o = o || {};
-      var small = win.innerWidth < 760;
-      var back = doc.getElementById('skyBack'), front = doc.getElementById('skyFront');
-      if (back && front && back.getContext) {
-        var petals = createPetals(back, front, { lite: o.lite, reduce: o.reduce, small: small });
-        petals.start();
+      var cvP = doc.getElementById('skyFront') || doc.getElementById('skyBack'), wrap = doc.getElementById('canopy');
+      var lite = !!o.lite, reduce = !!o.reduce;
+      /* общее состояние прокрутки и курсора: читают и слои, и частицы */
+      var S = { y: win.pageYOffset || 0, pos: win.pageYOffset || 0, max: 1, acc: 0, gust: 0, px: 0, py: 0, mpx: 0, mpy: 0, tick: null };
+      var layers = [], lastT = 0;
+
+      function measure() { S.max = Math.max(1, doc.documentElement.scrollHeight - win.innerHeight); }
+      function place(t, force) {
+        if (!layers.length) return;
+        var p = clamp(S.pos / S.max, 0, 1), i, L, tx, ty, str;
+        for (i = 0; i < layers.length; i++) {
+          L = layers[i];
+          tx = Math.sin(t * L.w + L.ph) * L.ax - S.mpx * L.px;
+          ty = -p * L.travel + Math.cos(t * L.w * 0.8 + L.ph) * L.ay - S.mpy * L.py;
+          str = 'translate3d(' + tx.toFixed(2) + 'px,' + ty.toFixed(2) + 'px,0)';
+          if (force || str !== L.str) { L.el.style.transform = str; L.str = str; }
+        }
       }
-      var cv = doc.querySelector('#canopy canvas'), wrap = doc.getElementById('canopy');
-      if (cv && wrap && cv.getContext) {
-        var cur = null, built = null;
-        /* ветку строим после первой отрисовки кусками; готовая проявляется классом "on" */
-        var build = function () {
-          if (cur) cur.cancel = true;
-          var tk = buildCanopy(cv, { lite: o.lite, seed: 11, narrow: win.innerWidth < 980, direct: !wrap.classList.contains('on') }, function (t) {
-            built = t.dims; FX.sky.stats = t.stats; wrap.classList.add('on');
-          });
-          cur = tk; tk.start();
-        };
-        if (win.requestIdleCallback) win.requestIdleCallback(build, { timeout: 600 }); else setTimeout(build, 60);
-        var rt = 0;
-        win.addEventListener('resize', function () {
-          clearTimeout(rt);
-          rt = setTimeout(function () {
-            var rw = cv.offsetWidth, rh = cv.offsetHeight;
-            if (built && built.narrow === (win.innerWidth < 980) && Math.abs(rw - built.w) < built.w * 0.04 && Math.abs(rh - built.h) < built.h * 0.08) return;
-            build();
-          }, 300);
+      S.tick = function (dt, t, frame) {
+        if (frame % 40 === 1) measure();
+        S.pos += (S.y - S.pos) * (1 - Math.exp(-dt * 6.5));
+        if (Math.abs(S.y - S.pos) < 0.05) S.pos = S.y;
+        S.mpx += (S.px - S.mpx) * (1 - Math.exp(-dt * 2.6)); S.mpy += (S.py - S.mpy) * (1 - Math.exp(-dt * 2.6));
+        place(t, false);
+      };
+
+      if (!reduce) {
+        win.addEventListener('scroll', function () {
+          var y = win.pageYOffset || 0, now2 = now(), dtS = Math.max(16, now2 - (S.lt || now2 - 16)) / 1000, dy = y - S.y;
+          S.gust = clamp(S.gust + clamp(dy / dtS, -2400, 2400) * 0.05, -140, 220);
+          S.acc = clamp(S.acc + dy, -500, 500);
+          S.y = y; S.lt = now2;
+        }, { passive: true });
+      }
+      measure();
+
+      var field = null;
+      if (cvP && cvP.getContext) {
+        field = createField(cvP, { lite: lite, reduce: reduce, small: win.innerWidth < 760 }, S);
+        field.start(function () { cvP.classList.add('on'); });
+      }
+      if (!wrap) return;
+
+      /* слои сцены: строим после первой отрисовки, кусками; готовые подменяем разом */
+      var cur = null, built = null;
+      function mount(res) {
+        var d = res.dims, old = Array.prototype.slice.call(wrap.querySelectorAll('canvas')), i;
+        var calm = d.small || lite;
+        var defs = [
+          { cv: res.far, h: d.fh, travel: d.TF, ax: 2, ay: 1.5, px: 3, py: 2, per: 17 },
+          { cv: res.mid, h: d.hm, travel: d.TM, ax: 5, ay: 3, px: 7, py: 4, per: 13 },
+          { cv: res.near, h: d.nh, travel: d.TN, ax: 9, ay: 5, px: 14, py: 8, per: 9 }
+        ];
+        layers = [];
+        defs.forEach(function (df) {
+          if (!df.cv) return;
+          var el = df.cv;
+          el.style.width = d.cw + 'px'; el.style.height = df.h + 'px';
+          el.style.left = (-d.mx) + 'px'; el.style.top = (-d.my) + 'px';
+          wrap.appendChild(el);
+          if (!reduce) layers.push({ el: el, travel: df.travel, ax: calm ? df.ax * 0.5 : df.ax, ay: calm ? df.ay * 0.5 : df.ay, px: calm ? 0 : df.px, py: calm ? 0 : df.py, w: TAU / df.per, ph: Math.random() * TAU, str: '' });
         });
+        measure(); place(0, true);
+        for (i = 0; i < old.length; i++) { if (old[i].parentNode === wrap) wrap.removeChild(old[i]); old[i].width = old[i].height = 0; }
+        built = d;
       }
+      function build() {
+        if (cur) cur.cancel();
+        var W = wrap.offsetWidth || win.innerWidth, H = wrap.offsetHeight || win.innerHeight;
+        cur = buildScene({ W: W, H: H, lite: lite, reduce: reduce, seed: 11 }, function (res) {
+          mount(res); FX.sky.stats = res.stats; wrap.classList.add('on');
+        });
+        cur.start();
+      }
+      if (win.requestIdleCallback) win.requestIdleCallback(build, { timeout: 600 }); else setTimeout(build, 60);
+      var rt = 0;
+      win.addEventListener('resize', function () {
+        clearTimeout(rt);
+        rt = setTimeout(function () {
+          var rw = wrap.offsetWidth, rh = wrap.offsetHeight;
+          if (built && Math.abs(rw - built.w) < built.w * 0.04 && Math.abs(rh - built.h) < built.h * 0.1 && (rw < 600) === built.small) return;
+          build();
+        }, 300);
+      });
     }
   };
 })();

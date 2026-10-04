@@ -1,10 +1,12 @@
 /* ==========================================================================
-   Plush Pepe «Pink Latex» — анимированный герой первого экрана.
+   Plush Pepe «Pink Latex» — герой первого экрана.
 
-   Рисунок целиком кодом, на canvas 2D: детали («спрайты») запекаются один раз
-   (градиенты, мягкие тени, блики латекса), а каждый кадр лишь раскладываются
-   с пружинной инерцией — поэтому 60 fps без тяжёлых фильтров.
-   Если задан opts.src (Lottie JSON), оригинальная анимация плавно подменяет рисунок.
+   Основа — ОРИГИНАЛЬНАЯ Lottie-анимация (opts.src): все 28 родных слоёв, дыхание, объятие сердца.
+   Кадром управляем сами: один общий rAF-цикл на модуль, время считается честно, а нагрузка
+   подстраивается под устройство (30 к/с и/или меньшее разрешение, если кадры долгие).
+   «3D»: перспективный наклон всего холста (пружины с dt), парение, дыхание масштаба, параллакс тени.
+   «Воздушный поцелуй»: глянцевое сердце-пузырь вылетает изо рта, в нём печатается текст и ссылка на бота.
+   Запасной вариант (тихо, без ошибок): нарисованный кодом Pepe на canvas 2D — только если Lottie не загрузился.
 
    Контракт: window.NTFX.pepe.create(container, opts) -> { start(), nudge(v) }
    ========================================================================== */
@@ -15,16 +17,18 @@
   var FX = win.NTFX = win.NTFX || {};
 
   var PI = Math.PI, TAU = PI * 2;
-  var VIEW = 1180;          /* сторона сцены в условных единицах (эталон ~1080 + поля) */
-  var OX = 54, OY = 36;     /* сдвиг эталонных координат внутрь сцены */
+  var VIEW = 1180;          /* запасной рисунок: сторона сцены в условных единицах */
+  var OX = 54, OY = 36;     /* запасной рисунок: сдвиг эталонных координат внутрь сцены */
 
   /* ---------- Мелкие утилиты ---------- */
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function rand(a, b) { return a + Math.random() * (b - a); }
   function ease(u) { return u * u * (3 - 2 * u); }
   function noop() {}
+  function now() { return win.performance && win.performance.now ? win.performance.now() : Date.now(); }
+  function fx(n, d) { return n.toFixed(d); }
 
-  /* пружина: следует за target с инерцией и лёгким перелётом */
+  /* пружина с лёгким перелётом (полунеявный шаг с подшагами) */
   function Spring(k, d) { this.x = 0; this.v = 0; this.t = 0; this.k = k; this.d = d; }
   Spring.prototype.step = function (dt) {
     var n = Math.max(1, Math.ceil(dt / 0.008)), h = dt / n;
@@ -32,6 +36,15 @@
       this.v += (this.k * (this.t - this.x) - this.d * this.v) * h;
       this.x += this.v * h;
     }
+    return this.x;
+  };
+
+  /* критически демпфированная пружина: точное решение, без перелёта и дрожания, любой dt */
+  function Crit(w) { this.x = 0; this.v = 0; this.t = 0; this.w = w; }
+  Crit.prototype.step = function (dt) {
+    var w = this.w, e = Math.exp(-w * dt), d = this.x - this.t, j = this.v + w * d;
+    this.x = this.t + (d + j * dt) * e;
+    this.v = (this.v - w * j * dt) * e;
     return this.x;
   };
 
@@ -43,6 +56,7 @@
   }
 
   /* ==========================================================================
+     ЗАПАСНОЙ РИСУНОК (используется только если оригинальная анимация не загрузилась)
      Геометрия (эталонные координаты ~1080×1080, как на скриншоте Telegram)
      ========================================================================== */
   var GEO = {
@@ -457,30 +471,29 @@
     });
   }
 
-  /* ==========================================================================
-     Персонаж: сборка, анимация, цикл
-     ========================================================================== */
-  function create(container, opts) {
-    opts = opts || {};
-    var STUB = { start: noop, nudge: noop };
-    if (!win.Path2D || !container) return STUB;
-
+  /* --------------------------------------------------------------------------
+     Запасной Pepe: холст 2D внутри «рига» (host). Свой цикл не заводит — кадры даёт общий rAF.
+     -------------------------------------------------------------------------- */
+  function makeVector(opts, host, ptr) {
+    if (!win.Path2D) return null;
     var reduce = !!opts.reduce, lite = !!opts.lite;
     var cv = doc.createElement('canvas');
     var ctx = cv.getContext ? cv.getContext('2d') : null;
-    if (!ctx) return STUB;
-    container.appendChild(cv);
+    if (!ctx) return null;
+    var cvs = cv.style;
+    cvs.position = 'absolute'; cvs.left = '0'; cvs.top = '0'; cvs.width = '100%'; cvs.height = '100%'; cvs.display = 'block'; cvs.pointerEvents = 'none';
+    host.appendChild(cv);
 
     var W = 0, K = 1;                       /* сторона канвы в px и px на условную единицу */
     var SP = null, gen = 0, built = false;
-    var alive = true, started = false, visible = true, raf = 0;
+    var alive = true;
     var slow = false;                       /* режим экономии: включается сам, если кадры долгие */
-    var lot = { anim: null, ready: false }; /* оригинальная Lottie-анимация */
+    var wall = 0;                           /* время rAF, с */
 
     /* ---------- размер канвы ---------- */
     function setSize(px) { K = px / VIEW; cv.width = px; cv.height = px; }
     function fit() {
-      var cs = container.clientWidth || 0;
+      var cs = host.clientWidth || 0;
       if (cs < 40) return false;
       var dpr = Math.min(win.devicePixelRatio || 1, lite ? 1.25 : (opts.pointer ? 2 : 1.75));
       var px = Math.round(cs * dpr);
@@ -533,7 +546,6 @@
     var gz = [new Spring(300, 25), new Spring(300, 25), new Spring(300, 25), new Spring(300, 25)]; /* x,y левого; x,y правого */
     var headX = new Spring(60, 10), headY = new Spring(60, 10);
 
-    var pointer = { x: 0, y: 0, t: -99, on: false };
     var wander = { x: -0.1, y: 0.05, next: 1 };
     var sacc = { x: 0, y: 0, next: 0.5 };
     var blinkAt = 2.2, blinks = [], petals = [];
@@ -616,7 +628,7 @@
       var br = breath * (1 + A.breath * 1.5) + A.breath * 1.4;
 
       /* взгляд: курсор или «блуждание» */
-      var usePtr = opts.pointer && pointer.on && (t - pointer.t) < 6;
+      var usePtr = opts.pointer && ptr.on && (wall - ptr.t) < 6;
       if (usePtr && (t - rectT > 0.12 || !rect)) { rect = cv.getBoundingClientRect(); rectT = t; }
       usePtr = usePtr && rect && rect.width > 0;
       if (!usePtr && t > wander.next) {
@@ -632,7 +644,7 @@
         if (usePtr) {
           var k = rect.width / VIEW;
           var ex = rect.left + (EYE[i].x + OX) * k, ey = rect.top + (EYE[i].y + OY) * k;
-          var dx = pointer.x - ex, dy = pointer.y - ey, dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          var dx = ptr.x - ex, dy = ptr.y - ey, dist = Math.sqrt(dx * dx + dy * dy) || 1;
           var amt = Math.min(1, dist / (rect.width * 0.42));
           gtx = dx / dist * amt; gty = dy / dist * amt;
         } else { gtx = wander.x; gty = wander.y; }
@@ -831,13 +843,10 @@
       ctx.restore();
     }
 
-    /* ---------- цикл ---------- */
+    /* ---------- цикл (вызывается общим rAF) ---------- */
     var simT = 0, lastT = 0, lastRaf = 0, lastDraw = 0, gov = { n: 0, bad: 0 };
-    function run() { return alive && started && visible && !doc.hidden && !reduce && !lot.ready; }
-    function tick(now) {
-      raf = 0;
-      if (!run()) return;
-      raf = win.requestAnimationFrame(tick);
+    function step(now) {
+      wall = now / 1000;
       var dRaf = lastRaf ? now - lastRaf : 16.7;
       lastRaf = now;
       if (!built) { lastT = now; return; }
@@ -854,11 +863,6 @@
       simT += dt;
       frame(simT, dt);
     }
-    function sync() {
-      if (run()) { if (!raf) { lastT = 0; lastRaf = 0; raf = win.requestAnimationFrame(tick); } }
-      else if (raf) { win.cancelAnimationFrame(raf); raf = 0; }
-      if (lot.anim) { try { if (visible && !doc.hidden && !reduce) lot.anim.play(); else lot.anim.pause(); } catch (e1) { /* игнор */ } }
-    }
 
     /* статичный кадр (reduce): нейтральная поза */
     function staticFrame() {
@@ -871,116 +875,825 @@
       frame(0.62, 0.016);
     }
 
-    /* ---------- Lottie: оригинальная анимация владельца подменяет рисунок ----------
-       JSON сначала читаем сами и проверяем: битый файл или 404 тихо оставляют наш рисунок. */
-    function loadLottie(src) {
-      if (!win.fetch) return;
-      function attach(data) {
-        var L = win.lottie;
-        if (!alive || !L || typeof L.loadAnimation !== 'function') return;
-        var host = doc.createElement('div');
-        host.style.position = 'absolute'; host.style.left = '0'; host.style.top = '0';
-        host.style.width = '100%'; host.style.height = '100%';
-        host.style.opacity = '0'; host.style.pointerEvents = 'none';
-        host.style.transition = 'opacity .8s ease';
-        container.appendChild(host);
-        var anim = null, shown = false, timer = 0;
-        /* сбой внутри lottie (в том числе позже, при отрисовке): возвращаем свой рисунок */
-        function onErr(ev) {
-          if (ev && typeof ev.filename === 'string' && ev.filename.indexOf('lottie.canvas') !== -1) {
-            try { ev.preventDefault(); } catch (e0) { /* игнор */ }
-            drop();
+    return {
+      cv: cv,
+      build: function (done) {
+        fit();
+        if (!W) { done(false); return; }
+        buildAll(function () { if (reduce) staticFrame(); done(true); });
+      },
+      resize: function () { if (fit()) buildAll(function () { if (reduce) staticFrame(); }); },
+      step: step,
+      reset: function () { lastT = 0; lastRaf = 0; },
+      nudge: function (v) {
+        if (reduce || !built) return;
+        sway.v += v * 120;
+        bendS.v += -v * 420;
+        bobS.v += -Math.abs(v) * 90;
+      }
+    };
+  }
+
+  /* ==========================================================================
+     ВОЗДУШНЫЙ ПОЦЕЛУЙ: глянцевое сердце-пузырь, в нём «печатается» текст; сердце — ссылка на бота.
+     Обычный DOM/SVG: стили только через CSSOM, текст только через textContent.
+     ========================================================================== */
+  var NS = 'http://www.w3.org/2000/svg';
+  var kissUid = 0;
+  var HEART_D = 'M100 172 C96 168 8 112 8 58 C8 26 31 6 59 6 C78 6 93 17 100 33 C107 17 122 6 141 6 C169 6 192 26 192 58 C192 112 104 168 100 172 Z';
+  var INK = '#1d0a13', RIM = '#3a0c25';
+  var KFONT = 'Geologica, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+
+  function svgEl(tag, attrs, parent) {
+    var e = doc.createElementNS(NS, tag);
+    for (var k in attrs) { if (Object.prototype.hasOwnProperty.call(attrs, k)) e.setAttribute(k, attrs[k]); }
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function easeOutBack(u) { var c1 = 1.15, c3 = c1 + 1, v = u - 1; return 1 + c3 * v * v * v + c1 * v * v; }
+
+  /* env: { lay: {cw,ch,mx,my,narrow}, rect(): DOMRect, reduce, lite } */
+  function makeKiss(cfg, parent, env) {
+    var url = cfg && typeof cfg.url === 'string' ? cfg.url : '';
+    var handle = cfg && typeof cfg.handle === 'string' ? cfg.handle.replace(/^@/, '') : '';
+    var title = cfg && typeof cfg.title === 'string' ? cfg.title.replace(/\s+/g, ' ').trim().slice(0, 40) : '';
+    if (!/^https:\/\/t\.me\/[A-Za-z0-9_]{3,64}$/.test(url) || !/^[A-Za-z0-9_]{3,64}$/.test(handle)) return null;
+    var lay = env.lay, reduce = !!env.reduce, lite = !!env.lite;
+    var full2 = '@' + handle;
+
+    /* ---------- разметка ---------- */
+    var layer = doc.createElement('div');
+    var ls = layer.style;
+    ls.position = 'absolute'; ls.left = '0'; ls.top = '0'; ls.width = '100%'; ls.height = '100%';
+    ls.pointerEvents = 'none'; ls.zIndex = '3'; ls.overflow = 'visible';
+    layer.setAttribute('data-kiss', '');
+
+    var link = doc.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.setAttribute('aria-label', 'Открыть @' + handle + ' в Telegram');
+    layer.appendChild(link);
+    var as = link.style;
+    as.position = 'absolute'; as.left = '0'; as.top = '0'; as.display = 'block';
+    as.pointerEvents = 'none'; as.cursor = 'pointer'; as.visibility = 'hidden'; as.opacity = '0';
+    as.webkitTapHighlightColor = 'transparent'; as.outline = 'none'; as.textDecoration = 'none';
+    as.transformOrigin = '50% 52%';
+
+    var sv = svgEl('svg', { viewBox: '0 0 200 184', width: '100%', height: '100%', 'aria-hidden': 'true' }, link);
+    sv.style.display = 'block'; sv.style.overflow = 'visible';
+    /* мягкая тень под сердцем: несколько тёмных копий (без размытия) — отделяет его от пёстрого фона */
+    var hc = 'translate(100 94) scale(S) translate(-100 -92)', hi;
+    var HALO = [[1.16, 0.06], [1.1, 0.08], [1.05, 0.1]];
+    for (hi = 0; hi < HALO.length; hi++) {
+      svgEl('path', { d: HEART_D, fill: '#12040b', 'fill-opacity': String(HALO[hi][1]), transform: hc.replace('S', String(HALO[hi][0])) }, sv);
+    }
+    /* объём: тёмный низ -> средний тон -> свет сверху-слева (чёткие края, без свечения) */
+    var gid = 'pkg' + (++kissUid);
+    var defs = svgEl('defs', {}, sv);
+    var rg = svgEl('radialGradient', { id: gid, cx: '.34', cy: '.26', r: '.92' }, defs);
+    svgEl('stop', { offset: '0', 'stop-color': '#ffc6dc' }, rg);
+    svgEl('stop', { offset: '.5', 'stop-color': '#ff9fc4' }, rg);
+    svgEl('stop', { offset: '1', 'stop-color': '#ea739d' }, rg);
+    svgEl('path', { d: HEART_D, fill: 'url(#' + gid + ')', stroke: RIM, 'stroke-width': '3.6', 'stroke-linejoin': 'round' }, sv);
+    /* блики: крупный глянцевый, малый, точка и отражённый свет по нижнему краю */
+    svgEl('ellipse', { cx: '40', cy: '31', rx: '17', ry: '8.2', transform: 'rotate(-36 40 31)', fill: '#fff', 'fill-opacity': '.9' }, sv);
+    svgEl('circle', { cx: '22.5', cy: '53', r: '3.3', fill: '#fff', 'fill-opacity': '.9' }, sv);
+    svgEl('ellipse', { cx: '150', cy: '24', rx: '9.5', ry: '3.4', transform: 'rotate(-20 150 24)', fill: '#fff', 'fill-opacity': '.7' }, sv);
+    svgEl('path', { d: 'M178 70 C174 100 142 134 110 154', fill: 'none', stroke: '#ffd3e3', 'stroke-width': '3', 'stroke-linecap': 'round', 'stroke-opacity': '.75' }, sv);
+    svgEl('path', { d: HEART_D, fill: 'none', stroke: RIM, 'stroke-width': '3.6', 'stroke-linejoin': 'round' }, sv);
+
+    function mkText(wt) {
+      var t = svgEl('text', { x: '0', y: '0', fill: INK, 'font-family': KFONT, 'font-weight': wt, 'font-size': '12', 'text-anchor': 'start' }, sv);
+      t.setAttribute('text-rendering', 'geometricPrecision');
+      return t;
+    }
+    var tx1 = mkText('600'), tx2 = mkText('700');
+    var caret = svgEl('rect', { x: '0', y: '0', width: '1.7', height: '12', rx: '.8', fill: INK }, sv);
+    caret.style.opacity = '0';
+
+    /* мелкие сердечки: след в полёте и разлёт при лопании (пул создаётся один раз) */
+    var PCOL = ['#ff9fc4', '#f4b6cb', '#ff86b2', '#ffc7da'];
+    var NP = lite ? 6 : 9, pool = [], pi;
+    for (pi = 0; pi < NP; pi++) {
+      var pe = doc.createElement('div');
+      var ps = pe.style;
+      ps.position = 'absolute'; ps.left = '0'; ps.top = '0'; ps.width = '26px'; ps.height = '24px';
+      ps.pointerEvents = 'none'; ps.visibility = 'hidden'; ps.opacity = '0';
+      var psv = svgEl('svg', { viewBox: '0 0 200 184', width: '100%', height: '100%', 'aria-hidden': 'true' }, pe);
+      psv.style.display = 'block'; psv.style.overflow = 'visible';
+      svgEl('path', { d: HEART_D, fill: PCOL[pi % PCOL.length], stroke: RIM, 'stroke-width': '10', 'stroke-linejoin': 'round' }, psv);
+      svgEl('ellipse', { cx: '50', cy: '40', rx: '24', ry: '11', transform: 'rotate(-36 50 40)', fill: '#fff', 'fill-opacity': '.85' }, psv);
+      layer.insertBefore(pe, link);
+      pool.push({ el: pe, on: false, x: 0, y: 0, vx: 0, vy: 0, r: 0, vr: 0, age: 0, life: 1, s: 1, kind: 0 });
+    }
+    parent.appendChild(layer);
+
+    /* ---------- измерение текста (canvas, не зависит от раскладки) ---------- */
+    var mc = null;
+    try { var mcv = doc.createElement('canvas'); mc = mcv.getContext ? mcv.getContext('2d') : null; } catch (e0) { mc = null; }
+    function tw(str, px, wt) {
+      if (!str) return 0;
+      if (mc) { mc.font = wt + ' ' + px + 'px ' + KFONT; return mc.measureText(str).width; }
+      return str.length * px * 0.6;
+    }
+    function fontsReady() {
+      try { return !doc.fonts || !doc.fonts.check || (doc.fonts.check('700 16px Geologica', full2 + title) && doc.fonts.check('600 16px Geologica', title)); } catch (e1) { return true; }
+    }
+
+    /* ---------- план: размер сердца и текста под длину ---------- */
+    var plan = null;
+    function makePlan() {
+      var narrow = lay.narrow;
+      var base = narrow ? 178 : 210;
+      var minPx = narrow ? 13 : 12.5;
+      var wmax = Math.min(narrow ? 236 : 250, lay.cw * 0.7);
+      var per2 = tw(full2, 100, 700) / 100;
+      var per1 = title ? tw(title, 100, 600) / 100 : 0;
+      var f2 = Math.min(148 / per2, 21);
+      var W = base;
+      var need = minPx * 200 / f2;
+      if (need > W) W = Math.min(need, wmax);
+      var f1 = title ? Math.min(148 / per1, f2 * 0.88, 18) : 0;
+      var y1 = 0, y2;
+      if (title) {
+        var blk = f1 * 0.72 + 14 + f2 * 0.72, top = 67 - blk / 2;
+        y1 = top + f1 * 0.72; y2 = y1 + 14 + f2 * 0.72;
+      } else { y2 = 76; }
+      var w1 = tw(title, f1, 600), w2 = tw(full2, f2, 700);
+      var x1 = 100 - w1 / 2, x2 = 100 - w2 / 2;
+      var cum1 = [0], cum2 = [0], i;
+      for (i = 1; i <= title.length; i++) cum1.push(tw(title.slice(0, i), f1, 600));
+      for (i = 1; i <= full2.length; i++) cum2.push(tw(full2.slice(0, i), f2, 700));
+      plan = { W: W, H: W * 0.92, f1: f1, f2: f2, y1: y1, y2: y2, x1: x1, x2: x2, cum1: cum1, cum2: cum2 };
+      tx1.setAttribute('font-size', fx(f1, 2)); tx1.setAttribute('x', fx(x1, 2)); tx1.setAttribute('y', fx(y1, 2));
+      tx2.setAttribute('font-size', fx(f2, 2)); tx2.setAttribute('x', fx(x2, 2)); tx2.setAttribute('y', fx(y2, 2));
+      as.width = fx(plan.W, 1) + 'px'; as.height = fx(plan.H, 1) + 'px';
+    }
+    function caretAt(line, n) {
+      if (!plan) return;
+      var f = line === 1 ? plan.f1 : plan.f2;
+      var x = (line === 1 ? plan.x1 + plan.cum1[n] : plan.x2 + plan.cum2[n]) + 1.2;
+      var y = line === 1 ? plan.y1 : plan.y2;
+      caret.setAttribute('x', fx(x, 2));
+      caret.setAttribute('y', fx(y - f * 0.8, 2));
+      caret.setAttribute('height', fx(f * 1.0, 2));
+    }
+
+    /* ---------- траектории ---------- */
+    var VARS_W = [
+      { fx: 0.97, fy: 0.12, cx: 0.92, cy: 0.40 },
+      { fx: 0.94, fy: 0.16, cx: 0.66, cy: 0.12 },
+      { fx: 0.99, fy: 0.10, cx: 0.98, cy: 0.30 }
+    ];
+    var VARS_N = [
+      { fx: 0.80, fy: -0.02, cx: 0.86, cy: 0.40 },
+      { fx: 0.78, fy: 0.01, cx: 0.60, cy: 0.06 },
+      { fx: 0.82, fy: -0.04, cx: 0.90, cy: 0.24 }
+    ];
+    var lastVar = -1, vr = null;
+    var P0 = { x: 0, y: 0 }, P1 = { x: 0, y: 0 }, P2 = { x: 0, y: 0 };
+
+    /* точки пути в px относительно сцены; конечную точку не выпускаем за экран */
+    function aimPath() {
+      var V = vr, W = plan.W, H = plan.H, cw = lay.cw, ch = lay.ch;
+      var fxp = V.fx * cw, fyp = V.fy * ch;
+      var r = env.rect(), vw = doc.documentElement.clientWidth || win.innerWidth || 0;
+      if (r && vw) {
+        var minX = 10 - r.left + W / 2, maxX = vw - 10 - r.left - W / 2;
+        if (maxX > minX) fxp = clamp(fxp, minX, maxX);
+        var minY = 8 - r.top + H / 2;
+        if (r.top > 0 && r.top < win.innerHeight) fyp = Math.max(fyp, minY);
+      }
+      P0.x = lay.mx; P0.y = lay.my;
+      P2.x = fxp; P2.y = fyp;
+      P1.x = V.cx * cw; P1.y = V.cy * ch;
+      if (r && vw) P1.x = clamp(P1.x, 10 - r.left + W * 0.25, vw - 10 - r.left - W * 0.25);
+    }
+
+    /* ---------- состояние ---------- */
+    var phase = 0;                    /* 0 пауза, 1 подача, 2 живое сердце, 3 лопнуло */
+    var t0 = 0, nextAt = 3.2, tries = 0;
+    var typeT0 = -1, due1 = [], due2 = [], n1 = 0, n2 = 0, typeEnd = -1, lastKey = 0;
+    var holdLeft = 3.5, popT = 0, hover = false, held = false, hv = 0;
+    var hx = 0, hy = 0, hr = 0, hs = 0, ho = 0;   /* текущее положение сердца */
+    var trailT = 0;
+    var pose = { rx: 0, ry: 0, rz: 0, sq: 0 };
+
+    link.addEventListener('pointerenter', function () { hover = true; });
+    link.addEventListener('pointerleave', function () { hover = false; });
+    link.addEventListener('focus', function () { hover = true; });
+    link.addEventListener('blur', function () { hover = false; });
+    link.addEventListener('pointerdown', function () { held = true; });
+    function release() { held = false; }
+    link.addEventListener('pointerup', release);
+    link.addEventListener('pointercancel', release);
+
+    function showHeart(on) {
+      as.visibility = on ? 'visible' : 'hidden';
+      as.pointerEvents = on ? 'auto' : 'none';
+      if (!on) { as.opacity = '0'; caret.style.opacity = '0'; }
+    }
+    function placeHeart(x, y, rot, s, o) {
+      as.opacity = fx(o, 3);
+      as.transform = 'translate3d(' + fx(x - plan.W / 2, 2) + 'px,' + fx(y - plan.H / 2, 2) + 'px,0) rotate(' + fx(rot, 2) + 'deg) scale(' + fx(s, 4) + ')';
+    }
+    function setPart(p, x, y, rot, s, o) {
+      var q = p.el.style;
+      q.opacity = fx(o, 3);
+      q.transform = 'translate3d(' + fx(x - 13, 1) + 'px,' + fx(y - 12, 1) + 'px,0) rotate(' + fx(rot, 1) + 'deg) scale(' + fx(s, 3) + ')';
+    }
+    function partOn(p, on) { p.on = on; p.el.style.visibility = on ? 'visible' : 'hidden'; if (!on) p.el.style.opacity = '0'; }
+    function freePart(kind) {
+      for (var i = 0; i < pool.length; i++) { if (!pool[i].on) { pool[i].kind = kind; return pool[i]; } }
+      return null;
+    }
+
+    function begin(t) {
+      /* шрифт ещё грузится — чуть подождём, чтобы измерение текста было точным */
+      if (!fontsReady() && tries < 6) { tries++; nextAt = t + 0.35; return; }
+      try { makePlan(); } catch (e3) { nextAt = t + 6; return; }
+      var k = Math.floor(rand(0, 3));
+      if (k === lastVar) k = (k + 1 + Math.floor(rand(0, 2))) % 3;
+      lastVar = k;
+      vr = (lay.narrow ? VARS_N : VARS_W)[k];
+      phase = 1; t0 = t; tries = 0;
+      typeT0 = -1; n1 = 0; n2 = 0; typeEnd = -1; hover = false; held = false; hv = 0; holdLeft = 3.5; trailT = 0;
+      tx1.textContent = ''; tx2.textContent = ''; caret.style.opacity = '0';
+      /* расписание печати: 35–60 мс на символ, пауза между строками */
+      var acc = 0, i;
+      due1.length = 0; due2.length = 0;
+      for (i = 0; i < title.length; i++) { acc += rand(0.035, 0.06) + (title.charAt(i) === ' ' ? 0.045 : 0); due1.push(acc); }
+      if (title.length) acc += 0.28;
+      for (i = 0; i < full2.length; i++) { acc += rand(0.035, 0.06) + (i === 0 ? 0.05 : 0); due2.push(acc); }
+      typeEnd = acc;
+    }
+
+    function pop(t) {
+      phase = 3; popT = t;
+      as.pointerEvents = 'none';
+      caret.style.opacity = '0';
+      var i, p, ang, sp, k = plan.W / 200, cnt = Math.min(NP, lite ? 6 : 9);
+      for (i = 0; i < cnt; i++) {
+        p = freePart(1); if (!p) break;
+        ang = (i / cnt) * TAU + rand(-0.35, 0.35);
+        sp = rand(120, 230) * (plan.W / 200);
+        p.x = hx + Math.cos(ang) * plan.W * 0.18; p.y = hy + Math.sin(ang) * plan.W * 0.16;
+        p.vx = Math.cos(ang) * sp; p.vy = Math.sin(ang) * sp - 40 * k;
+        p.r = rand(-30, 30); p.vr = rand(-140, 140);
+        p.age = 0; p.life = rand(0.85, 1.25); p.s = rand(0.7, 1.15) * (plan.W / 200) * 1.05;
+        partOn(p, true);
+        setPart(p, p.x, p.y, p.r, p.s, 1);
+      }
+    }
+
+    function stepParts(dt) {
+      var i, p, u, d = Math.exp(-2.4 * dt);
+      for (i = 0; i < pool.length; i++) {
+        p = pool[i];
+        if (!p.on) continue;
+        p.age += dt; u = p.age / p.life;
+        if (u >= 1) { partOn(p, false); continue; }
+        if (p.kind === 1) {
+          p.vx *= d; p.vy = p.vy * d - 16 * dt;
+          p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt;
+          setPart(p, p.x, p.y, p.r, p.s * (1 - 0.55 * ease(u)), 1 - ease(clamp((u - 0.35) / 0.65, 0, 1)));
+        } else {
+          p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt;
+          setPart(p, p.x, p.y, p.r, p.s * (1 - u) * 0.9, 0.85 * (1 - u));
+        }
+      }
+    }
+
+    /* позиция на квадратичной кривой */
+    function bez(s, a, b, c) { var q = 1 - s; return q * q * a + 2 * q * s * b + s * s * c; }
+
+    function step(t, dt) {
+      var kt, u, s, i, p;
+      if (phase === 0) {
+        pose.rx = pose.ry = pose.rz = pose.sq = 0;
+        stepParts(dt);
+        if (t >= nextAt && lay.ok) begin(t);
+        return;
+      }
+      kt = t - t0;
+      stepParts(dt);
+      /* Pepe «подаёт» поцелуй: короткий вдох-сжатие, затем наклон вперёд и в сторону поцелуя */
+      if (phase === 1 || phase === 2) {
+        if (kt < 0.28) { pose.rx = -3.6; pose.ry = -2.2; pose.rz = -1.1; pose.sq = -0.03; }
+        else if (kt < 0.66) { pose.rx = -6.8; pose.ry = 4.2; pose.rz = 3.2; pose.sq = 0.034; }
+        else { pose.rx = pose.ry = pose.rz = pose.sq = 0; }
+      } else { pose.rx = pose.ry = pose.rz = pose.sq = 0; }
+
+      if (phase === 1) {
+        if (kt < 0.3) return;
+        aimPath();
+        phase = 2; showHeart(true);
+        hx = P0.x; hy = P0.y; hr = -22; hs = 0.2; ho = 0;
+        placeHeart(hx, hy, hr, hs, 0);
+      }
+
+      if (phase === 2) {
+        aimPath();                                   /* сцена могла поменяться — путь живой */
+        var FD = lite ? 1.35 : 1.6;
+        u = clamp((kt - 0.3) / FD, 0, 1);
+        s = 1 - Math.pow(1 - u, 2.2);
+        var ft = kt - 0.3;
+        hx = bez(s, P0.x, P1.x, P2.x);
+        hy = bez(s, P0.y, P1.y, P2.y);
+        var settle = clamp(u * 2, 0, 1);
+        hx += Math.sin(ft * 1.35 + 0.3) * 4.2 * settle * (plan.W / 200);
+        hy += Math.sin(ft * 1.75) * 5 * settle * (plan.W / 200);
+        hr = -22 * (1 - u) * (1 - u) + Math.sin(ft * 1.5 + 0.4) * 3.4 * settle;
+        hs = u < 1 ? 0.2 + 0.8 * easeOutBack(u) : 1;
+        /* пульс и живой отклик на наведение */
+        var tgt = (hover || held) ? 1 : 0;
+        hv += (tgt - hv) * (1 - Math.exp(-dt * 9));
+        if (u >= 1) hs *= 1 + 0.028 * (0.5 + 0.5 * Math.sin((t - t0) * 5.2));
+        hs *= 1 + 0.05 * hv;
+        ho = clamp(ft / 0.14, 0, 1);
+        placeHeart(hx, hy, hr, hs, ho);
+
+        /* след из мелких сердечек */
+        if (!reduce && u > 0.08 && u < 0.8 && kt > trailT) {
+          trailT = kt + (lite ? 0.2 : 0.13);
+          p = freePart(0);
+          if (p) {
+            p.x = hx + rand(-8, 8); p.y = hy + rand(-6, 10); p.vx = rand(-14, 6); p.vy = rand(-16, 6); p.r = rand(-30, 30); p.vr = rand(-60, 60);
+            p.age = 0; p.life = rand(0.6, 0.85); p.s = rand(0.55, 0.8) * (plan.W / 200); p.kind = 0;
+            partOn(p, true);
+            setPart(p, p.x, p.y, p.r, p.s * 0.9, 0.85);
           }
         }
-        function drop() {
-          win.removeEventListener('error', onErr);
-          clearTimeout(timer);
-          if (lot.anim === anim) lot.anim = null;
-          try { if (anim) anim.destroy(); } catch (e1) { /* игнор */ }
-          if (host.parentNode) host.parentNode.removeChild(host);
-          if (lot.ready || shown) { lot.ready = false; cv.style.opacity = '1'; sync(); }
+
+        /* печать начинается, когда сердце почти доросло */
+        if (typeT0 < 0 && u >= 0.62) { typeT0 = t; lastKey = t; }
+        if (typeT0 >= 0) {
+          var te = t - typeT0, nn1 = n1, nn2 = n2;
+          while (nn1 < title.length && due1[nn1] <= te) nn1++;
+          while (nn2 < full2.length && due2[nn2] <= te) nn2++;
+          if (nn1 !== n1) { n1 = nn1; tx1.textContent = title.slice(0, n1); lastKey = t; }
+          if (nn2 !== n2) { n2 = nn2; tx2.textContent = full2.slice(0, n2); lastKey = t; }
+          var line = n1 < title.length ? 1 : 2;
+          caretAt(line, line === 1 ? n1 : n2);
+          var typing = te < typeEnd;
+          var blink = (t - lastKey < 0.5) || (Math.floor((t - lastKey) * 2.2) % 2 === 0);
+          caret.style.opacity = (te > typeEnd + 1.3) ? '0' : (typing || blink ? '1' : '0');
+          if (!typing && u >= 1) {
+            if (!hover && !held) holdLeft -= dt;
+            if (holdLeft <= 0) pop(t);
+          }
         }
-        win.addEventListener('error', onErr);
-        try {
-          anim = L.loadAnimation({
-            container: host, renderer: 'canvas', loop: !reduce, autoplay: !reduce, animationData: data,
-            rendererSettings: { preserveAspectRatio: 'xMidYMid meet', clearCanvas: true }
-          });
-        } catch (e2) { drop(); return; }
-        if (!anim) { drop(); return; }
-        lot.anim = anim;
-        anim.addEventListener('DOMLoaded', function () {
-          if (shown || !alive) return;
-          shown = true;
-          if (reduce) { try { anim.goToAndStop(0, true); } catch (e3) { /* игнор */ } }
-          /* кроссфейд: рисунок гаснет, Lottie проявляется; потом наш цикл останавливается */
-          cv.style.transition = 'opacity .8s ease';
-          host.style.opacity = '1';
-          cv.style.opacity = '0';
-          timer = setTimeout(function () { lot.ready = true; sync(); }, 900);
-        });
-        anim.addEventListener('data_failed', drop);
       }
-      function withLib(cb) {
-        if (win.lottie) { cb(); return; }
+
+      if (phase === 3) {
+        var pu = (t - popT) / 0.36;
+        if (pu < 1) {
+          var ps2 = pu < 0.28 ? 1 + 0.16 * (1 - Math.pow(1 - pu / 0.28, 2)) : (1.16) * (1 - ease((pu - 0.28) / 0.72));
+          placeHeart(hx, hy, hr + pu * 8, Math.max(0.02, ps2 * hs), 1 - ease(clamp((pu - 0.3) / 0.7, 0, 1)));
+        } else {
+          if (as.visibility !== 'hidden') showHeart(false);
+          var busy = false;
+          for (i = 0; i < pool.length; i++) { if (pool[i].on) { busy = true; break; } }
+          if (!busy) { phase = 0; nextAt = t + rand(2.8, 5.6); }
+        }
+      }
+    }
+
+    /* статичный экземпляр (prefers-reduced-motion): сердце с полным текстом рядом с Pepe */
+    function showStatic() {
+      if (!lay.ok) return;
+      try { makePlan(); } catch (e4) { return; }
+      vr = (lay.narrow ? VARS_N : VARS_W)[0];
+      aimPath();
+      tx1.textContent = title; tx2.textContent = full2;
+      caret.style.opacity = '0';
+      showHeart(true);
+      placeHeart(P2.x, P2.y, -3, 1, 1);
+    }
+
+    return {
+      pose: pose,
+      step: step,
+      showStatic: showStatic,
+      active: function () { return phase !== 0; },
+      remove: function () { if (layer.parentNode) layer.parentNode.removeChild(layer); },
+      resetTimer: function (t) { nextAt = t; },
+      layer: layer
+    };
+  }
+
+  /* ==========================================================================
+     ОРИГИНАЛ (Lottie): геометрия, измеренная по альфа-каналу всех кадров цикла
+     ========================================================================== */
+  var CYC = 180, FPS = 60;
+  /* рамка, в которую персонаж укладывается во ВСЕХ кадрах (композиция 512×512, масштаб слоя 63% учтён) */
+  var CROP = { x: 96, y: 88, w: 332, h: 340 };
+  /* объединённый bbox персонажа, центр масс по горизонтали (ax) и «земля» (gy — низ стоп) */
+  var BODY = { x0: 108.5, x1: 414.3, y0: 101.3, y1: 416.8, ax: 242, gy: 414 };
+  var MOUTH = { x: 270, y: 212 };      /* уголок рта: отсюда вылетает поцелуй */
+  var FILL = 0.86;                     /* доля высоты сцены, которую занимает персонаж */
+  var GROUND = 0.935;                  /* линия «земли» в долях высоты сцены */
+  var PERSP = 900;                     /* перспектива наклона, px */
+
+  /* подгоняем данные: обрезаем пустые поля композиции, чтобы холст был минимальным.
+     Если файл не тот (другие размеры/слои) — показываем композицию целиком, без обрезки. */
+  function prepareData(d) {
+    var g = { w: d.w, h: d.h, ax: d.w / 2, gy: d.h * 0.93, ch: d.h * 0.9, cw: d.w * 0.9, mx: d.w * 0.52, my: d.h * 0.4 };
+    try {
+      var l = d.layers.length === 1 ? d.layers[0] : null;
+      var p = l && l.ks && l.ks.p;
+      if (+d.w === 512 && +d.h === 512 && p && p.a === 0 && p.k && p.k.length >= 2 && p.k[0] === 256 && p.k[1] === 256) {
+        p.k = [256 - CROP.x, 256 - CROP.y, p.k[2] || 0];
+        d.w = CROP.w; d.h = CROP.h;
+        g = { w: CROP.w, h: CROP.h, ax: BODY.ax - CROP.x, gy: BODY.gy - CROP.y, ch: BODY.y1 - BODY.y0, cw: BODY.x1 - BODY.x0,
+              mx: MOUTH.x - CROP.x, my: MOUTH.y - CROP.y };
+      }
+    } catch (e) { /* без обрезки */ }
+    return g;
+  }
+
+  /* ==========================================================================
+     Создание героя
+     ========================================================================== */
+  function create(container, opts) {
+    opts = opts || {};
+    var STUB = { start: noop, nudge: noop };
+    if (!container || !doc.createElement) return STUB;
+
+    var reduce = !!opts.reduce, lite = !!opts.lite, hasPtr = !!opts.pointer && !reduce;
+    var alive = true, started = false, visible = true, raf = 0;
+    var mode = 'wait';                 /* wait — грузим оригинал; lottie; vector — запасной рисунок */
+    var ready = false;                 /* персонаж показан */
+    var G = null;                      /* геометрия оригинала в координатах композиции */
+    var anim = null, lotHost = null, lotLoaded = false, lotFailed = false, onWinErr = null;
+    var fb = null, fbReady = false;
+    var kiss = null;
+
+    /* ---------- элементы ---------- */
+    function abs(el) {
+      var s = el.style;
+      s.position = 'absolute'; s.left = '0'; s.top = '0'; s.right = 'auto'; s.bottom = 'auto'; s.margin = '0'; s.pointerEvents = 'none';
+    }
+    var shadow = doc.createElement('canvas');
+    abs(shadow); shadow.style.display = 'block'; shadow.style.opacity = '0'; shadow.style.willChange = 'transform, opacity';
+    var rig = doc.createElement('div');
+    abs(rig); rig.style.width = '100%'; rig.style.height = '100%'; rig.style.opacity = '0';
+    rig.style.willChange = 'transform, opacity'; rig.style.transformOrigin = '50% 58%';
+    container.appendChild(shadow);
+    container.appendChild(rig);
+
+    /* мягкая контактная тень: один раз рисуем на маленьком canvas (никаких размытий в кадре) */
+    (function drawShadow() {
+      var c = shadow.getContext ? shadow.getContext('2d') : null;
+      if (!c) return;
+      var w = 256, h = 64;
+      shadow.width = w; shadow.height = h;
+      c.translate(w / 2, h / 2); c.scale(1, h / w);
+      var g = c.createRadialGradient(0, 0, 0, 0, 0, w / 2);
+      g.addColorStop(0, 'rgba(255,92,190,.2)'); g.addColorStop(0.6, 'rgba(255,92,190,.07)'); g.addColorStop(1, 'rgba(255,92,190,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(0, 0, w / 2, 0, TAU); c.fill();
+      g = c.createRadialGradient(0, 0, 0, 0, 0, w * 0.41);
+      g.addColorStop(0, 'rgba(0,0,0,.72)'); g.addColorStop(0.55, 'rgba(0,0,0,.36)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(0, 0, w * 0.41, 0, TAU); c.fill();
+    })();
+
+    /* ---------- размеры и положение ---------- */
+    var lay = { cw: 0, ch: 0, mx: 0, my: 0, ok: false, narrow: false };
+    var sc = 1;                         /* css-пикселей на единицу композиции */
+    var level = lite ? 1 : 0;           /* 0: до 60 к/с; 1: 30 к/с; 2: 30 к/с и меньше пикселей; 3: ещё экономнее */
+    var QUAL = [1, 1, 0.78, 0.62], MINI = [15, 30, 30, 44];
+    function wantDpr() {
+      var cap = lite ? 1.25 : (hasPtr ? 2 : 1.5);
+      return Math.max(0.7, Math.min(win.devicePixelRatio || 1, cap) * QUAL[level]);
+    }
+    function layout() {
+      var cw = container.clientWidth, ch = container.clientHeight;
+      if (cw < 40 || ch < 40) return false;
+      lay.cw = cw; lay.ch = ch; lay.narrow = cw < 470;
+      var s, gy = ch * GROUND;
+      if (G) {
+        sc = Math.min(ch * FILL / G.ch, cw * 0.92 / G.cw);
+        s = sc;
+        if (lotHost) {
+          var hs = lotHost.style;
+          hs.width = fx(G.w * s, 1) + 'px'; hs.height = fx(G.h * s, 1) + 'px';
+          hs.left = fx(cw / 2 - G.ax * s, 1) + 'px'; hs.top = fx(gy - G.gy * s, 1) + 'px';
+        }
+        lay.mx = cw / 2 - G.ax * s + G.mx * s;
+        lay.my = gy - G.gy * s + G.my * s;
+      } else if (fb) {
+        lay.mx = cw * ((650 + OX) / VIEW); lay.my = ch * ((380 + OY) / VIEW);
+      } else { lay.mx = cw * 0.58; lay.my = ch * 0.38; }
+      /* тень: широкий мягкий эллипс под персонажем */
+      var sw = cw * (G ? 0.8 : 0.9), ss = shadow.style;
+      ss.width = fx(sw, 1) + 'px'; ss.height = fx(sw / 4, 1) + 'px';
+      ss.left = fx(cw / 2 - sw / 2 + (G ? cw * 0.015 : 0), 1) + 'px';
+      ss.top = fx(gy - sw / 8 - ch * 0.004, 1) + 'px';
+      if (kiss && kiss.layer.parentNode !== container) {
+        /* слой поцелуя лежит поверх сцены и совпадает с контейнером по рамке */
+        var kl = kiss.layer.style;
+        kl.left = container.offsetLeft + 'px'; kl.top = container.offsetTop + 'px';
+        kl.width = container.offsetWidth + 'px'; kl.height = container.offsetHeight + 'px';
+      }
+      lay.ok = true;
+      return true;
+    }
+
+    /* ---------- состояние движения ---------- */
+    var simT = 0, lotT = 0, lastNow = 0;
+    var wTilt = hasPtr ? 5.2 : 2.3;
+    var sRX = new Crit(wTilt), sRY = new Crit(wTilt);
+    var sScr = new Crit(5.5);                          /* отклик на прокрутку */
+    var sLX = new Crit(7.5), sLY = new Crit(7.5), sLZ = new Crit(7.5);   /* наклон-подача поцелуя */
+    var sSq = new Spring(230, 16);                      /* сквош/растяжение при поцелуе */
+    var sAp = new Spring(66, 11.5);                     /* появление: масштаб и непрозрачность */
+    var sSh = new Crit(2.6);                            /* появление тени */
+    var ptr = { x: 0, y: 0, on: false, t: -99 };
+    var rect = null, rectT = -9, rectDirty = true;
+    var lastTf = '', lastShTf = '';
+
+    function getRect() {
+      if (!rect || rectDirty || simT - rectT > 0.4) { rect = container.getBoundingClientRect(); rectT = simT; rectDirty = false; }
+      return rect;
+    }
+
+    /* ---------- Lottie: загрузка (JSON и библиотека параллельно) ---------- */
+    var costEma = 0, costN = 0;
+    function useFallback() {
+      if (!alive || fb) return;
+      mode = 'vector';
+      fb = makeVector(opts, rig, ptr);
+      if (!fb) return;
+      fb.cv.style.opacity = '0';
+      fb.cv.style.transition = 'opacity .7s ease';
+      layout();
+      fb.build(function (ok) {
+        if (!ok || !alive) return;
+        fbReady = true;
+        fb.cv.style.opacity = '1';
+        reveal();
+      });
+    }
+    function lotDrop() {
+      if (onWinErr) { win.removeEventListener('error', onWinErr); onWinErr = null; }
+      try { if (anim) anim.destroy(); } catch (e1) { /* игнор */ }
+      anim = null;
+      if (lotHost && lotHost.parentNode) lotHost.parentNode.removeChild(lotHost);
+      lotHost = null;
+    }
+    function lotFail() {
+      if (lotFailed) return;
+      lotFailed = true;
+      lotDrop();
+      G = null;
+      if (alive) useFallback();
+    }
+    function onLoaded() {
+      if (lotLoaded || !alive || !anim) return;
+      lotLoaded = true;
+      mode = 'lottie';
+      try { anim.setSubframe(true); } catch (e2) { /* игнор */ }
+      if (layout()) { try { anim.resize(); } catch (e3) { /* игнор */ } }
+      if (!renderLot(0)) { lotFail(); return; }
+      reveal();
+    }
+    function attach(d) {
+      var L = win.lottie;
+      if (!alive || mode !== 'wait' || !L || typeof L.loadAnimation !== 'function') { if (alive && mode === 'wait') useFallback(); return; }
+      G = prepareData(d);
+      lotHost = doc.createElement('div');
+      abs(lotHost);
+      rig.insertBefore(lotHost, rig.firstChild);
+      layout();
+      /* сбой внутри самой библиотеки (в том числе позже, при отрисовке): тихо возвращаем запасной рисунок */
+      onWinErr = function (ev) {
+        if (ev && typeof ev.filename === 'string' && ev.filename.indexOf('lottie.canvas') !== -1) {
+          try { ev.preventDefault(); } catch (e4) { /* игнор */ }
+          lotFail();
+        }
+      };
+      win.addEventListener('error', onWinErr);
+      try {
+        anim = L.loadAnimation({
+          container: lotHost, renderer: 'canvas', loop: false, autoplay: false, animationData: d,
+          rendererSettings: { preserveAspectRatio: 'xMidYMid meet', clearCanvas: true, dpr: wantDpr() }
+        });
+      } catch (e5) { lotFail(); return; }
+      if (!anim) { lotFail(); return; }
+      anim.addEventListener('DOMLoaded', onLoaded);
+      anim.addEventListener('data_failed', lotFail);
+      anim.addEventListener('error', lotFail);
+      if (anim.isLoaded) onLoaded();
+    }
+    function loadLottie(src) {
+      if (!src || !win.fetch) { useFallback(); return; }
+      var data = null;
+      function go() {
+        if (!alive || mode !== 'wait' || !data || !win.lottie) return;
+        try { attach(data); } catch (e6) { lotFail(); }
+      }
+      if (!win.lottie) {
         try {
-          var sc = doc.createElement('script');
-          sc.src = 'assets/js/lottie.canvas.min.js';
-          sc.async = true;
-          sc.onload = cb;
-          sc.onerror = noop;
-          doc.head.appendChild(sc);
-        } catch (e4) { /* игнор */ }
+          var sc2 = doc.createElement('script');
+          sc2.src = 'assets/js/lottie.canvas.min.js';
+          sc2.async = true;
+          sc2.onload = go;
+          sc2.onerror = function () { if (mode === 'wait') useFallback(); };
+          doc.head.appendChild(sc2);
+        } catch (e7) { useFallback(); return; }
       }
       win.fetch(src, { credentials: 'same-origin' })
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function (d) {
           var ok = d && typeof d === 'object' && Array.isArray(d.layers) && d.layers.length > 0 && d.w > 0 && d.h > 0 && d.op > d.ip;
-          if (ok && alive) withLib(function () { try { attach(d); } catch (e5) { /* игнор */ } });
+          if (!ok) throw new Error('bad json');
+          data = d; go();
         })
-        .catch(noop);
+        .catch(function () { if (mode === 'wait') useFallback(); });
+      /* совсем долгая загрузка: оставляем запасной рисунок */
+      setTimeout(function () { if (alive && mode === 'wait') useFallback(); }, 15000);
+    }
+
+    /* рисует кадр оригинала; false — если что-то сломалось */
+    function renderLot(frame) {
+      if (!anim) return false;
+      var t0 = now();
+      try { anim.goToAndStop(frame, true); } catch (e8) { return false; }
+      var c = now() - t0;
+      costEma = costN ? costEma * 0.88 + c * 0.12 : c;
+      costN++;
+      return true;
+    }
+
+    /* ---------- появление ---------- */
+    function reveal() {
+      if (ready || !alive) return;
+      ready = true;
+      sAp.t = 1;
+      gov.t0 = simT;
+      if (kiss) kiss.resetTimer(simT + 3.2);
+      if (reduce) {
+        rig.style.opacity = '1'; shadow.style.opacity = '1';
+        rig.style.transform = 'none';
+        if (kiss) kiss.showStatic();
+      } else sync();
+    }
+
+    /* ---------- «саморегуляция»: если кадры долгие — переходим в экономный режим ---------- */
+    var gov = { n: 0, bad: 0, strikes: 0, t0: 0 };
+    function degrade() {
+      if (level >= 3) return;
+      level++;
+      if (mode === 'lottie' && anim) {
+        try { anim.renderer.renderConfig.dpr = wantDpr(); anim.resize(); } catch (e9) { /* игнор */ }
+      }
+    }
+    function govern(dRaf) {
+      if (!ready || simT - gov.t0 < 2.4 || dRaf > 250) return;
+      gov.n++;
+      if (dRaf > 26) gov.bad++;
+      if (gov.n >= 48) {
+        if (gov.bad > 14) { gov.strikes++; if (gov.strikes >= 2) { degrade(); gov.strikes = 0; } } else gov.strikes = 0;
+        gov.n = 0; gov.bad = 0;
+      }
+      /* рендер кадра Lottie сам по себе дорогой (>8 мс) — сразу 30 к/с */
+      if (level === 0 && costN > 24 && costEma > 8) { level = 1; }
+    }
+
+    /* ---------- главный цикл ---------- */
+    function run() { return alive && started && visible && !doc.hidden && !reduce; }
+    var lastRender = -99, lastWall = 0, shScale = 1;
+    function aim(wall) {
+      var nx, ny, k = 1;
+      if (hasPtr && ptr.on && wall - ptr.t < 7) {
+        var r = getRect();
+        var cx = r.left + r.width * 0.5, cy = r.top + r.height * 0.55;
+        nx = clamp((ptr.x - cx) / (win.innerWidth * 0.42 || 1), -1, 1);
+        ny = clamp((ptr.y - cy) / (win.innerHeight * 0.42 || 1), -1, 1);
+      } else {
+        /* без курсора: медленное «блуждание» */
+        nx = Math.sin(simT * 0.31) * 0.62 + Math.sin(simT * 0.83 + 1.7) * 0.28;
+        ny = Math.sin(simT * 0.23 + 0.6) * 0.42 + Math.sin(simT * 0.61) * 0.2;
+        k = hasPtr ? 0.7 : 0.62;
+      }
+      sRY.t = nx * 9.5 * k;
+      sRX.t = -ny * 7 * k + 0.6;
+    }
+    function tick(ts) {
+      raf = 0;
+      if (!run()) return;
+      raf = win.requestAnimationFrame(tick);
+      var dRaw = lastNow ? ts - lastNow : 16.7;
+      lastNow = ts;
+      var dt = Math.min(dRaw, 100) / 1000;
+      simT += dt;
+      var wall = ts / 1000;
+      var K = lay.ch / 527;
+      govern(dRaw);
+
+      /* оригинал: кадр по честному времени; при нагрузке рисуем реже, но время идёт как есть */
+      if (ready && mode === 'lottie') {
+        lotT += dt;
+        if (ts - lastRender >= MINI[level] - 2.5) {
+          lastRender = ts;
+          if (!renderLot((lotT * FPS) % CYC)) { lotFail(); return; }
+        }
+      } else if (mode === 'vector' && fb && fbReady) fb.step(ts);
+
+      aim(wall);
+      if (kiss && ready) kiss.step(simT, dt);
+      var pz = kiss ? kiss.pose : null;
+      sLX.t = pz ? pz.rx : 0; sLY.t = pz ? pz.ry : 0; sLZ.t = pz ? pz.rz : 0; sSq.t = pz ? pz.sq : 0;
+
+      var rx = sRX.step(dt) + sLX.step(dt) + sScr.step(dt);
+      var ry = sRY.step(dt) + sLY.step(dt);
+      var rz = sLZ.step(dt) + sRY.x * 0.1;
+      var sq = sSq.step(dt);
+      var ap = sAp.step(dt);
+      var shA = sSh.step(dt);
+
+      /* парение и «дыхание» масштаба в такт оригинальному циклу (3 с) */
+      var fl = Math.sin(simT * 1.17) * 0.62 + Math.sin(simT * 0.71 + 0.7) * 0.38;
+      var ty = (fl * 5.2 - 4) * K + sScr.x * 1.1 * K + (1 - ap) * 16 * K;
+      var tx = sRY.x * 0.9 * K;
+      var cyc = (lotT * FPS) / CYC;
+      var br = Math.sin(cyc * TAU + 0.5) * 0.0055;
+      var sa = 0.86 + 0.14 * ap;
+      var sx = (1 + br * 0.6 - sq * 0.5) * sa, sy = (1 + br + sq) * sa;
+      var fy = lay.ch * (GROUND - 0.58);
+      var tf = 'perspective(' + PERSP + 'px) translate3d(' + fx(tx, 2) + 'px,' + fx(ty, 2) + 'px,0) rotateX(' + fx(rx, 3) + 'deg) rotateY(' + fx(ry, 3) + 'deg) rotateZ(' + fx(rz, 3) + 'deg) translate(0,' + fx(fy, 1) + 'px) scale(' + fx(sx, 4) + ',' + fx(sy, 4) + ') translate(0,' + fx(-fy, 1) + 'px)';
+      if (tf !== lastTf) { rig.style.transform = tf; lastTf = tf; }
+      rig.style.opacity = fx(ready ? ease(clamp(ap / 0.55, 0, 1)) : 0, 3);
+
+      /* тень: параллакс (уходит против наклона), сжимается, когда персонаж выше */
+      var lift = clamp((-(fl * 5.2 - 4) - 4) / 14, -0.5, 1);
+      var sh = (1 - lift * 0.07) * (0.94 + 0.06 * ap);
+      var shx = -ry * 1.5 * K + sRY.x * 0.0;
+      var shTf = 'translate3d(' + fx(shx, 2) + 'px,0,0) scale(' + fx(sh, 3) + ',' + fx(sh * (1 - rx * 0.012), 3) + ')';
+      if (shTf !== lastShTf) { shadow.style.transform = shTf; lastShTf = shTf; }
+      var shTarget = (mode === 'vector' && fb) ? 0 : 1;
+      sSh.t = shTarget;
+      shadow.style.opacity = fx(clamp(shA, 0, 1) * (1 - lift * 0.18), 3);
+    }
+    function sync() {
+      if (run()) { if (!raf) { lastNow = 0; if (fb) fb.reset(); raf = win.requestAnimationFrame(tick); } }
+      else if (raf) { win.cancelAnimationFrame(raf); raf = 0; }
     }
 
     /* ---------- запуск ---------- */
-    function onPointer(e) { pointer.x = e.clientX; pointer.y = e.clientY; pointer.t = simT; pointer.on = true; }
-    function onLeave() { pointer.on = false; }
+    function onPointer(e) { ptr.x = e.clientX; ptr.y = e.clientY; ptr.on = true; ptr.t = now() / 1000; }
+    function onLeave() { ptr.on = false; }
     var resizeTimer = 0;
     function onResize() {
       if (!alive) return;
+      rectDirty = true;
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(function () {
-        if (fit() && !lot.ready) buildAll(function () { if (reduce) staticFrame(); });
-      }, 160);
+        var had = lay.ok;
+        if (!layout()) return;
+        if (anim) { try { anim.renderer.renderConfig.dpr = wantDpr(); anim.resize(); } catch (e10) { /* игнор */ } }
+        if (fb) fb.resize();
+        if (kiss && reduce && ready) kiss.showStatic();
+        if (!had && mode === 'lottie' && !ready) reveal();
+      }, 140);
     }
 
     return {
       start: function () {
         if (started) return;
         started = true;
-        fit();
-        if (W) buildAll(function () { if (reduce) staticFrame(); });
-        if (opts.pointer && !reduce) {
+        layout();
+        var parent = container.parentNode || container;
+        if (opts.kiss) {
+          kiss = makeKiss(opts.kiss, parent, { lay: lay, rect: getRect, reduce: reduce, lite: lite });
+          if (kiss) layout();
+        }
+        sSh.t = 1;
+        gov.t0 = 0;
+        if (hasPtr) {
           win.addEventListener('pointermove', onPointer, { passive: true });
           doc.documentElement.addEventListener('mouseleave', onLeave);
         }
         if ('ResizeObserver' in win) {
-          try { new win.ResizeObserver(onResize).observe(container); } catch (e6) { win.addEventListener('resize', onResize); }
+          try { new win.ResizeObserver(onResize).observe(container); } catch (e11) { win.addEventListener('resize', onResize); }
         } else win.addEventListener('resize', onResize);
         if ('IntersectionObserver' in win) {
           try {
             new win.IntersectionObserver(function (es) { visible = !!es[es.length - 1].isIntersecting; sync(); }, { threshold: 0 }).observe(container);
-          } catch (e7) { /* игнор */ }
+          } catch (e12) { /* игнор */ }
         }
         doc.addEventListener('visibilitychange', sync);
+        if (reduce) { shadow.style.opacity = '1'; }
         sync();
-        if (opts.src) loadLottie(opts.src);
+        loadLottie(opts.src);
       },
       nudge: function (v) {
-        if (reduce || !started || !built) return;
+        if (reduce || !started || !ready) return;
         v = clamp(+v || 0, -0.35, 0.35);
-        sway.v += v * 120;
-        bendS.v += -v * 420;
-        bobS.v += -Math.abs(v) * 90;
+        sScr.v += -v * 260;
+        rectDirty = true;
+        if (fb) fb.nudge(v);
       }
     };
   }
