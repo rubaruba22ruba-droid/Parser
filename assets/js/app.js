@@ -320,7 +320,6 @@
   function setupScroll(pepe) {
     var top = $('#top');
     var bar = $('#progress i');
-    var canopy = $('#canopy');
     var stageIn = $('.stage__in');
     var wide = mq('(min-width: 980px)');
     var ticking = false, lastY = window.pageYOffset || 0;
@@ -341,7 +340,6 @@
       top.classList.toggle('scrolled', y > 8);
       if (bar) bar.style.transform = 'scaleX(' + Math.min(1, y / max).toFixed(4) + ')';
       if (!reduceMotion) {
-        if (canopy && y < window.innerHeight * 1.4) canopy.style.transform = 'translate3d(0,' + (y * 0.2).toFixed(1) + 'px,0)';
         if (stageIn && wide && y < window.innerHeight * 1.3) stageIn.style.transform = 'translate3d(0,' + (y * 0.07).toFixed(1) + 'px,0)';
         if (pepe && pepe.nudge) pepe.nudge((y - lastY) * 0.0016);
         if (track && track.getAnimations) {
@@ -390,7 +388,10 @@
     var A = NT && NT.anime;
     var M = NT && NT.motion;
     var pepeBox = $('.pepe');
-    var pepe = (FX.pepe && pepeBox) ? FX.pepe.create(pepeBox, { reduce: reduceMotion, lite: weak, pointer: finePointer && !weak, src: pepeBox.getAttribute('data-src') || '' }) : null;
+    var kissCfg = null;
+    var kc = d.pepe && d.pepe.kiss;
+    if (kc && tgUrl(kc.handle)) kissCfg = { title: clean(kc.title, 40), handle: clean(kc.handle, 40).replace(/^@/, ''), url: tgUrl(kc.handle) };
+    var pepe = (FX.pepe && pepeBox) ? FX.pepe.create(pepeBox, { reduce: reduceMotion, lite: weak, pointer: finePointer && !weak, src: pepeBox.getAttribute('data-src') || '', kiss: kissCfg }) : null;
     if (pepe) pepe.start();
 
     setupScroll(pepe);

@@ -24,7 +24,11 @@
   },
   "pepe": {
     "alt": "Plush Pepe обнимает сердце",
-    "src": ""
+    "src": "assets/pepe/plush-pepe.json",
+    "kiss": {
+      "title": "Премиум трекер",
+      "handle": "BrawlikKrutoy_Bot"
+    }
   },
   "marquee": [
     "Plush Pepe",
