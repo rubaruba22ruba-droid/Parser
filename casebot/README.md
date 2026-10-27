@@ -8,6 +8,7 @@ CaseBattle (`webapp/js/upgrade.js`). Бэкенд написан под API эт
 ```
 casebot/
 ├─ index.js       точка входа: node index.js / npm start (читает .env)
+├─ main.py        запуск на хостинге для Python-ботов: качает Node.js, даёт https-ссылку
 ├─ server/
 │  ├─ main.mjs      HTTP: API + раздача webapp, /config.js, /tonconnect-manifest.json
 │  ├─ api.mjs       open-case, sell, inventory, init-withdraw, upgrade, daily-case/*, ton/*, рефералы
@@ -69,6 +70,10 @@ SUPPORT=@entoni
 BRAND="Drade Drop"
 # WEBAPP_URL=https://домен   — если хостинг не подставляет адрес сам
 ```
+**Хостинг для Python-ботов (h1cloud и т. п.):** залить файлы в папку бота и запустить `python3 main.py`
+(или выбрать его файлом запуска). `main.py` сам скачает Node.js 22, при пустом `WEBAPP_URL` поднимет бесплатную
+https-ссылку Cloudflare (trycloudflare.com) и перезапустит процесс, если тот упадёт. Ссылка меняется при каждом
+перезапуске — бот сам обновляет кнопку «Играть» в меню и в закреплённых приветствиях.
 **Render:** New → Blueprint → этот репозиторий (`casebot/render.yaml`), задать `BOT_TOKEN`.
 **Docker:** `docker build -t drade casebot && docker run -p 8080:8080 -v drade:/data -e BOT_TOKEN=... -e WEBAPP_URL=https://... drade`.
 Локально без Telegram: `npm run dev`.

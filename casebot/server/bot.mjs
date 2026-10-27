@@ -95,11 +95,26 @@ async function onUpdate(u) {
   if (m.chat.type === 'private') await tg('sendMessage', { chat_id: m.chat.id, text: 'Нажми «Играть», чтобы открыть кейсы 👇', reply_markup: appKeyboard() });
 }
 
+async function refreshPinnedButtons() {
+  const rows = q("SELECT k, v FROM kv WHERE k LIKE 'pin:%'");
+  for (const r of rows) {
+    await tg('editMessageReplyMarkup', { chat_id: Number(r.k.slice(4)), message_id: Number(r.v), reply_markup: appKeyboard() }).catch(() => {});
+    await new Promise(res => setTimeout(res, 40));
+  }
+  if (rows.length) console.log(`кнопка «Играть» обновлена в ${rows.length} закреплённых сообщениях`);
+}
+
 export async function startBot() {
   const me = await tg('getMe'); if (!cfg.botUsername) cfg.botUsername = me.username;
   await tg('setMyCommands', { commands: [{ command: 'start', description: 'Открыть игру' }, { command: 'support', description: 'Поддержка и вывод подарков' }] }).catch(() => {});
   if (cfg.webappUrl) await tg('setChatMenuButton', { menu_button: { type: 'web_app', text: '🎮 Играть', web_app: { url: cfg.webappUrl } } }).catch(() => {});
   else console.warn('⚠ Не знаю https-адрес мини-аппа — кнопки «Играть» не будет. Впиши в .env строку WEBAPP_URL=https://твой-домен и перезапусти.');
+  // ссылка мини-аппа сменилась (например, после перезапуска с новой https-ссылкой) — чиним кнопку в закреплённых приветствиях
+  const prevUrl = one("SELECT v FROM kv WHERE k='webapp_url'");
+  if (cfg.webappUrl) {
+    run("INSERT INTO kv(k,v) VALUES('webapp_url',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", cfg.webappUrl);
+    if (prevUrl && prevUrl.v !== cfg.webappUrl) refreshPinnedButtons().catch(e => console.error('pins', e.message));
+  }
   await tg('setMyDescription', { description: `🎁 ${cfg.brand} — кейсы с NFT-подарками Telegram.\n\n🆓 Бесплатные кейсы каждый день\n🚀 Апгрейдер\n💎 Пополнение TON и Stars\n\nНажми «Старт» 👇` }).catch(() => {});
   await tg('setMyShortDescription', { short_description: `Кейсы с NFT-подарками Telegram · бесплатные кейсы · апгрейдер` }).catch(() => {});
   console.log(`bot @${cfg.botUsername} запущен`);
