@@ -1,0 +1,978 @@
+[
+ {
+  "id": "intelligence-cups",
+  "name": "Intelligence Cups",
+  "price": 3099,
+  "estimated": false,
+  "emoji": "🏆",
+  "rarity": "legendary"
+ },
+ {
+  "id": "heart-lockets",
+  "name": "Heart Lockets",
+  "price": 1444,
+  "estimated": false,
+  "emoji": "💖",
+  "rarity": "legendary"
+ },
+ {
+  "id": "resistance-dogs",
+  "name": "Resistance Dogs",
+  "price": 867,
+  "estimated": false,
+  "emoji": "🐕",
+  "rarity": "legendary"
+ },
+ {
+  "id": "durov-s-glasses",
+  "name": "Durov’s Glasses",
+  "price": 229,
+  "estimated": false,
+  "emoji": "🕶️",
+  "rarity": "legendary"
+ },
+ {
+  "id": "heroic-helmets",
+  "name": "Heroic Helmets",
+  "price": 190,
+  "estimated": false,
+  "emoji": "⛑️",
+  "rarity": "legendary"
+ },
+ {
+  "id": "nail-bracelets",
+  "name": "Nail Bracelets",
+  "price": 149,
+  "estimated": false,
+  "emoji": "📿",
+  "rarity": "legendary"
+ },
+ {
+  "id": "astral-shards",
+  "name": "Astral Shards",
+  "price": 147,
+  "estimated": false,
+  "emoji": "💠",
+  "rarity": "legendary"
+ },
+ {
+  "id": "loot-bags",
+  "name": "Loot Bags",
+  "price": 141,
+  "estimated": false,
+  "emoji": "👜",
+  "rarity": "legendary"
+ },
+ {
+  "id": "westside-signs",
+  "name": "Westside Signs",
+  "price": 128,
+  "estimated": false,
+  "emoji": "🪧",
+  "rarity": "legendary"
+ },
+ {
+  "id": "ion-gems",
+  "name": "Ion Gems",
+  "price": 85,
+  "estimated": false,
+  "emoji": "💎",
+  "rarity": "epic"
+ },
+ {
+  "id": "swiss-watches",
+  "name": "Swiss Watches",
+  "price": 75,
+  "estimated": false,
+  "emoji": "⌚",
+  "rarity": "epic"
+ },
+ {
+  "id": "low-riders",
+  "name": "Low Riders",
+  "price": 62,
+  "estimated": false,
+  "emoji": "🚗",
+  "rarity": "epic"
+ },
+ {
+  "id": "neko-helmets",
+  "name": "Neko Helmets",
+  "price": 45,
+  "estimated": false,
+  "emoji": "⛑️",
+  "rarity": "epic"
+ },
+ {
+  "id": "bonded-rings",
+  "name": "Bonded Rings",
+  "price": 45,
+  "estimated": false,
+  "emoji": "💍",
+  "rarity": "epic"
+ },
+ {
+  "id": "voodoo-dolls",
+  "name": "Voodoo Dolls",
+  "price": 43,
+  "estimated": false,
+  "emoji": "🪆",
+  "rarity": "epic"
+ },
+ {
+  "id": "toy-bears",
+  "name": "Toy Bears",
+  "price": 38,
+  "estimated": false,
+  "emoji": "🧸",
+  "rarity": "epic"
+ },
+ {
+  "id": "diamond-rings",
+  "name": "Diamond Rings",
+  "price": 37,
+  "estimated": false,
+  "emoji": "💍",
+  "rarity": "epic"
+ },
+ {
+  "id": "electric-skulls",
+  "name": "Electric Skulls",
+  "price": 36,
+  "estimated": false,
+  "emoji": "💀",
+  "rarity": "epic"
+ },
+ {
+  "id": "rare-birds",
+  "name": "Rare Birds",
+  "price": 30,
+  "estimated": false,
+  "emoji": "🦜",
+  "rarity": "epic"
+ },
+ {
+  "id": "bling-binkies",
+  "name": "Bling Binkies",
+  "price": 29,
+  "estimated": false,
+  "emoji": "🍼",
+  "rarity": "epic"
+ },
+ {
+  "id": "khabib-s-papakhas",
+  "name": "Khabib’s Papakhas",
+  "price": 27,
+  "estimated": false,
+  "emoji": "🧢",
+  "rarity": "epic"
+ },
+ {
+  "id": "cupid-charms",
+  "name": "Cupid Charms",
+  "price": 25,
+  "estimated": false,
+  "emoji": "✨",
+  "rarity": "epic"
+ },
+ {
+  "id": "sky-stilettos",
+  "name": "Sky Stilettos",
+  "price": 20,
+  "estimated": false,
+  "emoji": "👠",
+  "rarity": "rare"
+ },
+ {
+  "id": "ionic-dryers",
+  "name": "Ionic Dryers",
+  "price": 19,
+  "estimated": false,
+  "emoji": "💨",
+  "rarity": "rare"
+ },
+ {
+  "id": "ufc-strikes",
+  "name": "UFC Strikes",
+  "price": 19,
+  "estimated": false,
+  "emoji": "🥊",
+  "rarity": "rare"
+ },
+ {
+  "id": "snoop-cigars",
+  "name": "Snoop Cigars",
+  "price": 18,
+  "estimated": false,
+  "emoji": "🚬",
+  "rarity": "rare"
+ },
+ {
+  "id": "love-potions",
+  "name": "Love Potions",
+  "price": 16,
+  "estimated": false,
+  "emoji": "🧪",
+  "rarity": "rare"
+ },
+ {
+  "id": "crystal-balls",
+  "name": "Crystal Balls",
+  "price": 15,
+  "estimated": false,
+  "emoji": "🔮",
+  "rarity": "rare"
+ },
+ {
+  "id": "flying-brooms",
+  "name": "Flying Brooms",
+  "price": 14,
+  "estimated": false,
+  "emoji": "🧹",
+  "rarity": "rare"
+ },
+ {
+  "id": "record-players",
+  "name": "Record Players",
+  "price": 13,
+  "estimated": false,
+  "emoji": "📀",
+  "rarity": "rare"
+ },
+ {
+  "id": "jingle-bells",
+  "name": "Jingle Bells",
+  "price": 12,
+  "estimated": false,
+  "emoji": "🔔",
+  "rarity": "rare"
+ },
+ {
+  "id": "love-candles",
+  "name": "Love Candles",
+  "price": 12,
+  "estimated": false,
+  "emoji": "🕯️",
+  "rarity": "rare"
+ },
+ {
+  "id": "sakura-flowers",
+  "name": "Sakura Flowers",
+  "price": 12,
+  "estimated": false,
+  "emoji": "🌸",
+  "rarity": "rare"
+ },
+ {
+  "id": "sleigh-bells",
+  "name": "Sleigh Bells",
+  "price": 12,
+  "estimated": false,
+  "emoji": "🔔",
+  "rarity": "rare"
+ },
+ {
+  "id": "top-hats",
+  "name": "Top Hats",
+  "price": 12,
+  "estimated": false,
+  "emoji": "🎩",
+  "rarity": "rare"
+ },
+ {
+  "id": "hanging-stars",
+  "name": "Hanging Stars",
+  "price": 11,
+  "estimated": false,
+  "emoji": "⭐",
+  "rarity": "rare"
+ },
+ {
+  "id": "joyful-bundles",
+  "name": "Joyful Bundles",
+  "price": 11,
+  "estimated": false,
+  "emoji": "🎁",
+  "rarity": "rare"
+ },
+ {
+  "id": "snow-mittens",
+  "name": "Snow Mittens",
+  "price": 10,
+  "estimated": false,
+  "emoji": "🧤",
+  "rarity": "rare"
+ },
+ {
+  "id": "bunny-muffins",
+  "name": "Bunny Muffins",
+  "price": 9,
+  "estimated": false,
+  "emoji": "🧁",
+  "rarity": "rare"
+ },
+ {
+  "id": "fine-pens",
+  "name": "Fine Pens",
+  "price": 9,
+  "estimated": false,
+  "emoji": "🖋️",
+  "rarity": "rare"
+ },
+ {
+  "id": "input-keys",
+  "name": "Input Keys",
+  "price": 8,
+  "estimated": false,
+  "emoji": "🔑",
+  "rarity": "rare"
+ },
+ {
+  "id": "jolly-chimps",
+  "name": "Jolly Chimps",
+  "price": 8,
+  "estimated": false,
+  "emoji": "🐒",
+  "rarity": "rare"
+ },
+ {
+  "id": "surge-boards",
+  "name": "Surge Boards",
+  "price": 8,
+  "estimated": false,
+  "emoji": "🏄",
+  "rarity": "rare"
+ },
+ {
+  "id": "bow-ties",
+  "name": "Bow Ties",
+  "price": 7,
+  "estimated": false,
+  "emoji": "🎀",
+  "rarity": "common"
+ },
+ {
+  "id": "desk-calendars",
+  "name": "Desk Calendars",
+  "price": 7,
+  "estimated": false,
+  "emoji": "📅",
+  "rarity": "common"
+ },
+ {
+  "id": "eternal-candles",
+  "name": "Eternal Candles",
+  "price": 7,
+  "estimated": false,
+  "emoji": "🕯️",
+  "rarity": "common"
+ },
+ {
+  "id": "light-swords",
+  "name": "Light Swords",
+  "price": 7,
+  "estimated": false,
+  "emoji": "⚔️",
+  "rarity": "common"
+ },
+ {
+  "id": "moon-pendants",
+  "name": "Moon Pendants",
+  "price": 7,
+  "estimated": false,
+  "emoji": "🌙",
+  "rarity": "common"
+ },
+ {
+  "id": "snow-globes",
+  "name": "Snow Globes",
+  "price": 7,
+  "estimated": false,
+  "emoji": "🔮",
+  "rarity": "common"
+ },
+ {
+  "id": "b-day-candles",
+  "name": "B-Day Candles",
+  "price": 6,
+  "estimated": false,
+  "emoji": "🕯️",
+  "rarity": "common"
+ },
+ {
+  "id": "clover-pins",
+  "name": "Clover Pins",
+  "price": 6,
+  "estimated": false,
+  "emoji": "📌",
+  "rarity": "common"
+ },
+ {
+  "id": "cookie-hearts",
+  "name": "Cookie Hearts",
+  "price": 6,
+  "estimated": false,
+  "emoji": "❤️",
+  "rarity": "common"
+ },
+ {
+  "id": "faith-amulets",
+  "name": "Faith Amulets",
+  "price": 6,
+  "estimated": false,
+  "emoji": "🧿",
+  "rarity": "common"
+ },
+ {
+  "id": "jacks-in-the-box",
+  "name": "Jacks-in-the-Box",
+  "price": 6,
+  "estimated": false,
+  "emoji": "🎁",
+  "rarity": "common"
+ },
+ {
+  "id": "liberty-figures",
+  "name": "Liberty Figures",
+  "price": 6,
+  "estimated": false,
+  "emoji": "🗽",
+  "rarity": "common"
+ },
+ {
+  "id": "money-pots",
+  "name": "Money Pots",
+  "price": 6,
+  "estimated": false,
+  "emoji": "🍯",
+  "rarity": "common"
+ },
+ {
+  "id": "mousse-cakes",
+  "name": "Mousse Cakes",
+  "price": 6,
+  "estimated": false,
+  "emoji": "🍰",
+  "rarity": "common"
+ },
+ {
+  "id": "party-sparklers",
+  "name": "Party Sparklers",
+  "price": 6,
+  "estimated": false,
+  "emoji": "🎇",
+  "rarity": "common"
+ },
+ {
+  "id": "pretty-posies",
+  "name": "Pretty Posies",
+  "price": 6,
+  "estimated": false,
+  "emoji": "💐",
+  "rarity": "common"
+ },
+ {
+  "id": "restless-jars",
+  "name": "Restless Jars",
+  "price": 6,
+  "estimated": false,
+  "emoji": "🫙",
+  "rarity": "common"
+ },
+ {
+  "id": "snoop-doggs",
+  "name": "Snoop Doggs",
+  "price": 6,
+  "estimated": false,
+  "emoji": "🐶",
+  "rarity": "common"
+ },
+ {
+  "id": "spring-baskets",
+  "name": "Spring Baskets",
+  "price": 6,
+  "estimated": false,
+  "emoji": "🧺",
+  "rarity": "common"
+ },
+ {
+  "id": "star-notepads",
+  "name": "Star Notepads",
+  "price": 6,
+  "estimated": false,
+  "emoji": "📒",
+  "rarity": "common"
+ },
+ {
+  "id": "stellar-rockets",
+  "name": "Stellar Rockets",
+  "price": 6,
+  "estimated": false,
+  "emoji": "🚀",
+  "rarity": "common"
+ },
+ {
+  "id": "swag-bags",
+  "name": "Swag Bags",
+  "price": 6,
+  "estimated": false,
+  "emoji": "👜",
+  "rarity": "common"
+ },
+ {
+  "id": "winter-wreaths",
+  "name": "Winter Wreaths",
+  "price": 6,
+  "estimated": false,
+  "emoji": "🎄",
+  "rarity": "common"
+ },
+ {
+  "id": "big-years",
+  "name": "Big Years",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🎆",
+  "rarity": "common"
+ },
+ {
+  "id": "candy-canes",
+  "name": "Candy Canes",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🍬",
+  "rarity": "common"
+ },
+ {
+  "id": "chill-flames",
+  "name": "Chill Flames",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🔥",
+  "rarity": "common"
+ },
+ {
+  "id": "easter-eggs",
+  "name": "Easter Eggs",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🥚",
+  "rarity": "common"
+ },
+ {
+  "id": "happy-brownies",
+  "name": "Happy Brownies",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🍫",
+  "rarity": "common"
+ },
+ {
+  "id": "holiday-drinks",
+  "name": "Holiday Drinks",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🥂",
+  "rarity": "common"
+ },
+ {
+  "id": "ice-creams",
+  "name": "Ice Creams",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🍦",
+  "rarity": "common"
+ },
+ {
+  "id": "instant-ramens",
+  "name": "Instant Ramens",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🍜",
+  "rarity": "common"
+ },
+ {
+  "id": "jester-hats",
+  "name": "Jester Hats",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🎩",
+  "rarity": "common"
+ },
+ {
+  "id": "lol-pops",
+  "name": "Lol Pops",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🍭",
+  "rarity": "common"
+ },
+ {
+  "id": "lunar-snakes",
+  "name": "Lunar Snakes",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🐍",
+  "rarity": "common"
+ },
+ {
+  "id": "mood-packs",
+  "name": "Mood Packs",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🎒",
+  "rarity": "common"
+ },
+ {
+  "id": "pool-floats",
+  "name": "Pool Floats",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🦩",
+  "rarity": "common"
+ },
+ {
+  "id": "snake-boxes",
+  "name": "Snake Boxes",
+  "price": 5,
+  "estimated": false,
+  "emoji": "📦",
+  "rarity": "common"
+ },
+ {
+  "id": "tama-gadgets",
+  "name": "Tama Gadgets",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🎮",
+  "rarity": "common"
+ },
+ {
+  "id": "timeless-books",
+  "name": "Timeless Books",
+  "price": 5,
+  "estimated": false,
+  "emoji": "📕",
+  "rarity": "common"
+ },
+ {
+  "id": "whip-cupcakes",
+  "name": "Whip Cupcakes",
+  "price": 5,
+  "estimated": false,
+  "emoji": "🧁",
+  "rarity": "common"
+ },
+ {
+  "id": "algorithm-cups",
+  "name": "Algorithm Cups",
+  "price": 12,
+  "estimated": true,
+  "emoji": "🏆",
+  "rarity": "rare"
+ },
+ {
+  "id": "artisan-bricks",
+  "name": "Artisan Bricks",
+  "price": 4,
+  "estimated": true,
+  "emoji": "🧱",
+  "rarity": "common"
+ },
+ {
+  "id": "berry-boxes",
+  "name": "Berry Boxes",
+  "price": 4,
+  "estimated": true,
+  "emoji": "📦",
+  "rarity": "common"
+ },
+ {
+  "id": "durov-s-caps",
+  "name": "Durov’s Caps",
+  "price": 8,
+  "estimated": true,
+  "emoji": "🧢",
+  "rarity": "rare"
+ },
+ {
+  "id": "eternal-roses",
+  "name": "Eternal Roses",
+  "price": 6,
+  "estimated": true,
+  "emoji": "🌹",
+  "rarity": "common"
+ },
+ {
+  "id": "evil-eyes",
+  "name": "Evil Eyes",
+  "price": 4,
+  "estimated": true,
+  "emoji": "👁️",
+  "rarity": "common"
+ },
+ {
+  "id": "fresh-socks",
+  "name": "Fresh Socks",
+  "price": 4,
+  "estimated": true,
+  "emoji": "🧦",
+  "rarity": "common"
+ },
+ {
+  "id": "gem-signets",
+  "name": "Gem Signets",
+  "price": 10,
+  "estimated": true,
+  "emoji": "💍",
+  "rarity": "rare"
+ },
+ {
+  "id": "genie-lamps",
+  "name": "Genie Lamps",
+  "price": 6,
+  "estimated": true,
+  "emoji": "🪔",
+  "rarity": "common"
+ },
+ {
+  "id": "ginger-cookies",
+  "name": "Ginger Cookies",
+  "price": 3,
+  "estimated": true,
+  "emoji": "🍪",
+  "rarity": "common"
+ },
+ {
+  "id": "hex-pots",
+  "name": "Hex Pots",
+  "price": 4,
+  "estimated": true,
+  "emoji": "🍯",
+  "rarity": "common"
+ },
+ {
+  "id": "homemade-cakes",
+  "name": "Homemade Cakes",
+  "price": 3,
+  "estimated": true,
+  "emoji": "🍰",
+  "rarity": "common"
+ },
+ {
+  "id": "hypno-lollipops",
+  "name": "Hypno Lollipops",
+  "price": 3,
+  "estimated": true,
+  "emoji": "🍭",
+  "rarity": "common"
+ },
+ {
+  "id": "jelly-bunnies",
+  "name": "Jelly Bunnies",
+  "price": 4,
+  "estimated": true,
+  "emoji": "🐰",
+  "rarity": "common"
+ },
+ {
+  "id": "kissed-frogs",
+  "name": "Kissed Frogs",
+  "price": 4,
+  "estimated": true,
+  "emoji": "🐸",
+  "rarity": "common"
+ },
+ {
+  "id": "lush-bouquets",
+  "name": "Lush Bouquets",
+  "price": 4,
+  "estimated": true,
+  "emoji": "💐",
+  "rarity": "common"
+ },
+ {
+  "id": "mad-pumpkins",
+  "name": "Mad Pumpkins",
+  "price": 4,
+  "estimated": true,
+  "emoji": "🎃",
+  "rarity": "common"
+ },
+ {
+  "id": "magic-potions",
+  "name": "Magic Potions",
+  "price": 4,
+  "estimated": true,
+  "emoji": "🧪",
+  "rarity": "common"
+ },
+ {
+  "id": "mighty-arms",
+  "name": "Mighty Arms",
+  "price": 5,
+  "estimated": true,
+  "emoji": "💪",
+  "rarity": "common"
+ },
+ {
+  "id": "mini-oscars",
+  "name": "Mini Oscars",
+  "price": 6,
+  "estimated": true,
+  "emoji": "🏆",
+  "rarity": "common"
+ },
+ {
+  "id": "mirage-lamps",
+  "name": "Mirage Lamps",
+  "price": 7,
+  "estimated": true,
+  "emoji": "🪔",
+  "rarity": "common"
+ },
+ {
+  "id": "perfume-bottles",
+  "name": "Perfume Bottles",
+  "price": 5,
+  "estimated": true,
+  "emoji": "🧴",
+  "rarity": "common"
+ },
+ {
+  "id": "pet-snakes",
+  "name": "Pet Snakes",
+  "price": 3,
+  "estimated": true,
+  "emoji": "🐍",
+  "rarity": "common"
+ },
+ {
+  "id": "plush-pepes",
+  "name": "Plush Pepes",
+  "price": 3500,
+  "estimated": true,
+  "emoji": "🐸",
+  "rarity": "legendary"
+ },
+ {
+  "id": "precious-peaches",
+  "name": "Precious Peaches",
+  "price": 4,
+  "estimated": true,
+  "emoji": "🍑",
+  "rarity": "common"
+ },
+ {
+  "id": "santa-hats",
+  "name": "Santa Hats",
+  "price": 3,
+  "estimated": true,
+  "emoji": "🎩",
+  "rarity": "common"
+ },
+ {
+  "id": "scared-cats",
+  "name": "Scared Cats",
+  "price": 4,
+  "estimated": true,
+  "emoji": "🐱",
+  "rarity": "common"
+ },
+ {
+  "id": "sharp-tongues",
+  "name": "Sharp Tongues",
+  "price": 4,
+  "estimated": true,
+  "emoji": "👅",
+  "rarity": "common"
+ },
+ {
+  "id": "signet-rings",
+  "name": "Signet Rings",
+  "price": 8,
+  "estimated": true,
+  "emoji": "💍",
+  "rarity": "rare"
+ },
+ {
+  "id": "skull-flowers",
+  "name": "Skull Flowers",
+  "price": 4,
+  "estimated": true,
+  "emoji": "🌸",
+  "rarity": "common"
+ },
+ {
+  "id": "spiced-wines",
+  "name": "Spiced Wines",
+  "price": 3,
+  "estimated": true,
+  "emoji": "🍷",
+  "rarity": "common"
+ },
+ {
+  "id": "spy-agarics",
+  "name": "Spy Agarics",
+  "price": 3,
+  "estimated": true,
+  "emoji": "🍄",
+  "rarity": "common"
+ },
+ {
+  "id": "trapped-hearts",
+  "name": "Trapped Hearts",
+  "price": 4,
+  "estimated": true,
+  "emoji": "❤️",
+  "rarity": "common"
+ },
+ {
+  "id": "valentine-boxes",
+  "name": "Valentine Boxes",
+  "price": 3,
+  "estimated": true,
+  "emoji": "📦",
+  "rarity": "common"
+ },
+ {
+  "id": "vice-creams",
+  "name": "Vice Creams",
+  "price": 3,
+  "estimated": true,
+  "emoji": "🍦",
+  "rarity": "common"
+ },
+ {
+  "id": "victory-medals",
+  "name": "Victory Medals",
+  "price": 5,
+  "estimated": true,
+  "emoji": "🥇",
+  "rarity": "common"
+ },
+ {
+  "id": "vintage-cigars",
+  "name": "Vintage Cigars",
+  "price": 5,
+  "estimated": true,
+  "emoji": "🚬",
+  "rarity": "common"
+ },
+ {
+  "id": "witch-hats",
+  "name": "Witch Hats",
+  "price": 3,
+  "estimated": true,
+  "emoji": "🎩",
+  "rarity": "common"
+ },
+ {
+  "id": "xmas-stockings",
+  "name": "Xmas Stockings",
+  "price": 3,
+  "estimated": true,
+  "emoji": "🧦",
+  "rarity": "common"
+ }
+]
