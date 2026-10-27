@@ -1314,34 +1314,29 @@ async function renderInventory() {
         </div>
       `;
       container.querySelector('.empty-state-go-cases')?.addEventListener('click', goBackToCasesFromProfile);
+      const cnt0 = document.getElementById('inventoryCount'); if (cnt0) cnt0.textContent = '';
+      const sa0 = document.getElementById('sellAllBtn'); if (sa0) sa0.textContent = 'Продать всё';
       return;
     }
 
-    invData.forEach((item) => {
+    // плитки как у кейсов: картинка, имя, цена, «Продать» / «Вывести»
+    let total = 0;
+    container.innerHTML = invData.map((item) => {
+      total += Number(item.item_value) || 0;
       const canWithdraw = item.item_value >= 14;
-
-      const itemHTML = `
-        <div class="profile_items_list_item" data-item-id="${item.id}">
-          <img src="${item.item_image}" alt="${item.item_name}">
-          <div class="profile_items_list_item_desc">
-            <p class="profile_items_name">${item.item_name}</p>
-            <div class="profile_items_price">
-              <img src="data:image/svg+xml,%3csvg%20width='18'%20height='18'%20viewBox='0%200%2018%2018'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20fill-rule='evenodd'%20clip-rule='evenodd'%20d='M8.62769%2013.8588L5.47595%2015.878C5.35793%2015.9531%205.2212%2015.9899%205.08316%2015.9835C4.94511%2015.9771%204.812%2015.928%204.70078%2015.8422C4.58956%2015.7565%204.50525%2015.6382%204.45859%2015.5022C4.41193%2015.3662%204.40503%2015.2188%204.43878%2015.0787L4.92567%2013.0701C5.01281%2012.7122%205.174%2012.3787%205.39788%2012.093C5.62176%2011.8074%205.90287%2011.5766%206.22138%2011.4169L9.65883%209.69219C9.73002%209.65775%209.78674%209.59732%209.81832%209.52225C9.8499%209.44717%209.85417%209.36263%209.83032%209.2845C9.80648%209.20637%209.75617%209.14003%209.68884%209.09794C9.62151%209.05586%209.54179%209.04092%209.46467%209.05594L5.63791%209.74898C5.25368%209.81814%204.85965%209.79903%204.4832%209.69297C4.10675%209.58692%203.75689%209.39645%203.45794%209.13482L2.24875%208.0758C2.14289%207.98297%202.06585%207.85931%202.02744%207.72056C1.98903%207.58181%201.99098%207.43425%202.03306%207.29666C2.07513%207.15908%202.15541%207.03769%202.26369%206.94796C2.37197%206.85823%202.50334%206.80422%202.64108%206.79279L6.33506%206.49097C6.4631%206.48067%206.5859%206.43344%206.6898%206.35453C6.79369%206.27563%206.87461%206.16814%206.92356%206.04402L8.34702%202.44842C8.39981%202.31565%208.48904%202.20221%208.60345%202.1224C8.71785%202.04259%208.85231%202%208.98985%202C9.12739%202%209.26184%202.04259%209.37625%202.1224C9.49065%202.20221%209.57988%202.31565%209.63267%202.44842L11.0571%206.04507C11.1577%206.29746%2011.3851%206.46993%2011.6456%206.49097L15.3597%206.79595C15.4967%206.80748%2015.6274%206.86116%2015.7353%206.9502C15.8432%207.03925%2015.9234%207.15969%2015.9659%207.29634C16.0084%207.43299%2016.0112%207.57973%2015.9741%207.71807C15.9369%207.85641%2015.8614%207.98015%2015.7571%208.0737L12.9243%2010.5977C12.8265%2010.6848%2012.7537%2010.7985%2012.7141%2010.9262C12.6745%2011.054%2012.6696%2011.1907%2012.6999%2011.3212L13.5701%2015.1029C13.6021%2015.2427%2013.5938%2015.3893%2013.5462%2015.5241C13.4986%2015.6589%2013.4139%2015.776%2013.3028%2015.8606C13.1916%2015.9452%2013.059%2015.9935%2012.9216%2015.9994C12.7843%2016.0053%2012.6483%2015.9685%2012.5309%2015.8938L9.35301%2013.8588C9.24375%2013.7887%209.11805%2013.7516%208.98985%2013.7516C8.86164%2013.7516%208.73695%2013.7887%208.62769%2013.8588Z'%20fill='white'/%3e%3c/svg%3e">
-              ${item.item_value}
-            </div>
-            <div class="profile_item_actions_list">
-              <div class="profile_item_action sell-btn" onclick="sellFromInventory('${item.id}')">
-                Продать <img src="data:image/svg+xml,%3csvg%20width='18'%20height='18'%20viewBox='0%200%2018%2018'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20fill-rule='evenodd'%20clip-rule='evenodd'%20d='M8.62769%2013.8588L5.47595%2015.878C5.35793%2015.9531%205.2212%2015.9899%205.08316%2015.9835C4.94511%2015.9771%204.812%2015.928%204.70078%2015.8422C4.58956%2015.7565%204.50525%2015.6382%204.45859%2015.5022C4.41193%2015.3662%204.40503%2015.2188%204.43878%2015.0787L4.92567%2013.0701C5.01281%2012.7122%205.174%2012.3787%205.39788%2012.093C5.62176%2011.8074%205.90287%2011.5766%206.22138%2011.4169L9.65883%209.69219C9.73002%209.65775%209.78674%209.59732%209.81832%209.52225C9.8499%209.44717%209.85417%209.36263%209.83032%209.2845C9.80648%209.20637%209.75617%209.14003%209.68884%209.09794C9.62151%209.05586%209.54179%209.04092%209.46467%209.05594L5.63791%209.74898C5.25368%209.81814%204.85965%209.79903%204.4832%209.69297C4.10675%209.58692%203.75689%209.39645%203.45794%209.13482L2.24875%208.0758C2.14289%207.98297%202.06585%207.85931%202.02744%207.72056C1.98903%207.58181%201.99098%207.43425%202.03306%207.29666C2.07513%207.15908%202.15541%207.03769%202.26369%206.94796C2.37197%206.85823%202.50334%206.80422%202.64108%206.79279L6.33506%206.49097C6.4631%206.48067%206.5859%206.43344%206.6898%206.35453C6.79369%206.27563%206.87461%206.16814%206.92356%206.04402L8.34702%202.44842C8.39981%202.31565%208.48904%202.20221%208.60345%202.1224C8.71785%202.04259%208.85231%202%208.98985%202C9.12739%202%209.26184%202.04259%209.37625%202.1224C9.49065%202.20221%209.57988%202.31565%209.63267%202.44842L11.0571%206.04507C11.1577%206.29746%2011.3851%206.46993%2011.6456%206.49097L15.3597%206.79595C15.4967%206.80748%2015.6274%206.86116%2015.7353%206.9502C15.8432%207.03925%2015.9234%207.15969%2015.9659%207.29634C16.0084%207.43299%2016.0112%207.57973%2015.9741%207.71807C15.9369%207.85641%2015.8614%207.98015%2015.7571%208.0737L12.9243%2010.5977C12.8265%2010.6848%2012.7537%2010.7985%2012.7141%2010.9262C12.6745%2011.054%2012.6696%2011.1907%2012.6999%2011.3212L13.5701%2015.1029C13.6021%2015.2427%2013.5938%2015.3893%2013.5462%2015.5241C13.4986%2015.6589%2013.4139%2015.776%2013.3028%2015.8606C13.1916%2015.9452%2013.059%2015.9935%2012.9216%2015.9994C12.7843%2016.0053%2012.6483%2015.9685%2012.5309%2015.8938L9.35301%2013.8588C9.24375%2013.7887%209.11805%2013.7516%208.98985%2013.7516C8.86164%2013.7516%208.73695%2013.7887%208.62769%2013.8588Z'%20fill='white'/%3e%3c/svg%3e">
-                ${item.item_value}
-              </div>
-              ${canWithdraw ? `<div class="profile_item_action withdraw-btn" onclick="initWithdraw('${item.id}')">
-                Вывести
-              </div>` : ''}
-            </div>
+      return `
+        <div class="profile_items_list_item dd-inv-item r-${item.rarity || 'common'}" data-item-id="${item.id}">
+          <img src="${item.item_image}" alt="" decoding="async">
+          <div class="dd-inv-name">${item.item_name}</div>
+          <div class="dd-inv-val"><i class="dd-star"></i>${Number(item.item_value).toLocaleString('ru-RU')}</div>
+          <div class="dd-inv-actions">
+            <button class="profile_item_action sell-btn" onclick="sellFromInventory('${item.id}')">Продать</button>
+            ${canWithdraw ? `<button class="profile_item_action withdraw-btn" onclick="initWithdraw('${item.id}')">Вывести</button>` : ''}
           </div>
         </div>`;
-      container.insertAdjacentHTML('beforeend', itemHTML);
-    });
+    }).join('');
+    const cnt = document.getElementById('inventoryCount'); if (cnt) cnt.textContent = invData.length;
+    const sellAll = document.getElementById('sellAllBtn'); if (sellAll) sellAll.innerHTML = `Продать всё · <i class="dd-star"></i>${total.toLocaleString('ru-RU')}`;
   } catch (err) {
     console.error('Ошибка загрузки инвентаря:', err);
     showAlert('❌ Ошибка загрузки инвентаря');
@@ -1537,19 +1532,19 @@ function updateCaseOpenButtonState() {
 function updateProfileBalance() {
   const profileBalanceEl = document.getElementById('profilePageBalance');
   if (profileBalanceEl) {
-    profileBalanceEl.textContent = balance.toFixed(2);
+    profileBalanceEl.textContent = Number(balance).toLocaleString('ru-RU');
   }
 }
 
 function updateProfilePage() {
   if (tgUser) {
-    document.getElementById('profilePageName').textContent = tgUser.first_name || 'User';
+    document.getElementById('profilePageName').textContent = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') || 'Игрок';
     const pa = document.getElementById('profilePageAvatar');
     if (tgUser.photo_url) pa.src = tgUser.photo_url;
-    else { pa.style.display = 'none'; pa.parentElement.dataset.initial = (tgUser.first_name || 'U').trim().charAt(0).toUpperCase(); }
+    else { pa.style.display = 'none'; pa.parentElement.dataset.initial = (tgUser.first_name || 'И').trim().charAt(0).toUpperCase(); }
     document.getElementById('profilePageId').textContent = `#${tgUser.id}`;
   }
-  document.getElementById('profilePageBalance').textContent = balance.toFixed(2);
+  document.getElementById('profilePageBalance').textContent = Number(balance).toLocaleString('ru-RU');
   checkRefPromoStatus();
 }
 
@@ -2561,7 +2556,7 @@ function setupEventListeners() {
         if (formGroupPromo) formGroupPromo.classList.remove('disabled');
         if (tonDepositBtnWrap) tonDepositBtnWrap.classList.remove('hidden');
       } else {
-        if (tonAmountInput) { tonAmountInput.disabled = true; tonAmountInput.value = ''; if (tonStarsPreview) tonStarsPreview.textContent = '≈0 stars'; }
+        if (tonAmountInput) { tonAmountInput.disabled = true; tonAmountInput.value = ''; if (tonStarsPreview) tonStarsPreview.textContent = '≈0 ⭐'; }
         if (tonPromoInput) { tonPromoInput.disabled = true; }
         if (formGroupAmount) formGroupAmount.classList.add('disabled');
         if (formGroupPromo) formGroupPromo.classList.add('disabled');
@@ -2579,11 +2574,11 @@ function setupEventListeners() {
       var raw = String(tonAmountInput.value || '').trim().replace(',', '.');
       var amount = parseFloat(raw, 10);
       if (!Number.isFinite(amount) || amount < 0) {
-        tonStarsPreview.textContent = '≈0 stars';
+        tonStarsPreview.textContent = '≈0 ⭐';
         return;
       }
       var stars = Math.floor(amount * 100);
-      tonStarsPreview.textContent = '≈' + stars + ' stars';
+      tonStarsPreview.textContent = '≈' + stars + ' ⭐';
     }
 
     function updateTonSubmitState() {

@@ -162,7 +162,7 @@
             <a href="index.html#" class="buy-tg-stars-link" id="buyTgStarsLink">Купить Telegram звезды</a>
             <h3 class="deposit-data-title">Заполните данные</h3>
             <div class="deposit-field-block">
-              <span class="deposit-field-block-label">Промокод (Если есть)</span>
+              <span class="deposit-field-block-label">Промокод (если есть)</span>
               <input type="text" id="depositPromoInput" class="deposit-input deposit-input-inblock"
                 placeholder="XX-XX-XX" autocomplete="off">
             </div>
@@ -179,7 +179,7 @@
                   value="">
               </div>
             </div>
-            <p class="deposit-rate deposit-rate-stars">Курс: 1 TG STARS = 1 STARS</p>
+            <p class="deposit-rate deposit-rate-stars">Курс: 1 Telegram Star = 1 ⭐</p>
             <button type="button" id="depositSubmitBtn" class="deposit-submit-btn">Пополнить баланс</button>
           </div>
 
@@ -242,12 +242,12 @@
                   <input type="text" inputmode="decimal" id="tonAmountInput"
                     class="deposit-input deposit-input-with-ton deposit-input-inline hide-number-spin"
                     placeholder="Введите сумму..." min="0.1" step="0.1" value="" disabled>
-                  <span id="tonStarsPreview" class="ton-stars-preview-inline" aria-live="polite">≈0 stars</span>
+                  <span id="tonStarsPreview" class="ton-stars-preview-inline" aria-live="polite">≈0 ⭐</span>
                 </div>
               </div>
-              <p class="deposit-rate deposit-ton-rate">Курс: 1 TON = 100 STARS</p>
+              <p class="deposit-rate deposit-ton-rate">Курс: 1 TON = 100 ⭐</p>
               <div class="deposit-field-block deposit-form-group" id="tonPromoFormGroup">
-                <span class="deposit-field-block-label">Промокод (Если есть)</span>
+                <span class="deposit-field-block-label">Промокод (если есть)</span>
                 <input type="text" id="tonPromoInput" class="deposit-input deposit-input-inblock" placeholder="XX-XX-XX"
                   autocomplete="off" disabled>
               </div>
@@ -398,78 +398,38 @@
     </section>
 
     <section id="profile-section" class="hidden">
-      <div class="profile-page">
-        <div class="profile-container">
-          <div class="profile-section">
-            <div class="avatars">
-              <img class="profile-avatar" id="profilePageAvatar" src="index.html" alt="User Avatar">
-            </div>
+      <div class="dd-prof">
+        <div class="dd-prof-card dd-prof-head">
+          <div class="dd-prof-ava"><img id="profilePageAvatar" src="images/icon-180.png" alt=""></div>
+          <div class="dd-prof-who">
+            <div class="dd-prof-name" id="profilePageName">Игрок</div>
+            <div class="dd-prof-id" id="profilePageId">#0</div>
           </div>
-          <div class="profile-info">
-            <div class="profile-name" id="profilePageName">Имя</div>
-            <div class="profile-id" id="profilePageId">#123456789</div>
-          </div>
-          <button id="openAdminFromProfile" class="admin-panel-btn"
-            style="display:none;margin-left:auto;margin-top:8px;">
-            Admin
-          </button>
+          <button id="openAdminFromProfile" class="dd-prof-admin" style="display:none">Админка</button>
         </div>
 
-        <div class="balance-section">
-          <div class="balance-info">
-            <div class="label-small">Balance</div>
-            <div class="balance-display">
-              <div class="balance-amount" id="profilePageBalance">0.00</div>
-              <div class="coin-small">
-                <div class="coin small">
-                  <svg viewBox="0 0 14 15" fill="#FFCA5A" xmlns="http://www.w3.org/2000/svg"
-                    class="nav_topup-stars-icon" width="16" height="16">
-                    <path fill-rule="evenodd" clip-rule="evenodd"
-                      d="M6.63869 12.1902L3.50621 14.1092C3.18049 14.3087 2.75468 14.2064 2.55515 13.8807C2.45769 13.7216 2.42864 13.5299 2.47457 13.3491L2.95948 11.4405C3.13452 10.7515 3.60599 10.1756 4.24682 9.86791L7.6642 8.22716C7.82352 8.15067 7.89067 7.95951 7.81418 7.80019C7.75223 7.67116 7.61214 7.59896 7.47111 7.62338L3.66713 8.28194C2.89387 8.41581 2.1009 8.20228 1.49941 7.69823L0.297703 6.69116C0.00493565 6.44581 -0.0335059 6.00958 0.211842 5.71682C0.33117 5.57442 0.502766 5.48602 0.687982 5.47153L4.35956 5.18419C4.61895 5.16389 4.845 4.99974 4.94458 4.75937L6.36101 1.3402C6.5072 0.987302 6.91179 0.819734 7.26469 0.965925C7.43413 1.03612 7.56876 1.17075 7.63896 1.3402L9.05539 4.75937C9.15496 4.99974 9.38101 5.16389 9.6404 5.18419L13.3322 5.47311C13.713 5.50291 13.9975 5.83578 13.9677 6.2166C13.9534 6.39979 13.8667 6.56975 13.7269 6.68896L10.9114 9.08928C10.7131 9.25826 10.6267 9.52425 10.6876 9.77748L11.5532 13.3733C11.6426 13.7447 11.414 14.1182 11.0427 14.2076C10.8642 14.2506 10.676 14.2208 10.5195 14.1249L7.36128 12.1902C7.13956 12.0544 6.8604 12.0544 6.63869 12.1902Z"
-                      fill="#FFCA5A"></path>
-                  </svg>
-                </div>
-              </div>
-            </div>
+        <div class="dd-prof-card dd-prof-bal">
+          <div>
+            <div class="dd-prof-label">Баланс</div>
+            <div class="dd-prof-amount"><span id="profilePageBalance">0</span><i class="dd-star"></i></div>
           </div>
-          <div class="balance-actions">
-            <button class="deposit-button" onclick="openStarsModal()">
-              <div class="button-label">Deposit</div>
-            </button>
-          </div>
+          <button class="dd-prof-btn" onclick="openStarsModal()">Пополнить</button>
         </div>
 
-        <div class="free-case-banner">
-          <div class="lightning-icon">
-            <img class="lightning-svg"
-              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffc107'%3E%3Cpath d='M7 2v11h3v9l7-12h-4l4-8z'/%3E%3C/svg%3E"
-              alt="" width="24" height="24">
-          </div>
-          <div class="banner-content">
-            <div class="coin-wrapper">
-              <img class="coin-svg" src="invite_user.svg">
-            </div>
-            <div class="banner-text">Invite Friends</div>
-          </div>
-          <button class="telegram-button" id="profileInviteBtn">
-            <div class="button-label_ref">Invite</div>
-          </button>
+        <div class="dd-prof-card dd-prof-ref">
+          <div class="dd-prof-ref-ic"><img src="invite_user.svg" alt=""></div>
+          <div class="dd-prof-ref-txt"><b>Пригласи друзей</b><span>Бонус с их пополнений</span></div>
+          <button class="dd-prof-btn dd-prof-btn-sm" id="profileInviteBtn">Пригласить</button>
         </div>
 
-        <!-- Ввод реферального промокода -->
-        <button class="ref-promo-activate-btn" id="profileRefPromoCard" style="display:none;"
-          onclick="document.getElementById('refActivatePromoModal').style.display='flex'">Ввести реферальный
-          промокод</button>
+        <button class="dd-prof-promo" id="profileRefPromoCard" style="display:none;"
+          onclick="document.getElementById('refActivatePromoModal').style.display='flex'">Ввести реферальный промокод</button>
 
-        <div class="profile-content-wrapper">
-          <div class="profile_content_wrapper items_content">
-            <div class="profile_content-head">
-              <div class="profile_content-head-label">Инвентарь</div>
-              <button class="btn_sale_all" id="sellAllBtn">Продать всё</button>
-            </div>
-            <div class="profile_items_list" id="inventoryList"></div>
-          </div>
+        <div class="dd-inv-head">
+          <div class="dd-inv-title">Инвентарь <span id="inventoryCount"></span></div>
+          <button class="dd-inv-sellall" id="sellAllBtn">Продать всё</button>
         </div>
+        <div class="dd-inv-grid" id="inventoryList"></div>
       </div>
     </section>
 
@@ -955,9 +915,9 @@
       <button class="daily-case-close" onclick="closeDailyCaseModal()">&times;</button>
 
       <div class="daily-case-image">
-        <img src="images/promocode.webp" alt="Daily Case">
+        <img src="images/promocode.webp" alt="">
       </div>
-      <h2 class="daily-case-title">Daily Case</h2>
+      <h2 class="daily-case-title">Ежедневный кейс</h2>
       <p class="daily-case-desc">Чтобы открыть кейс необходимо выполнить условия</p>
 
       <div class="daily-case-tasks">
