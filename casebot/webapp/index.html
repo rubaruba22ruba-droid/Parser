@@ -1,21 +1,1014 @@
-<!doctype html>
-<html lang="ru"><head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Gift Cases</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link rel="stylesheet" href="style.css">
-</head><body>
-<header>
-  <div class="logo">🎁 Gift Cases</div>
-  <button id="bal" class="bal"><span id="balv">0</span> TON <b>＋</b></button>
-</header>
-<main id="view"></main>
-<nav>
-  <button data-tab="cases" class="on">🎯<span>Кейсы</span></button>
-  <button data-tab="inv">🎒<span>Инвентарь</span></button>
-</nav>
-<div id="modal" class="modal hidden"></div>
-<div id="toast" class="toast"></div>
-<script src="app.js" type="module"></script>
-</body></html>
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+  <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="expires" content="0" />
+  <meta http-equiv="pragma" content="no-cache" />
+
+  <title>Drade Drop</title>
+
+  <link rel="preconnect" href="https://telegram.org" crossorigin />
+  <link rel="dns-prefetch" href="https://telegram.org/" />
+
+  <link rel="stylesheet" href="css/style.css?v=2">
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    (function () {
+      var blocked = ['bridge.mirai.app', 'wallet.binance.com/tonbridge'];
+      function getUrl(u) {
+        if (typeof u === 'string') return u;
+        if (u && (u.url || u.href)) return u.url || u.href;
+        return '';
+      }
+      function isBlocked(url) {
+        var s = getUrl(url);
+        for (var i = 0; i < blocked.length; i++) if (s.indexOf(blocked[i]) !== -1) return true;
+        return false;
+      }
+      var origFetch = window.fetch;
+      if (origFetch) {
+        window.fetch = function (url, opts) {
+          if (isBlocked(url)) return Promise.reject(new TypeError('NetworkError: blocked bridge (unavailable)'));
+          return origFetch.apply(this, arguments);
+        };
+      }
+    })();
+  </script>
+  <script src="https://unpkg.com/@tonconnect/ui@2.4.1/dist/tonconnect-ui.min.js"></script>
+  <link rel="stylesheet" href="css/tailwind.css">
+  <link rel="preload" href="fonts/unbounded-cyrillic-900-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/onest-cyrillic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/drade.css?v=4">
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/tgs-player.js"></script>
+  <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+</head>
+
+<body>
+  <div class="app-container">
+    <div id="page-preloader" class="page-preloader" aria-live="polite" aria-label="Загрузка">
+      <div class="dd-logo dd-logo-xl dd-pulse">DRADE<b>DROP</b></div>
+      <div class="page-preloader-spinner"></div>
+    </div>
+    <div id="pc-landing"
+      style="display: none; position: fixed; inset: 0; z-index: 9999; background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%); color: #fff; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; font-family: 'Montserrat', sans-serif;">
+      <div class="dd-logo dd-logo-xl">DRADE<b>DROP</b></div>
+      <p style="color: #aaa; margin-bottom: 24px; max-width: 320px;">Это приложение работает только внутри Telegram.
+        Откройте бота и запустите приложение оттуда.</p>
+      <a href="#" data-bot-link target="_blank" rel="noopener"
+        style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 24px; background: #2481cc; color: #fff; border-radius: 12px; text-decoration: none; font-weight: 600;">Открыть
+        в Telegram</a>
+      <p style="color: #888; font-size: 12px; margin-top: 20px; max-width: 320px;">Подключить TON кошелёк в браузере:
+        добавьте к адресу <code style="background:#333;padding:2px 6px;border-radius:4px;">?web=1</code></p>
+    </div>
+    <div id="topNav" class="top_nav">
+      <div class="nav_profile">
+
+        <div class="logged_user_profile" id="authorized-view" style="display: none;">
+          <div class="dd-logo">DRADE<b>DROP</b></div>
+          <a class="user__profile" id="goToProfile">
+            <div class="nav_logged_user grey_icon" title="Профиль">
+              <img id="profileAvatar" src="index.html" alt="avatar">
+            </div>
+            <div class="nav_logged_user-name" id="profileName">Имя</div>
+          </a>
+          <div class="nav_topup" role="group" aria-label="Баланс и пополнение">
+            <div class="nav_topup-pill" onclick="typeof openStarsModal === 'function' && openStarsModal()" role="button"
+              aria-label="Пополнить баланс">
+              <svg class="nav_topup-pill-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M12 24C18.6274 24 24 18.6274 24 12C24 5.37258 18.6274 0 12 0C5.37258 0 0 5.37258 0 12C0 18.6274 5.37258 24 12 24ZM12.8571 6.85714C12.8571 6.38376 12.4734 6 12 6C11.5266 6 11.1429 6.38376 11.1429 6.85714V11.1429H6.85714C6.38376 11.1429 6 11.5266 6 12C6 12.4734 6.38376 12.8571 6.85714 12.8571H11.1429V17.1429C11.1429 17.6162 11.5266 18 12 18C12.4734 18 12.8571 17.6162 12.8571 17.1429V12.8571H17.1429C17.6162 12.8571 18 12.4734 18 12C18 11.5266 17.6162 11.1429 17.1429 11.1429H12.8571V6.85714Z"
+                  fill="#007AFF" />
+              </svg>
+              <span class="nav_topup-pill-text">Пополнить</span>
+            </div>
+            <div class="nav_topup-balance">
+              <div class="nav_topup-balance-item stars">
+                <svg viewBox="0 0 14 15" fill="#FFCA5A" xmlns="http://www.w3.org/2000/svg" class="nav_topup-stars-icon"
+                  width="16" height="16">
+                  <path fill-rule="evenodd" clip-rule="evenodd"
+                    d="M6.63869 12.1902L3.50621 14.1092C3.18049 14.3087 2.75468 14.2064 2.55515 13.8807C2.45769 13.7216 2.42864 13.5299 2.47457 13.3491L2.95948 11.4405C3.13452 10.7515 3.60599 10.1756 4.24682 9.86791L7.6642 8.22716C7.82352 8.15067 7.89067 7.95951 7.81418 7.80019C7.75223 7.67116 7.61214 7.59896 7.47111 7.62338L3.66713 8.28194C2.89387 8.41581 2.1009 8.20228 1.49941 7.69823L0.297703 6.69116C0.00493565 6.44581 -0.0335059 6.00958 0.211842 5.71682C0.33117 5.57442 0.502766 5.48602 0.687982 5.47153L4.35956 5.18419C4.61895 5.16389 4.845 4.99974 4.94458 4.75937L6.36101 1.3402C6.5072 0.987302 6.91179 0.819734 7.26469 0.965925C7.43413 1.03612 7.56876 1.17075 7.63896 1.3402L9.05539 4.75937C9.15496 4.99974 9.38101 5.16389 9.6404 5.18419L13.3322 5.47311C13.713 5.50291 13.9975 5.83578 13.9677 6.2166C13.9534 6.39979 13.8667 6.56975 13.7269 6.68896L10.9114 9.08928C10.7131 9.25826 10.6267 9.52425 10.6876 9.77748L11.5532 13.3733C11.6426 13.7447 11.414 14.1182 11.0427 14.2076C10.8642 14.2506 10.676 14.2208 10.5195 14.1249L7.36128 12.1902C7.13956 12.0544 6.8604 12.0544 6.63869 12.1902Z"
+                    fill="#FFCA5A"></path>
+                </svg>
+                <div class="nav_topup-balance-summ" id="topBalance">0</div>
+              </div>
+            </div>
+          </div>
+          <button id="openAdminPanelBtn" class="admin-panel-btn" style="display: none;">
+            Admin
+          </button>
+        </div>
+
+        <div id="unauthorized-view" style="display: none; width: 100%; display: flex; justify-content: flex-end;">
+          <a href="#" data-bot-link target="_blank" class="login-button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M9.78 18.65l.28-4.23c.02-.28-.06-.56-.23-.78L4.17 9.48l17.65-6.7c.45-.17.9.28.79.78l-3.3 15.25c-.12.56-.83.74-1.28.33l-4.4-4.04-2.1 2.02c-.38.38-1 .38-1.38 0L9.78 18.65z" />
+            </svg>
+            <span>Войти через Telegram</span>
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+    <section id="deposit-section" class="hidden deposit-page-section">
+      <div class="deposit-page-inner">
+        <header class="deposit-header">
+          <button type="button" id="backFromDeposit" class="deposit-back-btn" aria-label="Назад">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </button>
+          <span class="deposit-page-title">Пополнение баланса</span>
+          <div class="deposit-header-spacer"></div>
+        </header>
+
+        <div class="deposit-card">
+          <div class="deposit-tabs">
+            <button type="button" class="deposit-tab active" data-tab="stars">
+              <svg class="deposit-tab-star" viewBox="0 0 14 15" fill="#FFCA5A" width="20" height="20">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M6.63869 12.1902L3.50621 14.1092C3.18049 14.3087 2.75468 14.2064 2.55515 13.8807C2.45769 13.7216 2.42864 13.5299 2.47457 13.3491L2.95948 11.4405C3.13452 10.7515 3.60599 10.1756 4.24682 9.86791L7.6642 8.22716C7.82352 8.15067 7.89067 7.95951 7.81418 7.80019C7.75223 7.67116 7.61214 7.59896 7.47111 7.62338L3.66713 8.28194C2.89387 8.41581 2.1009 8.20228 1.49941 7.69823L0.297703 6.69116C0.00493565 6.44581 -0.0335059 6.00958 0.211842 5.71682C0.33117 5.57442 0.502766 5.48602 0.687982 5.47153L4.35956 5.18419C4.61895 5.16389 4.845 4.99974 4.94458 4.75937L6.36101 1.3402C6.5072 0.987302 6.91179 0.819734 7.26469 0.965925C7.43413 1.03612 7.56876 1.17075 7.63896 1.3402L9.05539 4.75937C9.15496 4.99974 9.38101 5.16389 9.6404 5.18419L13.3322 5.47311C13.713 5.50291 13.9975 5.83578 13.9677 6.2166C13.9534 6.39979 13.8667 6.56975 13.7269 6.68896L10.9114 9.08928C10.7131 9.25826 10.6267 9.52425 10.6876 9.77748L11.5532 13.3733C11.6426 13.7447 11.414 14.1182 11.0427 14.2076C10.8642 14.2506 10.676 14.2208 10.5195 14.1249L7.36128 12.1902C7.13956 12.0544 6.8604 12.0544 6.63869 12.1902Z" />
+              </svg>
+              Stars
+            </button>
+            <button type="button" class="deposit-tab" data-tab="ton">
+              <span class="deposit-tab-ton-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" width="20" height="20">
+                  <path fill="#0098EA" fill-rule="evenodd"
+                    d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0"></path>
+                  <path fill="#fff" fill-rule="evenodd"
+                    d="M16.165 6H7.969C6.463 6 5.508 7.626 6.266 8.94l5.057 8.765a.86.86 0 0 0 1.488 0L17.87 8.94c.757-1.312-.2-2.94-1.705-2.94m-3.352 1.496v7.58l1.102-2.128 2.656-4.756a.465.465 0 0 0-.408-.696zm-5.08.062a.46.46 0 0 1 .234-.06h3.352v7.578l-1.102-2.13-2.658-4.754a.464.464 0 0 1 .175-.634"
+                    clip-rule="evenodd"></path>
+                </svg>
+              </span>
+              TON
+            </button>
+          </div>
+
+          <div id="depositStarsContent" class="deposit-tab-content">
+            <a href="index.html#" class="buy-tg-stars-link" id="buyTgStarsLink">Купить Telegram звезды</a>
+            <h3 class="deposit-data-title">Заполните данные</h3>
+            <div class="deposit-field-block">
+              <span class="deposit-field-block-label">Промокод (Если есть)</span>
+              <input type="text" id="depositPromoInput" class="deposit-input deposit-input-inblock"
+                placeholder="XX-XX-XX" autocomplete="off">
+            </div>
+            <div class="deposit-field-block">
+              <span class="deposit-field-block-label">Сумма пополнения</span>
+              <div class="deposit-stars-amount-inline">
+                <svg class="deposit-stars-input-icon" viewBox="0 0 14 15" fill="#FFCA5A" width="20" height="20"
+                  aria-hidden="true">
+                  <path fill-rule="evenodd" clip-rule="evenodd"
+                    d="M6.63869 12.1902L3.50621 14.1092C3.18049 14.3087 2.75468 14.2064 2.55515 13.8807C2.45769 13.7216 2.42864 13.5299 2.47457 13.3491L2.95948 11.4405C3.13452 10.7515 3.60599 10.1756 4.24682 9.86791L7.6642 8.22716C7.82352 8.15067 7.89067 7.95951 7.81418 7.80019C7.75223 7.67116 7.61214 7.59896 7.47111 7.62338L3.66713 8.28194C2.89387 8.41581 2.1009 8.20228 1.49941 7.69823L0.297703 6.69116C0.00493565 6.44581 -0.0335059 6.00958 0.211842 5.71682C0.33117 5.57442 0.502766 5.48602 0.687982 5.47153L4.35956 5.18419C4.61895 5.16389 4.845 4.99974 4.94458 4.75937L6.36101 1.3402C6.5072 0.987302 6.91179 0.819734 7.26469 0.965925C7.43413 1.03612 7.56876 1.17075 7.63896 1.3402L9.05539 4.75937C9.15496 4.99974 9.38101 5.16389 9.6404 5.18419L13.3322 5.47311C13.713 5.50291 13.9975 5.83578 13.9677 6.2166C13.9534 6.39979 13.8667 6.56975 13.7269 6.68896L10.9114 9.08928C10.7131 9.25826 10.6267 9.52425 10.6876 9.77748L11.5532 13.3733C11.6426 13.7447 11.414 14.1182 11.0427 14.2076C10.8642 14.2506 10.676 14.2208 10.5195 14.1249L7.36128 12.1902C7.13956 12.0544 6.8604 12.0544 6.63869 12.1902Z" />
+                </svg>
+                <input type="number" inputmode="numeric" id="depositAmountInput"
+                  class="deposit-input deposit-input-inblock hide-number-spin" placeholder="Введите сумму..." min="1"
+                  value="">
+              </div>
+            </div>
+            <p class="deposit-rate deposit-rate-stars">Курс: 1 TG STARS = 1 STARS</p>
+            <button type="button" id="depositSubmitBtn" class="deposit-submit-btn">Пополнить баланс</button>
+          </div>
+
+          <div id="depositTonContent" class="deposit-tab-content hidden">
+            <div class="deposit-ton-block">
+              <h3 class="deposit-data-title">Заполните данные</h3>
+              <div id="tonConnectWrap" class="ton-connect-wrap">
+                <button type="button" id="tonConnectCustomBtn" class="ton-connect-custom-btn">
+                  <span class="ton-connect-custom-btn-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" role="img" width="24"
+                      height="24">
+                      <path fill="#fff" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0">
+                      </path>
+                      <path fill="#0098EA" fill-rule="evenodd"
+                        d="M16.165 6H7.969C6.463 6 5.508 7.626 6.266 8.94l5.057 8.765a.86.86 0 0 0 1.488 0L17.87 8.94c.757-1.312-.2-2.94-1.705-2.94m-3.352 1.496v7.58l1.102-2.128 2.656-4.756a.465.465 0 0 0-.408-.696zm-5.08.062a.46.46 0 0 1 .234-.06h3.352v7.578l-1.102-2.13-2.658-4.754a.464.464 0 0 1 .175-.634"
+                        clip-rule="evenodd"></path>
+                    </svg>
+                  </span>
+                  <span>Подключите TON кошелек</span>
+                </button>
+                <div id="ton-connect-sdk-wrap" class="ton-connect-sdk-wrap hidden">
+                  <div id="ton-connect" class="ton-connect-sdk-root"></div>
+                </div>
+              </div>
+              <div id="tonWalletInfo" class="ton-wallet-info hidden" data-full-address="">
+                <div class="ton-wallet-info-main">
+                  <div class="ton-wallet-name" id="tonWalletName">Tonkeeper</div>
+                  <div class="ton-wallet-address" id="tonWalletAddress">UQ…</div>
+                </div>
+                <div class="ton-wallet-balance-col">
+                  <div class="ton-wallet-balance-label">Баланс кошелька</div>
+                  <div class="ton-wallet-balance-row">
+                    <span class="ton-wallet-balance-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" role="img" width="16"
+                        height="16">
+                        <path fill="#0098EA" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0">
+                        </path>
+                        <path fill="#fff" fill-rule="evenodd"
+                          d="M16.165 6H7.969C6.463 6 5.508 7.626 6.266 8.94l5.057 8.765a.86.86 0 0 0 1.488 0L17.87 8.94c.757-1.312-.2-2.94-1.705-2.94m-3.352 1.496v7.58l1.102-2.128 2.656-4.756a.465.465 0 0 0-.408-.696zm-5.08.062a.46.46 0 0 1 .234-.06h3.352v7.578l-1.102-2.13-2.658-4.754a.464.464 0 0 1 .175-.634"
+                          clip-rule="evenodd"></path>
+                      </svg>
+                    </span>
+                    <span class="ton-wallet-balance" id="tonWalletBalance">0</span>
+                  </div>
+                </div>
+                <div class="ton-wallet-menu-wrap">
+                  <button type="button" id="tonWalletMenuBtn" class="ton-wallet-menu-btn"
+                    aria-label="Меню кошелька">⋮</button>
+                  <div id="tonWalletDropdown" class="ton-wallet-dropdown hidden">
+                    <button type="button" class="ton-wallet-dropdown-item" id="tonWalletCopyAddress">Копировать
+                      адрес</button>
+                    <button type="button" class="ton-wallet-dropdown-item" id="tonWalletDisconnect">Отключить
+                      кошелёк</button>
+                  </div>
+                </div>
+              </div>
+              <div class="deposit-field-block deposit-form-group" id="tonAmountFormGroup">
+                <span class="deposit-field-block-label">Сумма пополнения</span>
+                <div class="deposit-ton-amount-inline">
+                  <input type="text" inputmode="decimal" id="tonAmountInput"
+                    class="deposit-input deposit-input-with-ton deposit-input-inline hide-number-spin"
+                    placeholder="Введите сумму..." min="0.1" step="0.1" value="" disabled>
+                  <span id="tonStarsPreview" class="ton-stars-preview-inline" aria-live="polite">≈0 stars</span>
+                </div>
+              </div>
+              <p class="deposit-rate deposit-ton-rate">Курс: 1 TON = 100 STARS</p>
+              <div class="deposit-field-block deposit-form-group" id="tonPromoFormGroup">
+                <span class="deposit-field-block-label">Промокод (Если есть)</span>
+                <input type="text" id="tonPromoInput" class="deposit-input deposit-input-inblock" placeholder="XX-XX-XX"
+                  autocomplete="off" disabled>
+              </div>
+              <div id="tonDepositBtnWrap" class="ton-deposit-btn-wrap hidden">
+                <button type="button" id="tonDepositSubmitBtn" class="deposit-submit-btn ton-deposit-btn"
+                  disabled>Пополнить баланс</button>
+              </div>
+            </div>
+            <div id="tonConfirmBlock" class="ton-confirm-block hidden">
+              <div class="ton-confirm-spinner"></div>
+              <p class="ton-confirm-title">Подтвердите платёж в кошельке</p>
+              <p class="ton-confirm-sub">Откройте Tonkeeper или Wallet в Telegram и подтвердите перевод.</p>
+              <button type="button" id="tonOpenWalletBtn" class="ton-open-wallet-btn">Открыть кошелёк</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="liveDropFeed" class="live-drop-feed">
+      <div class="live-drop-body">
+        <div class="live-drop-label">
+          <span class="live-drop-label-dot"></span>
+          <span class="live-drop-label-text">LIVE</span>
+        </div>
+        <div class="live-drop-track-wrapper">
+          <div class="live-drop-fade left"></div>
+          <div class="live-drop-track" id="liveDropTrack"></div>
+          <div class="live-drop-fade right"></div>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="casesCategories" class="cases_block cases_characters">
+      <div class="category_chips_scroll">
+        <div class="category_chips">
+          <div class="category_chip active">Все</div>
+          <div class="category_chip">Фарм кейсы</div>
+          <div class="category_chip">Обычные</div>
+          <div class="category_chip">ALL IN Кейсы</div>
+        </div>
+      </div>
+    </div>
+
+    <section id="case-selection"></section>
+
+    <section id="case-opening">
+      <div class="custom-padding" id="caseHeader">
+        <div class="relative z-10 flex items-center justify-between">
+          <button id="backToSelection" class="case-back-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <p id="caseTitle">
+              <span class="text-solid">ПРЕМИУМ КЕЙС</span>
+            </p>
+          </div>
+          <div style="width:30px;"></div>
+        </div>
+      </div>
+
+      <div class="about_item_bg" id="caseVisualContainer">
+        <img id="caseImage" src="index.html" style="display: none;" />
+        <div class="case_opening_process" id="slotMachine" style="display: none;">
+          <div class="slot-fade left"></div>
+          <div class="slot-fade right"></div>
+          <div class="slot-indicator top-indicator">
+            <svg width="28" height="14" viewBox="0 0 28 14" fill="none">
+              <path d="M2 2 L14 12 L26 2" stroke="#0099ff" stroke-width="2.5" fill="none" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </div>
+          <div class="slot-center-line"></div>
+          <div class="case_opening_items_list single">
+            <div class="case_opening_items_wrapper">
+              <div class="case_opening_items" id="slotTrack"></div>
+            </div>
+          </div>
+          <div class="slot-indicator bottom-indicator">
+            <svg width="28" height="14" viewBox="0 0 28 14" fill="none">
+              <path d="M2 12 L14 2 L26 12" stroke="#0099ff" stroke-width="2.5" fill="none" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div id="caseOpenBlock">
+        <button id="openCaseBtn" class="open-case-button">
+          <span class="open-case-default">
+            Открыть кейс
+            <img
+              src="data:image/svg+xml,%3csvg%20width='18'%20height='18'%20viewBox='0%200%2018%2018'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20fill-rule='evenodd'%20clip-rule='evenodd'%20d='M8.62769%2013.8588L5.47595%2015.878C5.35793%2015.9531%205.2212%2015.9899%205.08316%2015.9835C4.94511%2015.9771%204.812%2015.928%204.70078%2015.8422C4.58956%2015.7565%204.50525%2015.6382%204.45859%2015.5022C4.41193%2015.3662%204.40503%2015.2188%204.43878%2015.0787L4.92567%2013.0701C5.01281%2012.7122%205.174%2012.3787%205.39788%2012.093C5.62176%2011.8074%205.90287%2011.5766%206.22138%2011.4169L9.65883%209.69219C9.73002%209.65775%209.78674%209.59732%209.81832%209.52225C9.8499%209.44717%209.85417%209.36263%209.83032%209.2845C9.80648%209.20637%209.75617%209.14003%209.68884%209.09794C9.62151%209.05586%209.54179%209.04092%209.46467%209.05594L5.63791%209.74898C5.25368%209.81814%204.85965%209.79903%204.4832%209.69297C4.10675%209.58692%203.75689%209.39645%203.45794%209.13482L2.24875%208.0758C2.14289%207.98297%202.06585%207.85931%202.02744%207.72056C1.98903%207.58181%201.99098%207.43425%202.03306%207.29666C2.07513%207.15908%202.15541%207.03769%202.26369%206.94796C2.37197%206.85823%202.50334%206.80422%202.64108%206.79279L6.33506%206.49097C6.4631%206.48067%206.5859%206.43344%206.6898%206.35453C6.79369%206.27563%206.87461%206.16814%206.92356%206.04402L8.34702%202.44842C8.39981%202.31565%208.48904%202.20221%208.60345%202.1224C8.71785%202.04259%208.85231%202%208.98985%202C9.12739%202%209.26184%202.04259%209.37625%202.1224C9.49065%202.20221%209.57988%202.31565%209.63267%202.44842L11.0571%206.04507C11.1577%206.29746%2011.3851%206.46993%2011.6456%206.49097L15.3597%206.79595C15.4967%206.80748%2015.6274%206.86116%2015.7353%206.9502C15.8432%207.03925%2015.9234%207.15969%2015.9659%207.29634C16.0084%207.43299%2016.0112%207.57973%2015.9741%207.71807C15.9369%207.85641%2015.8614%207.98015%2015.7571%208.0737L12.9243%2010.5977C12.8265%2010.6848%2012.7537%2010.7985%2012.7141%2010.9262C12.6745%2011.054%2012.6696%2011.1907%2012.6999%2011.3212L13.5701%2015.1029C13.6021%2015.2427%2013.5938%2015.3893%2013.5462%2015.5241C13.4986%2015.6589%2013.4139%2015.776%2013.3028%2015.8606C13.1916%2015.9452%2013.059%2015.9935%2012.9216%2015.9994C12.7843%2016.0053%2012.6483%2015.9685%2012.5309%2015.8938L9.35301%2013.8588C9.24375%2013.7887%209.11805%2013.7516%208.98985%2013.7516C8.86164%2013.7516%208.73695%2013.7887%208.62769%2013.8588Z'%20fill='white'/%3e%3c/svg%3e"
+              class="open-case-icon" alt="">
+            <span id="casePriceValue">0</span>
+          </span>
+        </button>
+        <div id="notEnoughStarsBlock" class="not-enough-stars-wrapper" style="display: none;">
+          <div class="not-enough-stars-block">
+            <span class="not-enough-stars-msg">Не хватает</span>
+            <svg class="not-enough-star-icon" viewBox="0 0 14 15" fill="#FFCA5A" width="18" height="18">
+              <path fill-rule="evenodd" clip-rule="evenodd"
+                d="M6.63869 12.1902L3.50621 14.1092C3.18049 14.3087 2.75468 14.2064 2.55515 13.8807C2.45769 13.7216 2.42864 13.5299 2.47457 13.3491L2.95948 11.4405C3.13452 10.7515 3.60599 10.1756 4.24682 9.86791L7.6642 8.22716C7.82352 8.15067 7.89067 7.95951 7.81418 7.80019C7.75223 7.67116 7.61214 7.59896 7.47111 7.62338L3.66713 8.28194C2.89387 8.41581 2.1009 8.20228 1.49941 7.69823L0.297703 6.69116C0.00493565 6.44581 -0.0335059 6.00958 0.211842 5.71682C0.33117 5.57442 0.502766 5.48602 0.687982 5.47153L4.35956 5.18419C4.61895 5.16389 4.845 4.99974 4.94458 4.75937L6.36101 1.3402C6.5072 0.987302 6.91179 0.819734 7.26469 0.965925C7.43413 1.03612 7.56876 1.17075 7.63896 1.3402L9.05539 4.75937C9.15496 4.99974 9.38101 5.16389 9.6404 5.18419L13.3322 5.47311C13.713 5.50291 13.9975 5.83578 13.9677 6.2166C13.9534 6.39979 13.8667 6.56975 13.7269 6.68896L10.9114 9.08928C10.7131 9.25826 10.6267 9.52425 10.6876 9.77748L11.5532 13.3733C11.6426 13.7447 11.414 14.1182 11.0427 14.2076C10.8642 14.2506 10.676 14.2208 10.5195 14.1249L7.36128 12.1902C7.13956 12.0544 6.8604 12.0544 6.63869 12.1902Z" />
+            </svg>
+            <span id="notEnoughStarsCount">0</span>
+          </div>
+          <button type="button" id="depositFromCaseBtn" class="deposit-from-case-btn">Пополнить баланс</button>
+        </div>
+
+        <div id="caseModifiersBlock" class="case-modifiers-block" style="display: none;">
+          <div class="case-modifiers-row">
+            <button id="demoModeBtn" class="case-modifier-btn">Демо</button>
+          </div>
+          <div class="case-multipliers-row">
+            <button class="case-multiplier-btn active" data-count="1">x1</button>
+            <button class="case-multiplier-btn" data-count="2">x2</button>
+            <button class="case-multiplier-btn" data-count="3">x3</button>
+            <button class="case-multiplier-btn" data-count="4">x4</button>
+            <button class="case-multiplier-btn" data-count="5">x5</button>
+          </div>
+        </div>
+        <div id="notEnoughReferralsBlock" class="not-enough-stars-wrapper" style="display: none;">
+          <div class="not-enough-stars-block">
+            <span class="not-enough-stars-msg">Не хватает</span>
+            <img src="invite_user.svg" class="not-enough-referral-icon" width="20" height="20" alt="">
+            <span id="notEnoughReferralsCount">0</span>
+            <span class="not-enough-referrals-label">рефералов</span>
+          </div>
+          <button type="button" id="inviteFriendsFromCaseBtn" class="deposit-from-case-btn">Пригласить друзей</button>
+        </div>
+      </div>
+
+      <div id="promoCaseBlock" class="open_case_block" style="display: none;">
+        <div class="promo-activation-block">
+          <input type="text" placeholder="Введите код активации" class="promo-input" value="">
+          <button class="flex justify-center rounded-lg bg-mainBlue items-center open_case_btn main_btn_green">
+            Активировать
+          </button>
+        </div>
+      </div>
+
+      <div class="case-contents" id="caseContents"></div>
+      <div class="result-message" id="resultMessage"></div>
+    </section>
+
+    <section id="profile-section" class="hidden">
+      <div class="profile-page">
+        <div class="profile-container">
+          <div class="profile-section">
+            <div class="avatars">
+              <img class="profile-avatar" id="profilePageAvatar" src="index.html" alt="User Avatar">
+            </div>
+          </div>
+          <div class="profile-info">
+            <div class="profile-name" id="profilePageName">Имя</div>
+            <div class="profile-id" id="profilePageId">#123456789</div>
+          </div>
+          <button id="openAdminFromProfile" class="admin-panel-btn"
+            style="display:none;margin-left:auto;margin-top:8px;">
+            Admin
+          </button>
+        </div>
+
+        <div class="balance-section">
+          <div class="balance-info">
+            <div class="label-small">Balance</div>
+            <div class="balance-display">
+              <div class="balance-amount" id="profilePageBalance">0.00</div>
+              <div class="coin-small">
+                <div class="coin small">
+                  <svg viewBox="0 0 14 15" fill="#FFCA5A" xmlns="http://www.w3.org/2000/svg"
+                    class="nav_topup-stars-icon" width="16" height="16">
+                    <path fill-rule="evenodd" clip-rule="evenodd"
+                      d="M6.63869 12.1902L3.50621 14.1092C3.18049 14.3087 2.75468 14.2064 2.55515 13.8807C2.45769 13.7216 2.42864 13.5299 2.47457 13.3491L2.95948 11.4405C3.13452 10.7515 3.60599 10.1756 4.24682 9.86791L7.6642 8.22716C7.82352 8.15067 7.89067 7.95951 7.81418 7.80019C7.75223 7.67116 7.61214 7.59896 7.47111 7.62338L3.66713 8.28194C2.89387 8.41581 2.1009 8.20228 1.49941 7.69823L0.297703 6.69116C0.00493565 6.44581 -0.0335059 6.00958 0.211842 5.71682C0.33117 5.57442 0.502766 5.48602 0.687982 5.47153L4.35956 5.18419C4.61895 5.16389 4.845 4.99974 4.94458 4.75937L6.36101 1.3402C6.5072 0.987302 6.91179 0.819734 7.26469 0.965925C7.43413 1.03612 7.56876 1.17075 7.63896 1.3402L9.05539 4.75937C9.15496 4.99974 9.38101 5.16389 9.6404 5.18419L13.3322 5.47311C13.713 5.50291 13.9975 5.83578 13.9677 6.2166C13.9534 6.39979 13.8667 6.56975 13.7269 6.68896L10.9114 9.08928C10.7131 9.25826 10.6267 9.52425 10.6876 9.77748L11.5532 13.3733C11.6426 13.7447 11.414 14.1182 11.0427 14.2076C10.8642 14.2506 10.676 14.2208 10.5195 14.1249L7.36128 12.1902C7.13956 12.0544 6.8604 12.0544 6.63869 12.1902Z"
+                      fill="#FFCA5A"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="balance-actions">
+            <button class="deposit-button" onclick="openStarsModal()">
+              <div class="button-label">Deposit</div>
+            </button>
+          </div>
+        </div>
+
+        <div class="free-case-banner">
+          <div class="lightning-icon">
+            <img class="lightning-svg"
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffc107'%3E%3Cpath d='M7 2v11h3v9l7-12h-4l4-8z'/%3E%3C/svg%3E"
+              alt="" width="24" height="24">
+          </div>
+          <div class="banner-content">
+            <div class="coin-wrapper">
+              <img class="coin-svg" src="invite_user.svg">
+            </div>
+            <div class="banner-text">Invite Friends</div>
+          </div>
+          <button class="telegram-button" id="profileInviteBtn">
+            <div class="button-label_ref">Invite</div>
+          </button>
+        </div>
+
+        <!-- Ввод реферального промокода -->
+        <button class="ref-promo-activate-btn" id="profileRefPromoCard" style="display:none;"
+          onclick="document.getElementById('refActivatePromoModal').style.display='flex'">Ввести реферальный
+          промокод</button>
+
+        <div class="profile-content-wrapper">
+          <div class="profile_content_wrapper items_content">
+            <div class="profile_content-head">
+              <div class="profile_content-head-label">Инвентарь</div>
+              <button class="btn_sale_all" id="sellAllBtn">Продать всё</button>
+            </div>
+            <div class="profile_items_list" id="inventoryList"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="friends-section" class="hidden">
+      <!-- Баннеры-карусель -->
+      <div class="ref-banner-carousel" id="refBannerCarousel">
+        <div class="ref-banner-track" id="refBannerTrack">
+          <div class="ref-banner-slide">
+            <div class="ref-banner-content">
+              <span class="ref-banner-tag">ВЫВОД</span>
+              <div class="ref-banner-title">Выводи подарки через поддержку</div>
+              <a href="https://t.me/entoni" target="_blank" class="ref-banner-btn">@entoni</a>
+            </div>
+            <img src="images/promocode.webp" class="ref-banner-img" alt="">
+          </div>
+          <div class="ref-banner-slide">
+            <div class="ref-banner-content">
+              <span class="ref-banner-tag" style="background:#2563eb;">БОНУС</span>
+              <div class="ref-banner-title">Stars и бесплатные кейсы</div>
+              <div class="ref-banner-sub">Бесплатно за приглашение друзей</div>
+            </div>
+            <img src="images/refcase15.webp" class="ref-banner-img" alt="">
+          </div>
+        </div>
+        <div class="ref-banner-dots" id="refBannerDots">
+          <span class="ref-banner-dot active"></span>
+          <span class="ref-banner-dot"></span>
+        </div>
+      </div>
+
+      <!-- Табы -->
+      <div class="ref-tabs">
+        <button class="ref-tab active" data-tab="referrals" id="refTabReferrals">Рефералы</button>
+        <button class="ref-tab" data-tab="bonuses" id="refTabBonuses">Бонусы</button>
+      </div>
+
+      <!-- Контент: Рефералы -->
+      <div id="refTabContentReferrals" class="ref-tab-content">
+        <!-- Кнопка Мои Рефералы -->
+        <button class="ref-my-referrals-btn" id="showMyReferralsBtn">
+          <img src="invite_user.svg" width="20" height="20" alt="">
+          <span>Мои рефералы</span>
+        </button>
+
+        <!-- Приглашай друзей -->
+        <div class="ref-card-block ref-invite-card">
+          <h3 class="ref-card-title">Приглашай друзей — зарабатывай с нами!</h3>
+          <p class="ref-card-desc">Получай от 10% с каждого депозита рефералов</p>
+          <div class="ref-invite-actions">
+            <button class="ref-invite-btn" id="refShareBtn">
+              <span>Приглашай друзей</span>
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M10.641 18.7121C10.4471 18.5202 10.3502 18.2759 10.3502 17.9793V14.6467C7.21769 14.6467 4.50801 15.5247 2.99165 18.3544C2.76071 18.7765 2.39381 19 1.9077 19C1.28255 19 1 18.3631 1 17.831C1 14.6002 1.70305 12.0013 3.1679 10.1799C3.90816 9.26681 4.85111 8.56888 5.99675 8.08615C7.37547 7.50817 8.867 7.36205 10.3502 7.36205V4.06434C10.3502 3.47408 10.8074 3 11.4077 3C11.8864 3 12.2668 3.30845 12.5974 3.61941L19.5506 10.0578C19.7209 10.2148 19.8384 10.3748 19.9031 10.5376C20.0297 10.8568 20.035 11.1212 19.9031 11.4537C19.8384 11.6165 19.7209 11.7764 19.5506 11.9335L12.5974 18.4329C12.3859 18.6307 12.1832 18.7732 11.9893 18.8604C11.5586 19.0736 10.9986 19.0557 10.641 18.7121Z"
+                  fill="white"></path>
+              </svg>
+            </button>
+            <button class="ref-copy-btn" id="refCopyLinkBtn">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+                <path
+                  d="M14.5714 1.71423C15.6911 1.71423 16.6436 2.42982 16.9965 3.4286L8.68093 3.42852C7.15261 3.42852 6.59841 3.58765 6.03968 3.88646C5.48095 4.18527 5.04245 4.62377 4.74364 5.1825C4.44483 5.74123 4.2857 6.29543 4.2857 7.82375L4.28577 16.9965C3.287 16.6435 2.57141 15.691 2.57141 14.5714V6.85709C2.57141 4.01677 4.87395 1.71423 7.71427 1.71423H14.5714ZM18 5.14281C19.4201 5.14281 20.5714 6.29407 20.5714 7.71423V18.8571C20.5714 20.2773 19.4201 21.4285 18 21.4285H8.57141C7.15125 21.4285 5.99998 20.2773 5.99998 18.8571V7.71423C5.99998 6.29407 7.15125 5.14281 8.57141 5.14281H18ZM18 6.85709H8.57141C8.09802 6.85709 7.71427 7.24085 7.71427 7.71423V18.8571C7.71427 19.3305 8.09802 19.7142 8.57141 19.7142H18C18.4734 19.7142 18.8571 19.3305 18.8571 18.8571V7.71423C18.8571 7.24085 18.4734 6.85709 18 6.85709Z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Твой промокод -->
+        <div class="ref-card-block ref-promo-card">
+          <h3 class="ref-card-title">Твой промокод</h3>
+          <p class="ref-card-desc">Каждому рефералу 10 <svg viewBox="0 0 14 15" fill="#FFCA5A" width="18" height="18"
+              style="vertical-align: middle; margin: 0 2px;">
+              <path fill-rule="evenodd" clip-rule="evenodd"
+                d="M6.63869 12.1902L3.50621 14.1092C3.18049 14.3087 2.75468 14.2064 2.55515 13.8807C2.45769 13.7216 2.42864 13.5299 2.47457 13.3491L2.95948 11.4405C3.13452 10.7515 3.60599 10.1756 4.24682 9.86791L7.6642 8.22716C7.82352 8.15067 7.89067 7.95951 7.81418 7.80019C7.75223 7.67116 7.61214 7.59896 7.47111 7.62338L3.66713 8.28194C2.89387 8.41581 2.1009 8.20228 1.49941 7.69823L0.297703 6.69116C0.00493565 6.44581 -0.0335059 6.00958 0.211842 5.71682C0.33117 5.57442 0.502766 5.48602 0.687982 5.47153L4.35956 5.18419C4.61895 5.16389 4.845 4.99974 4.94458 4.75937L6.36101 1.3402C6.5072 0.987302 6.91179 0.819734 7.26469 0.965925C7.43413 1.03612 7.56876 1.17075 7.63896 1.3402L9.05539 4.75937C9.15496 4.99974 9.38101 5.16389 9.6404 5.18419L13.3322 5.47311C13.713 5.50291 13.9975 5.83578 13.9677 6.2166C13.9534 6.39979 13.8667 6.56975 13.7269 6.68896L10.9114 9.08928C10.7131 9.25826 10.6267 9.52425 10.6876 9.77748L11.5532 13.3733C11.6426 13.7447 11.414 14.1182 11.0427 14.2076C10.8642 14.2506 10.676 14.2208 10.5195 14.1249L7.36128 12.1902C7.13956 12.0544 6.8604 12.0544 6.63869 12.1902Z" />
+            </svg> за ввод промокода</p>
+
+          <!-- Если промокод есть -->
+          <div id="refPromoExisting" style="display:none;">
+            <div class="ref-promo-display">
+              <div class="ref-promo-code-box">
+                <span class="ref-promo-code" id="refPromoCodeText"></span>
+                <button class="ref-promo-edit-btn" id="refPromoEditBtn" title="Изменить"></button>
+              </div>
+              <button class="ref-promo-copy-btn" id="refPromoCopyBtn" title="Копировать"></button>
+            </div>
+          </div>
+
+          <!-- Если промокода нет -->
+          <div id="refPromoCreate">
+            <div class="ref-promo-label">Промокод</div>
+            <button class="ref-promo-create-btn" id="openCreatePromoBtn">Создать промокод</button>
+          </div>
+        </div>
+
+        <!-- Кейсы за рефералов -->
+        <div class="ref-card-block ref-cases-card" style="display:none">
+          <h3 class="ref-card-title">Кейсы за рефералов</h3>
+          <p class="ref-card-desc">Открывай кейсы бесплатно — просто приглашай друзей!</p>
+          <div class="ref-cases-grid" id="refCasesGrid"></div>
+        </div>
+
+        <!-- FAQ -->
+        <div class="ref-card-block ref-faq-block">
+          <h3 class="ref-card-title">FAQ</h3>
+          <p class="ref-card-desc">Ответы на часто задаваемые вопросы</p>
+
+          <div class="ref-faq-item">
+            <button class="ref-faq-question" onclick="this.parentElement.classList.toggle('open')">
+              <span>Пригласил больше рефералов, чем показывает. Что делать?</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+              </svg>
+            </button>
+            <div class="ref-faq-answer">Рефералы засчитываются не просто за /start в боте, а за открытия мини-приложения
+              по ссылке</div>
+          </div>
+
+          <div class="ref-faq-item">
+            <button class="ref-faq-question" onclick="this.parentElement.classList.toggle('open')">
+              <span>Что получит реферал за вход в приложение?</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+              </svg>
+            </button>
+            <div class="ref-faq-answer">Если реферал ввёл ваш ПРОМОКОД, то он получит 10 игрового баланса. Это не
+              действует на переход по ссылке.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Контент: Бонусы -->
+      <div id="refTabContentBonuses" class="ref-tab-content" style="display:none;">
+        <div class="ref-card-block ref-bonuses-placeholder">
+          <h3 class="ref-card-title">Бонусы за выполнение заданий</h3>
+          <p class="ref-card-desc">Получай внутриигровую валюту</p>
+          <div class="ref-bonuses-empty">
+            <div class="ref-bonuses-empty-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="#555">
+                <circle cx="12" cy="12" r="10" stroke="#555" stroke-width="2" fill="none" />
+                <path d="M8 12h8" stroke="#555" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </div>
+            <div class="ref-bonuses-empty-title">Заданий сейчас нет</div>
+            <div class="ref-bonuses-empty-sub">Они появятся здесь позже</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Панель «Мои рефералы» (скрытая) -->
+      <div id="myReferralsPanel" class="ref-my-referrals-panel" style="display:none;">
+        <button class="ref-back-btn" id="hideMyReferralsBtn">Назад</button>
+        <div class="ref-my-referrals-header">
+          <div class="ref-my-referrals-title-row">
+            <h3 class="ref-card-title">Мои рефералы</h3>
+            <span class="ref-total-badge" id="refTotalBadge">Всего: 0</span>
+          </div>
+          <button class="ref-period-btn" id="refPeriodBtn">За все время <svg width="14" height="14" viewBox="0 0 24 24"
+              fill="white">
+              <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+            </svg></button>
+          <div class="ref-promo-earnings">
+            Всего заработано: <span class="stars-amount" id="refPromoEarnings">0</span>
+            <svg class="stars-icon" viewBox="0 0 14 15" fill="#FFCA5A">
+              <path fill-rule="evenodd" clip-rule="evenodd"
+                d="M6.63869 12.1902L3.50621 14.1092C3.18049 14.3087 2.75468 14.2064 2.55515 13.8807C2.45769 13.7216 2.42864 13.5299 2.47457 13.3491L2.95948 11.4405C3.13452 10.7515 3.60599 10.1756 4.24682 9.86791L7.6642 8.22716C7.82352 8.15067 7.89067 7.95951 7.81418 7.80019C7.75223 7.67116 7.61214 7.59896 7.47111 7.62338L3.66713 8.28194C2.89387 8.41581 2.1009 8.20228 1.49941 7.69823L0.297703 6.69116C0.00493565 6.44581 -0.0335059 6.00958 0.211842 5.71682C0.33117 5.57442 0.502766 5.48602 0.687982 5.47153L4.35956 5.18419C4.61895 5.16389 4.845 4.99974 4.94458 4.75937L6.36101 1.3402C6.5072 0.987302 6.91179 0.819734 7.26469 0.965925C7.43413 1.03612 7.56876 1.17075 7.63896 1.3402L9.05539 4.75937C9.15496 4.99974 9.38101 5.16389 9.6404 5.18419L13.3322 5.47311C13.713 5.50291 13.9975 5.83578 13.9677 6.2166C13.9534 6.39979 13.8667 6.56975 13.7269 6.68896L10.9114 9.08928C10.7131 9.25826 10.6267 9.52425 10.6876 9.77748L11.5532 13.3733C11.6426 13.7447 11.414 14.1182 11.0427 14.2076C10.8642 14.2506 10.676 14.2208 10.5195 14.1249L7.36128 12.1902C7.13956 12.0544 6.8604 12.0544 6.63869 12.1902Z" />
+            </svg>
+          </div>
+        </div>
+        <div class="ref-my-referrals-table">
+          <div class="ref-table-header">
+            <span>Никнейм</span>
+            <span>Сумма депозита</span>
+          </div>
+          <div id="refReferralsList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Модалка выбора периода -->
+    <div id="refPeriodModal" class="ref-modal-overlay" style="display:none;">
+      <div class="ref-modal">
+        <div class="ref-modal-header">
+          <span>Выберите промежуток</span>
+          <button class="ref-modal-close"
+            onclick="document.getElementById('refPeriodModal').style.display='none'">✕</button>
+        </div>
+        <div class="ref-modal-body">
+          <button class="ref-period-option active" data-period="all">За все время</button>
+          <button class="ref-period-option" data-period="30d">За месяц</button>
+          <button class="ref-period-option" data-period="7d">За неделю</button>
+          <button class="ref-period-option" data-period="1d">За день</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Модалка создания промокода -->
+    <div id="refCreatePromoModal" class="ref-modal-overlay" style="display:none;">
+      <div class="ref-modal">
+        <div class="ref-modal-header">
+          <span>Создать промокод</span>
+          <button class="ref-modal-close"
+            onclick="document.getElementById('refCreatePromoModal').style.display='none'">✕</button>
+        </div>
+        <div class="ref-modal-body">
+          <label class="ref-modal-label">Промокод</label>
+          <input type="text" id="refPromoInput" class="ref-modal-input" placeholder="Придумайте промокод" maxlength="32"
+            minlength="5">
+          <p class="ref-modal-hint">От 5 до 32 символов (латиница, цифры, _ и -)</p>
+          <button class="ref-modal-submit" id="refPromoSubmitBtn">Продолжить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Модалка активации реферального промокода -->
+    <div id="refActivatePromoModal" class="ref-modal-overlay" style="display:none;">
+      <div class="ref-modal">
+        <div class="ref-modal-header">
+          <span>Ввести промокод</span>
+          <button class="ref-modal-close"
+            onclick="document.getElementById('refActivatePromoModal').style.display='none'">✕</button>
+        </div>
+        <div class="ref-modal-body">
+          <label class="ref-modal-label">Промокод</label>
+          <input type="text" id="profileRefPromoInput" class="ref-modal-input" placeholder="Введите промокод"
+            maxlength="32">
+          <button class="ref-modal-submit" id="profileRefPromoApplyBtn">Активировать</button>
+        </div>
+      </div>
+    </div>
+
+    <section id="admin-section" class="hidden"></section>
+  </div>
+
+  <div id="winModal" class="fixed inset-0 z-50 hidden"
+    style="background: rgba(0,0,0,0); transition: background 0.4s ease;">
+    <div class="flex items-center justify-center min-h-full p-4">
+      <div id="winModalCard" class="w-full max-w-[380px] rounded-2xl text-center text-white relative overflow-hidden"
+        style="background: linear-gradient(180deg, #1a1e28 0%, #12141a 100%); border: 1px solid #2a2e3a; transform: scale(0.85); opacity: 0; transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;">
+        <div class="win-modal-glow"
+          style="position: absolute; top: -60px; left: 50%; transform: translateX(-50%); width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(0,220,255,0.15) 0%, transparent 70%); pointer-events: none;">
+        </div>
+        <div class="pt-8 pb-4 px-6 relative">
+          <div id="winItemsContainer" class="flex flex-col items-center gap-4">
+            <div class="flex flex-col items-center">
+              <div class="w-36 h-36 flex items-center justify-center mb-4"
+                style="filter: drop-shadow(0 0 20px rgba(0,220,255,0.2));">
+                <img id="winItemImg" src="index.html" alt="win" class="max-h-full max-w-full object-contain"
+                  style="animation: winItemFloat 2.5s ease-in-out infinite;" />
+              </div>
+              <div id="winItemName" class="text-xl font-bold mb-1" style="font-family: 'Montserrat', sans-serif;">Item
+                Name</div>
+            </div>
+          </div>
+        </div>
+        <div class="px-6 pb-6">
+          <div id="winDemoHint" class="text-sm mb-5 text-center hidden" style="color: #ff9800;">
+            Это Демо открытие! Предмет не был добавлен в инвентарь.
+          </div>
+          <div id="winInventoryHint" class="text-sm mb-5" style="color: #7a8194;">
+            Предмет можно вывести в <a href="index.html#" onclick="document.getElementById('goToProfile').click(); return false;"
+              class="underline" style="color: #00dcff;">инвентаре</a>
+          </div>
+          <div id="winAutoSoldMsg" class="text-sm mb-5 hidden"
+            style="color: #22c55e; font-weight: 600; font-size: 16px;">
+            Зачислено на баланс +<span id="winCreditedAmount">0</span> ⭐
+          </div>
+          <div class="flex flex-col gap-3">
+            <button onclick="closeWinModal()"
+              class="w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 text-base"
+              style="background: #1e2230; border: 1px solid #2a2e3a; color: #fff; transition: background 0.2s;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M17.65 6.35A7.96 7.96 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+                  fill="white" />
+              </svg>
+              Попробовать ещё
+            </button>
+            <button id="winSellBtn" onclick="sellPrize()"
+              class="w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 text-base"
+              style="background: linear-gradient(135deg, #0066ff, #0088ff); color: #fff; border: none; transition: background 0.2s;">
+              <span id="winSellBtnText">Продать за</span>
+              <svg viewBox="0 0 14 15" fill="#FFCA5A" width="16" height="16">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M6.63869 12.1902L3.50621 14.1092C3.18049 14.3087 2.75468 14.2064 2.55515 13.8807C2.45769 13.7216 2.42864 13.5299 2.47457 13.3491L2.95948 11.4405C3.13452 10.7515 3.60599 10.1756 4.24682 9.86791L7.6642 8.22716C7.82352 8.15067 7.89067 7.95951 7.81418 7.80019C7.75223 7.67116 7.61214 7.59896 7.47111 7.62338L3.66713 8.28194C2.89387 8.41581 2.1009 8.20228 1.49941 7.69823L0.297703 6.69116C0.00493565 6.44581 -0.0335059 6.00958 0.211842 5.71682C0.33117 5.57442 0.502766 5.48602 0.687982 5.47153L4.35956 5.18419C4.61895 5.16389 4.845 4.99974 4.94458 4.75937L6.36101 1.3402C6.5072 0.987302 6.91179 0.819734 7.26469 0.965925C7.43413 1.03612 7.56876 1.17075 7.63896 1.3402L9.05539 4.75937C9.15496 4.99974 9.38101 5.16389 9.6404 5.18419L13.3322 5.47311C13.713 5.50291 13.9975 5.83578 13.9677 6.2166C13.9534 6.39979 13.8667 6.56975 13.7269 6.68896L10.9114 9.08928C10.7131 9.25826 10.6267 9.52425 10.6876 9.77748L11.5532 13.3733C11.6426 13.7447 11.414 14.1182 11.0427 14.2076C10.8642 14.2506 10.676 14.2208 10.5195 14.1249L7.36128 12.1902C7.13956 12.0544 6.8604 12.0544 6.63869 12.1902Z" />
+              </svg>
+              <span id="winItemValue">0</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="starsModalBackdrop" class="stars-modal-backdrop" style="display: none;">
+    <div id="starsModal" class="stars-modal-window">
+      <div class="stars-modal-header">
+        <span>Пополнение баланса</span>
+        <button class="stars-modal-close" onclick="closeStarsModal()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="stars-modal-content">
+        <div class="stars-modal-placeholder-header">Введите сумму</div>
+        <div class="stars-modal-input-wrap">
+          <svg class="stars-modal-star-icon" viewBox="0 0 14 15" fill="#FFCA5A" width="20" height="20"
+            aria-hidden="true">
+            <path fill-rule="evenodd" clip-rule="evenodd"
+              d="M6.63869 12.1902L3.50621 14.1092C3.18049 14.3087 2.75468 14.2064 2.55515 13.8807C2.45769 13.7216 2.42864 13.5299 2.47457 13.3491L2.95948 11.4405C3.13452 10.7515 3.60599 10.1756 4.24682 9.86791L7.6642 8.22716C7.82352 8.15067 7.89067 7.95951 7.81418 7.80019C7.75223 7.67116 7.61214 7.59896 7.47111 7.62338L3.66713 8.28194C2.89387 8.41581 2.1009 8.20228 1.49941 7.69823L0.297703 6.69116C0.00493565 6.44581 -0.0335059 6.00958 0.211842 5.71682C0.33117 5.57442 0.502766 5.48602 0.687982 5.47153L4.35956 5.18419C4.61895 5.16389 4.845 4.99974 4.94458 4.75937L6.36101 1.3402C6.5072 0.987302 6.91179 0.819734 7.26469 0.965925C7.43413 1.03612 7.56876 1.17075 7.63896 1.3402L9.05539 4.75937C9.15496 4.99974 9.38101 5.16389 9.6404 5.18419L13.3322 5.47311C13.713 5.50291 13.9975 5.83578 13.9677 6.2166C13.9534 6.39979 13.8667 6.56975 13.7269 6.68896L10.9114 9.08928C10.7131 9.25826 10.6267 9.52425 10.6876 9.77748L11.5532 13.3733C11.6426 13.7447 11.414 14.1182 11.0427 14.2076C10.8642 14.2506 10.676 14.2208 10.5195 14.1249L7.36128 12.1902C7.13956 12.0544 6.8604 12.0544 6.63869 12.1902Z" />
+          </svg>
+          <input type="number" inputmode="numeric" class="stars-modal-input hide-number-spin" placeholder="500" value=""
+            id="starsAmountInput">
+        </div>
+        <button class="stars-modal-btn" onclick="handleStarsTopUp()">Пополнить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== UPGRADE (как на CaseBattle) ==================== -->
+  <section id="upgrade-section" class="hidden upg">
+    <div class="upg-head">
+      <h2 class="dd-title">Апгрейд</h2>
+      <p>Поставь подарки — забери дороже. Шанс честно на колесе.</p>
+    </div>
+
+    <div class="upg-wheel" id="upgWheel">
+      <svg class="upg-wheel-svg" viewBox="0 0 240 240" aria-hidden="true">
+        <defs>
+          <linearGradient id="upgWin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4ade80"/><stop offset="1" stop-color="#16a34a"/></linearGradient>
+          <linearGradient id="upgTrack" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a2f4a"/><stop offset="1" stop-color="#1a1d30"/></linearGradient>
+        </defs>
+        <circle cx="120" cy="120" r="104" fill="none" stroke="url(#upgTrack)" stroke-width="18"/>
+        <circle id="upgArc" cx="120" cy="120" r="104" fill="none" stroke="url(#upgWin)" stroke-width="18" stroke-linecap="butt"
+          stroke-dasharray="0 654" transform="rotate(-90 120 120)"/>
+        <g id="upgTicks"></g>
+      </svg>
+      <div class="upg-needle" id="upgNeedle"><span></span></div>
+      <div class="upg-center">
+        <div class="upg-pct" id="upgPct">0%</div>
+        <div class="upg-label" id="upgLabel">шанс апгрейда</div>
+      </div>
+    </div>
+
+    <div class="upg-pair">
+      <div class="upg-slot" id="upgFromSlot">
+        <div class="upg-slot-cap">Ставка</div>
+        <div class="upg-slot-body" id="upgFromBody"><div class="upg-empty">Выбери подарки<br>из инвентаря ↓</div></div>
+        <div class="upg-slot-val" id="upgFromVal"></div>
+      </div>
+      <div class="upg-arrow">➜</div>
+      <div class="upg-slot upg-slot-target" id="upgToSlot">
+        <div class="upg-slot-cap">Цель</div>
+        <div class="upg-slot-body" id="upgToBody"><div class="upg-empty">Выбери<br>подарок ↓</div></div>
+        <div class="upg-slot-val" id="upgToVal"></div>
+      </div>
+    </div>
+
+    <div class="upg-mults" id="upgMults">
+      <button data-m="1.5">x1.5</button><button data-m="2">x2</button><button data-m="3">x3</button>
+      <button data-m="5">x5</button><button data-m="10">x10</button><button data-m="20">x20</button>
+    </div>
+    <button class="upg-go" id="upgGo" disabled>Улучшить</button>
+
+    <div class="upg-tabs">
+      <button class="upg-tab active" data-tab="inv">Мои подарки</button>
+      <button class="upg-tab" data-tab="gifts">Цели</button>
+    </div>
+    <div class="upg-grid" id="upgGrid"></div>
+  </section>
+  <div id="upgradePickerModal" class="hidden"></div>
+
+  </div>
+
+
+  <div class="mobile-menu-container">
+    <div class="mob_menu_list">
+      <a class="mob_menu_item" id="mobileProfileBtn">
+        <img
+          src="data:image/svg+xml,%3csvg%20width='29'%20height='28'%20viewBox='0%200%2029%2028'%20fill='white'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M14.8%202C21.4275%202%2026.8%207.37258%2026.8%2014C26.8%2020.6274%2021.4275%2026%2014.8%2026C8.17263%2026%202.80005%2020.6274%202.80005%2014C2.80005%207.37258%208.17263%202%2014.8%202ZM14.8%204C9.2772%204%204.80005%208.47715%204.80005%2014C4.80005%2016.6157%205.8043%2018.9968%207.44828%2020.7788C9.58567%2019.3082%2012.131%2018.5%2014.8%2018.5C17.4693%2018.5%2020.015%2019.3084%2022.1527%2020.7774C23.7962%2018.9959%2024.8%2016.6152%2024.8%2014C24.8%208.47715%2020.3229%204%2014.8%204ZM14.8%207.5C17.4242%207.5%2019.55%209.62584%2019.55%2012.25C19.55%2014.8742%2017.4242%2017%2014.8%2017C12.1759%2017%2010.05%2014.8742%2010.05%2012.25C10.05%209.62584%2012.1759%207.5%2014.8%207.5Z'%20fill='white'/%3e%3c/svg%3e"
+          alt="">
+        <p>Профиль</p>
+      </a>
+      <a href="javascript:void(0)" class="mob_menu_item" id="mobileUpgradeBtn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+            stroke="white" stroke-width="1.5" stroke-linejoin="round" />
+        </svg>
+        <p>Апгрейд</p>
+      </a>
+      <a class="mob_menu_item active" id="mobileCasesBtn">
+        <img
+          src="data:image/svg+xml,%3csvg%20viewBox='0%200%2029%2028'%20fill='white'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M10.789%2015.8793C10.1749%2015.5509%209.58528%2015.437%208.45992%2015.437H6.10305C4.97769%2015.437%204.38811%2015.5509%203.774%2015.8793C3.20261%2016.1849%202.74786%2016.6396%202.44228%2017.211C2.11385%2017.8251%202%2018.4147%202%2019.5401V21.897C2%2023.0223%202.11385%2023.6119%202.44228%2024.226C2.74786%2024.7974%203.20261%2025.2521%203.774%2025.5577C4.38811%2025.8861%204.97769%2026%206.10305%2026H8.45992C9.58528%2026%2010.1749%2025.8861%2010.789%2025.5577C11.3604%2025.2521%2011.8151%2024.7974%2012.1207%2024.226C12.4491%2023.6119%2012.563%2023.0223%2012.563%2021.897V19.5401C12.563%2018.4147%2012.4491%2017.8251%2012.1207%2017.211C11.8151%2016.6396%2011.3604%2016.1849%2010.789%2015.8793Z'%20fill='white'/%3e%3cpath%20d='M23.4645%2015.8793C22.8504%2015.5509%2022.2608%2015.437%2021.1355%2015.437H18.7786C17.6532%2015.437%2017.0637%2015.5509%2016.4496%2015.8793C15.8782%2016.1849%2015.4234%2016.6396%2015.1178%2017.211C14.7894%2017.8251%2014.6756%2018.4147%2014.6756%2019.5401V21.897C14.6756%2023.0223%2014.7894%2023.6119%2015.1178%2024.226C15.4234%2024.7974%2015.8782%2025.2521%2016.4496%2025.5577C17.0637%2025.8861%2017.6532%2026%2018.7786%2026H21.1355C22.2608%2026%2022.8504%2025.8861%2023.4645%2025.5577C24.0359%2025.2521%2024.4907%2024.7974%2024.7962%2024.226C25.1247%2023.6119%2025.2385%2023.0223%2025.2385%2021.897V19.5401C25.2385%2018.4147%2025.1247%2017.8251%2024.7962%2017.211C24.4907%2016.6396%2024.0359%2016.1849%2023.4645%2015.8793Z'%20fill='white'/%3e%3cpath%20d='M22.8583%203.47511C22.0626%202.67936%2021.5652%202.34297%2020.8987%202.14097C20.2786%201.95301%2019.6355%201.95301%2019.0154%202.14097C18.3489%202.34297%2017.8515%202.67936%2017.0557%203.47511L15.3892%205.14167C14.5934%205.93742%2014.257%206.43482%2014.055%207.1013C13.8671%207.72141%2013.8671%208.36451%2014.055%208.98463C14.257%209.6511%2014.5934%2010.1485%2015.3892%2010.9443L17.0557%2012.6108C17.8515%2013.4066%2018.3489%2013.743%2019.0154%2013.945C19.6355%2014.1329%2020.2786%2014.1329%2020.8987%2013.945C21.5652%2013.743%2022.0626%2013.4066%2022.8583%2012.6108L24.5249%2010.9443C25.3206%2010.1485%2025.657%209.6511%2025.859%208.98463C26.047%208.36451%2026.047%207.72141%2025.859%207.1013C25.657%206.43482%2025.3206%205.93742%2024.5249%205.14167L22.8583%203.47511Z'%20fill='white'/%3e%3cpath%20d='M10.789%203.20376C10.1749%202.87533%209.58528%202.76148%208.45992%202.76148H6.10305C4.97769%202.76148%204.38811%202.87533%203.774%203.20376C3.20261%203.50934%202.74786%203.96409%202.44228%204.53548C2.11385%205.14959%202%205.73917%202%206.86453V9.2214C2%2010.3468%202.11385%2010.9363%202.44228%2011.5504C2.74786%2012.1218%203.20261%2012.5766%203.774%2012.8822C4.38811%2013.2106%204.97769%2013.3244%206.10305%2013.3244H8.45992C9.58528%2013.3244%2010.1749%2013.2106%2010.789%2012.8822C11.3604%2012.5766%2011.8151%2012.1218%2012.1207%2011.5504C12.4491%2010.9363%2012.563%2010.3468%2012.563%209.2214V6.86453C12.563%205.73917%2012.4491%205.14959%2012.1207%204.53548C11.8151%203.96409%2011.3604%203.50934%2010.789%203.20376Z'%20fill='white'/%3e%3c/svg%3e"
+          alt="">
+        <p>Кейсы</p>
+      </a>
+      <a class="mob_menu_item" id="mobileFriendsBtn">
+        <img
+          src="data:image/svg+xml,%3csvg%20width='25'%20height='24'%20viewBox='0%200%2025%2024'%20fill='white'%20xmlns='http://www.w3.org/2000/svg'%3e%3cg%20clip-path='url(%23clip0_3366_23269)'%3e%3cpath%20d='M19.367%207.75568C19.367%206.14507%2018.0629%204.84091%2016.4523%204.84091C14.8416%204.84091%2013.5375%206.14507%2013.5375%207.75568C13.5375%209.36629%2014.8416%2010.6705%2016.4523%2010.6705C18.0629%2010.6705%2019.367%209.36629%2019.367%207.75568ZM21.2079%207.75568C21.2079%2010.383%2019.0796%2012.5114%2016.4523%2012.5114C13.8249%2012.5114%2011.6966%2010.383%2011.6966%207.75568C11.6966%205.12837%2013.8249%203%2016.4523%203C19.0796%203%2021.2079%205.12837%2021.2079%207.75568ZM10.2136%2018.4724C10.2136%2019.2587%2010.1208%2019.1591%2010.5565%2019.1591H22.348C22.7837%2019.1591%2022.6909%2019.2587%2022.6909%2018.4724C22.6909%2016.5368%2019.8496%2015.375%2016.4523%2015.375C13.0549%2015.375%2010.2136%2016.5368%2010.2136%2018.4724ZM16.4523%2013.5341C20.7755%2013.5341%2024.5318%2015.07%2024.5318%2018.4724C24.5318%2020.2475%2023.8307%2021%2022.348%2021H10.5565C9.07382%2021%208.37271%2020.2475%208.37271%2018.4724C8.37271%2015.07%2012.129%2013.5341%2016.4523%2013.5341ZM5.20225%206.27273C5.7106%206.27273%206.1227%206.68483%206.1227%207.19318L6.12168%209.95455L8.88407%209.95455C9.39242%209.95455%209.80452%2010.3666%209.80452%2010.875C9.80452%2011.3834%209.39242%2011.7955%208.88407%2011.7955H6.12168L6.1227%2014.5568C6.1227%2015.0652%205.7106%2015.4773%205.20225%2015.4773C4.6939%2015.4773%204.28179%2015.0652%204.28179%2014.5568L4.28077%2011.7955H1.52043C1.01208%2011.7955%200.599976%2011.3834%200.599976%2010.875C0.599976%2010.3666%2011.01208%209.95455%201.52043%209.95455L4.28077%209.95455L4.28179%207.19318C4.28179%206.68483%204.6939%206.27273%205.20225%206.27273Z'%20fill='white'/%3e%3c/g%3e%3cdefs%3e%3cclipPath%20id='clip0_3366_23269'%3e%3crect%20width='24'%20height='24'%20fill='white'%20transform='translate(0.599976)'/%3e%3c/clipPath%3e%3c/defs%3e%3c/svg%3e"
+          alt="">
+        <p>Друзья</p>
+      </a>
+      <a href="javascript:void(0)" class="mob_menu_item" id="mobileDepositBtn">
+        <img
+          src="data:image/svg+xml,%3csvg%20width='17'%20height='16'%20viewBox='0%200%2017%2016'%20fill='white'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M4%206.01135V4.45141C4%204.33739%204.05937%204.25188%204.17812%204.19487L8.75%202L13.3218%204.19487C13.4406%204.25188%2013.5%204.33739%2013.5%204.45141V6.01135C13.5%206.2109%2013.2922%206.35345%2013.0844%206.2679L8.75%204.18707L4.41563%206.2679C4.2375%206.35345%204%206.2109%204%206.01135Z'%20fill='white'/%3e%3cpath%20d='M4%208.30585V9.8658C4%2010.0653%204.2375%2010.2078%204.41563%2010.1223L8.75%208.0415L13.0844%2010.1223C13.2922%2010.2078%2013.5%2010.0653%2013.5%209.8658V8.30585C13.5%208.1918%2013.4406%208.1063%2013.3218%208.0493L8.75%205.85445L4.17812%208.0493C4.05937%208.1063%204%208.1918%204%208.30585Z'%20fill='white'/%3e%3cpath%20d='M4%2012.1582V13.7182C4%2013.9177%204.2375%2014.0602%204.41563%2013.9747L8.75%2011.8939L13.0844%2013.9747C13.2922%2014.0602%2013.5%2013.9177%2013.5%2013.7182V12.1582C13.5%2012.0442%2013.4406%2011.9587%2013.3218%2011.9017L8.75%209.70676L4.17812%2011.9017C4.05937%2011.9587%204%2012.0442%204%2012.1582Z'%20fill='white'/%3e%3c/svg%3e"
+          alt="">
+        <p>Пополнить</p>
+      </a>
+    </div>
+  </div>
+
+  <div id="customConfirm" style="
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+">
+    <div style="
+    background: #111;
+    border-radius: 18px;
+    padding: 30px;
+    width: 340px;
+    max-width: 90%;
+    border: 1px solid #333;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    text-align: center;
+  ">
+      <div style="
+      margin-bottom: 20px;
+      font-size: 18px;
+      color: #fff;
+      font-weight: 500;
+    ">
+        Вы уверены, что хотите вывести этот предмет?
+      </div>
+      <div style="
+      margin-bottom: 24px;
+      font-size: 15px;
+      color: #aaa;
+      line-height: 1.5;
+    ">
+        Для вывода нужен депозит за последние 7 дней. Заявка уйдёт в поддержку <a href="https://t.me/entoni" style="color: #4a90e2; text-decoration: none; font-weight: 500;"
+          target="_blank">@entoni</a>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <button id="confirmCancel" style="
+        flex: 1;
+        padding: 12px;
+        background: #222;
+        color: #ddd;
+        border: 1px solid #444;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 15px;
+        transition: all 0.2s;
+      ">Отмена</button>
+        <button id="confirmOk" style="
+        flex: 1;
+        padding: 12px;
+        background: #2a7ae9;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 500;
+        transition: all 0.2s;
+      ">Вывести</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="dailyCaseModal" class="daily-case-backdrop" style="display: none;">
+    <div class="daily-case-sheet">
+      <button class="daily-case-close" onclick="closeDailyCaseModal()">&times;</button>
+
+      <div class="daily-case-image">
+        <img src="images/promocode.webp" alt="Daily Case">
+      </div>
+      <h2 class="daily-case-title">Daily Case</h2>
+      <p class="daily-case-desc">Чтобы открыть кейс необходимо выполнить условия</p>
+
+      <div class="daily-case-tasks">
+        <div class="daily-case-task" id="dailyCaseShareTask" onclick="handleDailyCaseShare()">
+          <div class="daily-case-task-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="#7B8EFF" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="9" cy="7" r="4" stroke="#7B8EFF" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" stroke="#7B8EFF" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="#7B8EFF" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </div>
+          <div class="daily-case-task-info">
+            <div class="daily-case-task-title">Отправь 3 друзьям</div>
+            <div class="daily-case-task-subtitle" id="dailyCaseShareSubtitle">Поделись сообщением в 3 личных чатах</div>
+          </div>
+          <div class="daily-case-task-arrow">
+            <svg width="8" height="14" viewBox="0 0 8 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1l6 6-6 6" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="daily-case-task" id="dailyCaseChannelTask" onclick="handleDailyCaseChannel()">
+          <div class="daily-case-task-icon channel-logo">
+            <img src="images/channel.svg" alt="Channel" width="44" height="44">
+          </div>
+          <div class="daily-case-task-info">
+            <div class="daily-case-task-title">Подпишись на канал</div>
+            <div class="daily-case-task-subtitle" id="dailyCaseChannelSubtitle">И вернись сюда</div>
+          </div>
+          <div class="daily-case-task-arrow">
+            <svg width="8" height="14" viewBox="0 0 8 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1l6 6-6 6" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <button class="daily-case-verify-btn" onclick="verifyDailyCaseTasks()">Проверить</button>
+    </div>
+  </div>
+
+  <script src="/config.js"></script>
+  <script src="js/fx.js?v=3"></script>
+  <script src="js/app.js?v=3"></script>
+  <script src="js/upgrade.js?v=3"></script>
+</body>
+
+</html>

@@ -1,2 +1,2 @@
-{ "name": "casebot", "private": true, "type": "module", "engines": { "node": ">=22.5" },
-  "scripts": { "start": "node --no-warnings server/main.mjs", "dev": "DEV=1 node --no-warnings server/main.mjs", "gifts": "node tools/gen-gifts.mjs" } }
+{ "name": "drade-drop", "private": true, "type": "module", "engines": { "node": ">=22.5" },
+  "scripts": { "start": "node --no-warnings server/main.mjs", "dev": "DEV=1 node --no-warnings server/main.mjs", "build": "node tools/build.mjs && python3 tools/case_art.py" } }

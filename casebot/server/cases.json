@@ -1,0 +1,764 @@
+{
+ "rtp": 0.7,
+ "starsPerTon": 100,
+ "cases": [
+  {
+   "id": "case1",
+   "name": "Daily",
+   "price": 0,
+   "free": true,
+   "image": "images/cases/case1.webp",
+   "theme": [
+    "#ff4d8d",
+    "#831843",
+    "#ff9ec4"
+   ],
+   "art": [
+    "snake-boxes",
+    "heart-15",
+    "heart-15",
+    "heart-15",
+    "heart-15"
+   ],
+   "items": [
+    {
+     "giftId": "snake-boxes",
+     "p": 0.03,
+     "rarity": "legendary"
+    },
+    {
+     "giftId": "heart-15",
+     "p": 0.97,
+     "rarity": "uncommon"
+    }
+   ],
+   "rtp": null,
+   "hit": null
+  },
+  {
+   "id": "case2",
+   "name": "Free",
+   "price": 0,
+   "free": true,
+   "image": "images/cases/case2.webp",
+   "theme": [
+    "#38bdf8",
+    "#1e3a8a",
+    "#a5f3fc"
+   ],
+   "art": [
+    "santa-hats",
+    "heart-15",
+    "heart-15",
+    "heart-15",
+    "heart-15"
+   ],
+   "items": [
+    {
+     "giftId": "santa-hats",
+     "p": 0.02,
+     "rarity": "legendary"
+    },
+    {
+     "giftId": "heart-15",
+     "p": 0.98,
+     "rarity": "uncommon"
+    }
+   ],
+   "rtp": null,
+   "hit": null
+  },
+  {
+   "id": "case4",
+   "name": "Hearts",
+   "price": 25,
+   "free": false,
+   "image": "images/cases/case4.webp",
+   "theme": [
+    "#f43f5e",
+    "#881337",
+    "#fda4af"
+   ],
+   "art": [
+    "santa-hats",
+    "pet-snakes",
+    "trophy-100",
+    "diamond-100",
+    "cake-50"
+   ],
+   "items": [
+    {
+     "giftId": "santa-hats",
+     "p": 9.650958872357194e-7,
+     "rarity": "legendary"
+    },
+    {
+     "giftId": "pet-snakes",
+     "p": 9.650958872357194e-7,
+     "rarity": "legendary"
+    },
+    {
+     "giftId": "trophy-100",
+     "p": 0.0009357286981708643,
+     "rarity": "mythic"
+    },
+    {
+     "giftId": "diamond-100",
+     "p": 0.0009357286981708643,
+     "rarity": "mythic"
+    },
+    {
+     "giftId": "cake-50",
+     "p": 0.02018788595796101,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "gift-25",
+     "p": 0.16338000081265883,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "heart-15",
+     "p": 0.4072793628206321,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "bear-15",
+     "p": 0.4072793628206321,
+     "rarity": "rare"
+    }
+   ],
+   "rtp": 0.7,
+   "hit": 0.18544127435873603
+  },
+  {
+   "id": "case5",
+   "name": "Sweet",
+   "price": 75,
+   "free": false,
+   "image": "images/cases/case5.webp",
+   "theme": [
+    "#fb923c",
+    "#7c2d12",
+    "#fed7aa"
+   ],
+   "art": [
+    "whip-cupcakes",
+    "berry-boxes",
+    "ginger-cookies",
+    "homemade-cakes",
+    "trophy-100"
+   ],
+   "items": [
+    {
+     "giftId": "whip-cupcakes",
+     "p": 0.00034566441048063633,
+     "rarity": "mythic"
+    },
+    {
+     "giftId": "berry-boxes",
+     "p": 0.00034566441048063633,
+     "rarity": "mythic"
+    },
+    {
+     "giftId": "ginger-cookies",
+     "p": 0.003972382070956036,
+     "rarity": "mythic"
+    },
+    {
+     "giftId": "homemade-cakes",
+     "p": 0.003972382070956036,
+     "rarity": "mythic"
+    },
+    {
+     "giftId": "trophy-100",
+     "p": 0.12474832520654396,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "diamond-100",
+     "p": 0.12474832520654396,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "cake-50",
+     "p": 0.30913296751871794,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "gift-25",
+     "p": 0.28735785931212265,
+     "rarity": "common"
+    },
+    {
+     "giftId": "heart-15",
+     "p": 0.14537642979319815,
+     "rarity": "uncommon"
+    }
+   ],
+   "rtp": 0.6999999999999998,
+   "hit": 0.25813274337596126
+  },
+  {
+   "id": "case6",
+   "name": "Party",
+   "price": 199,
+   "free": false,
+   "image": "images/cases/case6.webp",
+   "theme": [
+    "#22d3ee",
+    "#164e63",
+    "#a5f3fc"
+   ],
+   "art": [
+    "sky-stilettos",
+    "valentine-boxes",
+    "party-sparklers",
+    "jelly-bunnies",
+    "hypno-lollipops"
+   ],
+   "items": [
+    {
+     "giftId": "sky-stilettos",
+     "p": 0.00001210817622708647,
+     "rarity": "legendary"
+    },
+    {
+     "giftId": "valentine-boxes",
+     "p": 0.0033397401196988844,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "party-sparklers",
+     "p": 0.006307194373900353,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "jelly-bunnies",
+     "p": 0.012567099005644164,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "hypno-lollipops",
+     "p": 0.026642442634345398,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "vice-creams",
+     "p": 0.026642442634345398,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "spiced-wines",
+     "p": 0.060419036037460676,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "xmas-stockings",
+     "p": 0.060419036037460676,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "trophy-100",
+     "p": 0.29122178657595676,
+     "rarity": "common"
+    },
+    {
+     "giftId": "diamond-100",
+     "p": 0.29122178657595676,
+     "rarity": "common"
+    },
+    {
+     "giftId": "cake-50",
+     "p": 0.22120732782900362,
+     "rarity": "uncommon"
+    }
+   ],
+   "rtp": 0.6999999999999996,
+   "hit": 0.19634909901908265
+  },
+  {
+   "id": "case3",
+   "name": "Wonderland",
+   "price": 450,
+   "free": false,
+   "image": "images/cases/case3.webp",
+   "theme": [
+    "#a78bfa",
+    "#3b0764",
+    "#e9d5ff"
+   ],
+   "art": [
+    "signet-rings",
+    "eternal-roses",
+    "top-hats",
+    "mad-pumpkins",
+    "mousse-cakes"
+   ],
+   "items": [
+    {
+     "giftId": "signet-rings",
+     "p": 0.0003240570082864553,
+     "rarity": "mythic"
+    },
+    {
+     "giftId": "eternal-roses",
+     "p": 0.0028612333757166188,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "top-hats",
+     "p": 0.005467122090909492,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "mad-pumpkins",
+     "p": 0.005467122090909492,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "mousse-cakes",
+     "p": 0.05520108537647069,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "spring-baskets",
+     "p": 0.05520108537647069,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "jacks-in-the-box",
+     "p": 0.05520108537647069,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "big-years",
+     "p": 0.08616847745109606,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "witch-hats",
+     "p": 0.13550531541503577,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "spy-agarics",
+     "p": 0.13550531541503577,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "trophy-100",
+     "p": 0.23154905051179922,
+     "rarity": "uncommon"
+    },
+    {
+     "giftId": "diamond-100",
+     "p": 0.23154905051179922,
+     "rarity": "uncommon"
+    }
+   ],
+   "rtp": 0.6999999999999998,
+   "hit": 0.2658912681463302
+  },
+  {
+   "id": "case8",
+   "name": "Turtles",
+   "price": 790,
+   "free": false,
+   "image": "images/cases/case8.webp",
+   "theme": [
+    "#4ade80",
+    "#14532d",
+    "#bbf7d0"
+   ],
+   "art": [
+    "kissed-frogs",
+    "sharp-tongues",
+    "joyful-bundles",
+    "artisan-bricks",
+    "trapped-hearts"
+   ],
+   "items": [
+    {
+     "giftId": "kissed-frogs",
+     "p": 0.0012742527409776135,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "sharp-tongues",
+     "p": 0.0012742527409776135,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "joyful-bundles",
+     "p": 0.02223567511218848,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "artisan-bricks",
+     "p": 0.028347342813423174,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "trapped-hearts",
+     "p": 0.04655138552276223,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "skull-flowers",
+     "p": 0.04655138552276223,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "party-sparklers",
+     "p": 0.07595095311926121,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "mirage-lamps",
+     "p": 0.07595095311926121,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "mood-packs",
+     "p": 0.09490654111078772,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "instant-ramens",
+     "p": 0.09490654111078772,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "pool-floats",
+     "p": 0.09490654111078772,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "tama-gadgets",
+     "p": 0.09490654111078772,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "timeless-books",
+     "p": 0.09490654111078772,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "fresh-socks",
+     "p": 0.1136655468772238,
+     "rarity": "common"
+    },
+    {
+     "giftId": "lush-bouquets",
+     "p": 0.1136655468772238,
+     "rarity": "common"
+    }
+   ],
+   "rtp": 0.7,
+   "hit": 0.14623429445309133
+  },
+  {
+   "id": "case9",
+   "name": "Magic",
+   "price": 1990,
+   "free": false,
+   "image": "images/cases/case9.webp",
+   "theme": [
+    "#c026d3",
+    "#4a044e",
+    "#f5d0fe"
+   ],
+   "art": [
+    "mighty-arms",
+    "magic-potions",
+    "genie-lamps",
+    "scared-cats",
+    "vintage-cigars"
+   ],
+   "items": [
+    {
+     "giftId": "mighty-arms",
+     "p": 0.0002486659589565246,
+     "rarity": "mythic"
+    },
+    {
+     "giftId": "magic-potions",
+     "p": 0.012614127005881728,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "genie-lamps",
+     "p": 0.017352175889906167,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "scared-cats",
+     "p": 0.04792382447953403,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "vintage-cigars",
+     "p": 0.06783424020902305,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "signet-rings",
+     "p": 0.08311496284592604,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "sky-stilettos",
+     "p": 0.09463178553363054,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "eternal-roses",
+     "p": 0.13046682954242253,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "algorithm-cups",
+     "p": 0.13922217109157642,
+     "rarity": "common"
+    },
+    {
+     "giftId": "skull-flowers",
+     "p": 0.1279606920787814,
+     "rarity": "common"
+    },
+    {
+     "giftId": "evil-eyes",
+     "p": 0.09879285864763901,
+     "rarity": "common"
+    },
+    {
+     "giftId": "victory-medals",
+     "p": 0.07683284720854866,
+     "rarity": "uncommon"
+    },
+    {
+     "giftId": "hex-pots",
+     "p": 0.051502409754087,
+     "rarity": "uncommon"
+    },
+    {
+     "giftId": "witch-hats",
+     "p": 0.051502409754087,
+     "rarity": "uncommon"
+    }
+   ],
+   "rtp": 0.6999999999999997,
+   "hit": 0.32371978192285805
+  },
+  {
+   "id": "case12",
+   "name": "Royal",
+   "price": 4990,
+   "free": false,
+   "image": "images/cases/case12.webp",
+   "theme": [
+    "#facc15",
+    "#713f12",
+    "#fef08a"
+   ],
+   "art": [
+    "precious-peaches",
+    "mighty-arms",
+    "perfume-bottles",
+    "mini-oscars",
+    "gem-signets"
+   ],
+   "items": [
+    {
+     "giftId": "precious-peaches",
+     "p": 0.00016131213232493418,
+     "rarity": "mythic"
+    },
+    {
+     "giftId": "mighty-arms",
+     "p": 0.01509834578303393,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "perfume-bottles",
+     "p": 0.06116610161418015,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "mini-oscars",
+     "p": 0.08536445570629113,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "gem-signets",
+     "p": 0.09424943271984985,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "genie-lamps",
+     "p": 0.10290709201342986,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "scared-cats",
+     "p": 0.11682512669885446,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "kissed-frogs",
+     "p": 0.11087074466101786,
+     "rarity": "common"
+    },
+    {
+     "giftId": "sharp-tongues",
+     "p": 0.11087074466101786,
+     "rarity": "common"
+    },
+    {
+     "giftId": "signet-rings",
+     "p": 0.10264011322166124,
+     "rarity": "common"
+    },
+    {
+     "giftId": "sky-stilettos",
+     "p": 0.09482334106407636,
+     "rarity": "common"
+    },
+    {
+     "giftId": "eternal-roses",
+     "p": 0.059804309487200814,
+     "rarity": "uncommon"
+    },
+    {
+     "giftId": "top-hats",
+     "p": 0.045218880237061686,
+     "rarity": "uncommon"
+    }
+   ],
+   "rtp": 0.7,
+   "hit": 0.25603964795568
+  },
+  {
+   "id": "case13",
+   "name": "Peach",
+   "price": 12990,
+   "free": false,
+   "image": "images/cases/case13.webp",
+   "theme": [
+    "#fb7185",
+    "#701a75",
+    "#fecdd3"
+   ],
+   "art": [
+    "durov-s-caps",
+    "precious-peaches",
+    "mighty-arms",
+    "perfume-bottles",
+    "mini-oscars"
+   ],
+   "items": [
+    {
+     "giftId": "durov-s-caps",
+     "p": 0.01138178597456242,
+     "rarity": "mythic"
+    },
+    {
+     "giftId": "precious-peaches",
+     "p": 0.03976044238973347,
+     "rarity": "purple"
+    },
+    {
+     "giftId": "mighty-arms",
+     "p": 0.22056193824144912,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "perfume-bottles",
+     "p": 0.18845301289898242,
+     "rarity": "common"
+    },
+    {
+     "giftId": "mini-oscars",
+     "p": 0.14343406199921624,
+     "rarity": "common"
+    },
+    {
+     "giftId": "magic-potions",
+     "p": 0.12462003240035917,
+     "rarity": "common"
+    },
+    {
+     "giftId": "gem-signets",
+     "p": 0.12462003240035917,
+     "rarity": "common"
+    },
+    {
+     "giftId": "genie-lamps",
+     "p": 0.1044034082799368,
+     "rarity": "common"
+    },
+    {
+     "giftId": "scared-cats",
+     "p": 0.042765285415401054,
+     "rarity": "uncommon"
+    }
+   ],
+   "rtp": 0.6999999999999998,
+   "hit": 0.27170416660574503
+  },
+  {
+   "id": "case14",
+   "name": "Plush Pepe",
+   "price": 49990,
+   "free": false,
+   "image": "images/cases/case14.webp",
+   "theme": [
+    "#34d399",
+    "#064e3b",
+    "#a7f3d0"
+   ],
+   "art": [
+    "plush-pepes",
+    "durov-s-caps",
+    "precious-peaches",
+    "mighty-arms",
+    "perfume-bottles"
+   ],
+   "items": [
+    {
+     "giftId": "plush-pepes",
+     "p": 0.0000882144887608694,
+     "rarity": "legendary"
+    },
+    {
+     "giftId": "durov-s-caps",
+     "p": 0.24936060142392033,
+     "rarity": "epic"
+    },
+    {
+     "giftId": "precious-peaches",
+     "p": 0.40086095390889775,
+     "rarity": "rare"
+    },
+    {
+     "giftId": "mighty-arms",
+     "p": 0.2586529960919857,
+     "rarity": "uncommon"
+    },
+    {
+     "giftId": "perfume-bottles",
+     "p": 0.06757169710022165,
+     "rarity": "uncommon"
+    },
+    {
+     "giftId": "magic-potions",
+     "p": 0.023465536986213797,
+     "rarity": "uncommon"
+    }
+   ],
+   "rtp": 0.7000000000000002,
+   "hit": 0.2494488159126812
+  }
+ ]
+}

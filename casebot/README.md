@@ -1,42 +1,41 @@
-# Gift Cases — игровой бот (Telegram Mini App)
+# Drade Drop — кейсы с NFT-подарками Telegram (бот + Mini App)
 
-Кейсы с NFT-подарками Telegram. Без внешних зависимостей: Node ≥ 22.5 (встроенный `node:sqlite`).
+Фронтенд — исходник Force Gift из архива (структура, кейсы, лента, анимация открытия), поверх него новый дизайн
+в стиле RubUP (`webapp/css/drade.css`, шрифты Unbounded + Onest), эффекты (`webapp/js/fx.js`) и апгрейдер как на
+CaseBattle (`webapp/js/upgrade.js`). Бэкенд написан под API этого фронтенда. Node ≥ 22.5, без npm-зависимостей.
 
 ## Структура
 ```
 casebot/
 ├─ server/
-│  ├─ main.mjs     HTTP-сервер + API (init, open, inventory, sell, withdraw, stats) + раздача webapp
-│  ├─ cases.mjs    8 кейсов и шансы; веса подбираются бисекцией так, что RTP = 70%
-│  ├─ gifts.json   122 подарка (генерится из tools/gifts-raw.txt)
-│  ├─ ton.mjs      автопополнение: опрос toncenter, зачисление по комментарию dep<telegram_id>
-│  ├─ auth.mjs     проверка подписи Telegram initData
-│  ├─ bot.mjs      /start → кнопка «Играть» (WEBAPP_URL)
-│  ├─ db.mjs       SQLite: users, inventory, opens, deposits, withdrawals
-│  └─ config.mjs   env-настройки
-├─ webapp/         index.html, style.css, app.js (рулетка, модалки, инвентарь, пополнение)
-└─ tools/          gifts-raw.txt (Collection|floor) и gen-gifts.mjs
+│  ├─ main.mjs      HTTP: API + раздача webapp, /config.js, /tonconnect-manifest.json
+│  ├─ api.mjs       open-case, sell, inventory, init-withdraw, upgrade, daily-case/*, ton/*, рефералы
+│  ├─ bot.mjs       /start → приветствие с баннером и кнопкой «Играть»; оплата Stars; админ-команды
+│  ├─ ton.mjs       пополнение TON: TonConnect-платёж с комментарием-меткой + ручной перевод «dep<id>»
+│  ├─ wallet.mjs    баланс ⭐, депозиты (без дублей), 10% рефереру, депозит за окно для вывода
+│  ├─ auth.mjs      проверка подписи Telegram initData
+│  ├─ catalog.mjs   кейсы в формате фронтенда
+│  ├─ gifts.json    каталог (генерится)   cases.json  кейсы и шансы (генерится)
+│  └─ config.mjs    настройки из .env
+├─ webapp/          index.html, css/, js/, fonts/, images/gifts (реальные 3D-иконки), images/cases (обложки)
+└─ tools/
+   ├─ gifts-raw.txt все 122 подарка с floor (TON); «?» — нет листингов, стоит оценка
+   ├─ images.py     скриншоты → вырезка → апскейл x4 (Real-ESRGAN) → прозрачный WebP
+   ├─ build.mjs     каталог + кейсы, шансы подбираются под RTP 70%
+   └─ case_art.py   обложки кейсов и баннер бота из реальных иконок
 ```
 
 ## Суть
-1. Игрок открывает Mini App из бота → профиль создаётся по Telegram ID.
-2. Пополнение: перевод TON на `UQCvGGYFcqrPS3h_AXiVzVHvmUTKLJJ5DurV_VBhpMXcQtd3` с комментарием `dep<id>`; сервер каждые 15 с находит транзакцию и зачисляет баланс (tx hash уникален — дублей нет).
-3. Кейс списывает цену, сервер (crypto.randomInt) выбирает подарок по весам, кладёт в инвентарь; клиент лишь анимирует результат.
-4. Подарок можно продать за floor-цену (баланс) или подать заявку на вывод (обрабатывается вручную, `stats` для ADMIN_IDS).
-
-## Кейсы (RTP 70%, проверено симуляцией 400k открытий)
-| Кейс | Цена | Дроп ≥70% цены | Дроп ≥ цены |
-|---|---|---|---|
-| Стартовый | 5 | 33% | 12% |
-| Классик | 10 | 32% | 14% |
-| Love | 10 | 24% | 15% |
-| Winter | 10 | 30% | 22% |
-| Gold | 25 | 31% | 18% |
-| Premium | 60 | 31% | 14% |
-| Whale | 150 | 36% | 6% |
-| Legend | 500 | 15% | 15% |
-
-Подарки без листингов (в списке «no listings») имеют **оценочную** цену (`estimated: true`) — поправьте в `tools/gifts-raw.txt` и выполните `npm run gifts`.
+- Валюта — ⭐ (1 TON = 100 ⭐). Пополнение: TON на `UQCvGGYFcqrPS3h_AXiVzVHvmUTKLJJ5DurV_VBhpMXcQtd3` или Telegram Stars.
+- 2 бесплатных кейса раз в 24 ч (Daily — с заданиями: 3 шеринга + подписка на `DAILY_CHANNEL`): сердечки по 15 ⭐ и одно NFT.
+- 9 платных кейсов: Фарм (25 / 75 / 199 ⭐), Обычные (450 / 790 / 1990 ⭐), ALL IN (4 990 / 12 990 / 49 990 ⭐). RTP каждого — ровно 70%.
+- Апгрейдер: ставка 1–6 подарков → цель (x1.5…x20) → шанс = ставка/цель × 0.9 (макс. 75%). Сервер возвращает `roll`, стрелка встаёт ровно туда.
+- Вывод подарков: нужен депозит ≥ 50 TON за последние 7 дней, заявка уходит в поддержку @entoni и админам в бот (`/wd`, `/done id`, `/reject id`).
+- В игре показываются только подарки с реальной картинкой. Добавить подарок = положить `webapp/images/gifts/<id>.webp` и запустить сборку.
 
 ## Запуск
-`cp .env.example .env`, задать переменные, `npm start`. Локально без Telegram: `npm run dev`, открыть `http://localhost:8080/?u=1`. Нужен HTTPS-домен для Mini App.
+```
+cp .env.example .env         # BOT_TOKEN, WEBAPP_URL (https), ADMIN_IDS ...
+npm start                    # локально без Telegram: npm run dev
+```
+Пересборка после правки цен/кейсов: `node tools/build.mjs && python3 tools/case_art.py`.

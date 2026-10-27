@@ -1,978 +1,542 @@
 [
  {
-  "id": "intelligence-cups",
-  "name": "Intelligence Cups",
-  "price": 3099,
-  "estimated": false,
-  "emoji": "🏆",
-  "rarity": "legendary"
- },
- {
-  "id": "heart-lockets",
-  "name": "Heart Lockets",
-  "price": 1444,
-  "estimated": false,
-  "emoji": "💖",
-  "rarity": "legendary"
- },
- {
-  "id": "resistance-dogs",
-  "name": "Resistance Dogs",
-  "price": 867,
-  "estimated": false,
-  "emoji": "🐕",
-  "rarity": "legendary"
- },
- {
-  "id": "durov-s-glasses",
-  "name": "Durov’s Glasses",
-  "price": 229,
-  "estimated": false,
-  "emoji": "🕶️",
-  "rarity": "legendary"
- },
- {
-  "id": "heroic-helmets",
-  "name": "Heroic Helmets",
-  "price": 190,
-  "estimated": false,
-  "emoji": "⛑️",
-  "rarity": "legendary"
- },
- {
-  "id": "nail-bracelets",
-  "name": "Nail Bracelets",
-  "price": 149,
-  "estimated": false,
-  "emoji": "📿",
-  "rarity": "legendary"
- },
- {
-  "id": "astral-shards",
-  "name": "Astral Shards",
-  "price": 147,
-  "estimated": false,
-  "emoji": "💠",
-  "rarity": "legendary"
- },
- {
-  "id": "loot-bags",
-  "name": "Loot Bags",
-  "price": 141,
-  "estimated": false,
-  "emoji": "👜",
-  "rarity": "legendary"
- },
- {
-  "id": "westside-signs",
-  "name": "Westside Signs",
-  "price": 128,
-  "estimated": false,
-  "emoji": "🪧",
-  "rarity": "legendary"
- },
- {
-  "id": "ion-gems",
-  "name": "Ion Gems",
-  "price": 85,
-  "estimated": false,
-  "emoji": "💎",
-  "rarity": "epic"
- },
- {
-  "id": "swiss-watches",
-  "name": "Swiss Watches",
-  "price": 75,
-  "estimated": false,
-  "emoji": "⌚",
-  "rarity": "epic"
- },
- {
-  "id": "low-riders",
-  "name": "Low Riders",
-  "price": 62,
-  "estimated": false,
-  "emoji": "🚗",
-  "rarity": "epic"
- },
- {
-  "id": "neko-helmets",
-  "name": "Neko Helmets",
-  "price": 45,
-  "estimated": false,
-  "emoji": "⛑️",
-  "rarity": "epic"
- },
- {
-  "id": "bonded-rings",
-  "name": "Bonded Rings",
-  "price": 45,
-  "estimated": false,
-  "emoji": "💍",
-  "rarity": "epic"
- },
- {
-  "id": "voodoo-dolls",
-  "name": "Voodoo Dolls",
-  "price": 43,
-  "estimated": false,
-  "emoji": "🪆",
-  "rarity": "epic"
- },
- {
-  "id": "toy-bears",
-  "name": "Toy Bears",
-  "price": 38,
-  "estimated": false,
-  "emoji": "🧸",
-  "rarity": "epic"
- },
- {
-  "id": "diamond-rings",
-  "name": "Diamond Rings",
-  "price": 37,
-  "estimated": false,
-  "emoji": "💍",
-  "rarity": "epic"
- },
- {
-  "id": "electric-skulls",
-  "name": "Electric Skulls",
-  "price": 36,
-  "estimated": false,
-  "emoji": "💀",
-  "rarity": "epic"
- },
- {
-  "id": "rare-birds",
-  "name": "Rare Birds",
-  "price": 30,
-  "estimated": false,
-  "emoji": "🦜",
-  "rarity": "epic"
- },
- {
-  "id": "bling-binkies",
-  "name": "Bling Binkies",
-  "price": 29,
-  "estimated": false,
-  "emoji": "🍼",
-  "rarity": "epic"
- },
- {
-  "id": "khabib-s-papakhas",
-  "name": "Khabib’s Papakhas",
-  "price": 27,
-  "estimated": false,
-  "emoji": "🧢",
-  "rarity": "epic"
- },
- {
-  "id": "cupid-charms",
-  "name": "Cupid Charms",
-  "price": 25,
-  "estimated": false,
-  "emoji": "✨",
-  "rarity": "epic"
- },
- {
   "id": "sky-stilettos",
   "name": "Sky Stilettos",
-  "price": 20,
+  "value": 2000,
+  "ton": 20,
   "estimated": false,
-  "emoji": "👠",
-  "rarity": "rare"
- },
- {
-  "id": "ionic-dryers",
-  "name": "Ionic Dryers",
-  "price": 19,
-  "estimated": false,
-  "emoji": "💨",
-  "rarity": "rare"
- },
- {
-  "id": "ufc-strikes",
-  "name": "UFC Strikes",
-  "price": 19,
-  "estimated": false,
-  "emoji": "🥊",
-  "rarity": "rare"
- },
- {
-  "id": "snoop-cigars",
-  "name": "Snoop Cigars",
-  "price": 18,
-  "estimated": false,
-  "emoji": "🚬",
-  "rarity": "rare"
- },
- {
-  "id": "love-potions",
-  "name": "Love Potions",
-  "price": 16,
-  "estimated": false,
-  "emoji": "🧪",
-  "rarity": "rare"
- },
- {
-  "id": "crystal-balls",
-  "name": "Crystal Balls",
-  "price": 15,
-  "estimated": false,
-  "emoji": "🔮",
-  "rarity": "rare"
- },
- {
-  "id": "flying-brooms",
-  "name": "Flying Brooms",
-  "price": 14,
-  "estimated": false,
-  "emoji": "🧹",
-  "rarity": "rare"
- },
- {
-  "id": "record-players",
-  "name": "Record Players",
-  "price": 13,
-  "estimated": false,
-  "emoji": "📀",
-  "rarity": "rare"
- },
- {
-  "id": "jingle-bells",
-  "name": "Jingle Bells",
-  "price": 12,
-  "estimated": false,
-  "emoji": "🔔",
-  "rarity": "rare"
- },
- {
-  "id": "love-candles",
-  "name": "Love Candles",
-  "price": 12,
-  "estimated": false,
-  "emoji": "🕯️",
-  "rarity": "rare"
- },
- {
-  "id": "sakura-flowers",
-  "name": "Sakura Flowers",
-  "price": 12,
-  "estimated": false,
-  "emoji": "🌸",
-  "rarity": "rare"
- },
- {
-  "id": "sleigh-bells",
-  "name": "Sleigh Bells",
-  "price": 12,
-  "estimated": false,
-  "emoji": "🔔",
-  "rarity": "rare"
+  "kind": "nft",
+  "image": "images/gifts/sky-stilettos.webp"
  },
  {
   "id": "top-hats",
   "name": "Top Hats",
-  "price": 12,
+  "value": 1200,
+  "ton": 12,
   "estimated": false,
-  "emoji": "🎩",
-  "rarity": "rare"
- },
- {
-  "id": "hanging-stars",
-  "name": "Hanging Stars",
-  "price": 11,
-  "estimated": false,
-  "emoji": "⭐",
-  "rarity": "rare"
+  "kind": "nft",
+  "image": "images/gifts/top-hats.webp"
  },
  {
   "id": "joyful-bundles",
   "name": "Joyful Bundles",
-  "price": 11,
+  "value": 1100,
+  "ton": 11,
   "estimated": false,
-  "emoji": "🎁",
-  "rarity": "rare"
- },
- {
-  "id": "snow-mittens",
-  "name": "Snow Mittens",
-  "price": 10,
-  "estimated": false,
-  "emoji": "🧤",
-  "rarity": "rare"
- },
- {
-  "id": "bunny-muffins",
-  "name": "Bunny Muffins",
-  "price": 9,
-  "estimated": false,
-  "emoji": "🧁",
-  "rarity": "rare"
- },
- {
-  "id": "fine-pens",
-  "name": "Fine Pens",
-  "price": 9,
-  "estimated": false,
-  "emoji": "🖋️",
-  "rarity": "rare"
- },
- {
-  "id": "input-keys",
-  "name": "Input Keys",
-  "price": 8,
-  "estimated": false,
-  "emoji": "🔑",
-  "rarity": "rare"
- },
- {
-  "id": "jolly-chimps",
-  "name": "Jolly Chimps",
-  "price": 8,
-  "estimated": false,
-  "emoji": "🐒",
-  "rarity": "rare"
- },
- {
-  "id": "surge-boards",
-  "name": "Surge Boards",
-  "price": 8,
-  "estimated": false,
-  "emoji": "🏄",
-  "rarity": "rare"
- },
- {
-  "id": "bow-ties",
-  "name": "Bow Ties",
-  "price": 7,
-  "estimated": false,
-  "emoji": "🎀",
-  "rarity": "common"
- },
- {
-  "id": "desk-calendars",
-  "name": "Desk Calendars",
-  "price": 7,
-  "estimated": false,
-  "emoji": "📅",
-  "rarity": "common"
- },
- {
-  "id": "eternal-candles",
-  "name": "Eternal Candles",
-  "price": 7,
-  "estimated": false,
-  "emoji": "🕯️",
-  "rarity": "common"
- },
- {
-  "id": "light-swords",
-  "name": "Light Swords",
-  "price": 7,
-  "estimated": false,
-  "emoji": "⚔️",
-  "rarity": "common"
- },
- {
-  "id": "moon-pendants",
-  "name": "Moon Pendants",
-  "price": 7,
-  "estimated": false,
-  "emoji": "🌙",
-  "rarity": "common"
- },
- {
-  "id": "snow-globes",
-  "name": "Snow Globes",
-  "price": 7,
-  "estimated": false,
-  "emoji": "🔮",
-  "rarity": "common"
- },
- {
-  "id": "b-day-candles",
-  "name": "B-Day Candles",
-  "price": 6,
-  "estimated": false,
-  "emoji": "🕯️",
-  "rarity": "common"
- },
- {
-  "id": "clover-pins",
-  "name": "Clover Pins",
-  "price": 6,
-  "estimated": false,
-  "emoji": "📌",
-  "rarity": "common"
- },
- {
-  "id": "cookie-hearts",
-  "name": "Cookie Hearts",
-  "price": 6,
-  "estimated": false,
-  "emoji": "❤️",
-  "rarity": "common"
- },
- {
-  "id": "faith-amulets",
-  "name": "Faith Amulets",
-  "price": 6,
-  "estimated": false,
-  "emoji": "🧿",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/joyful-bundles.webp"
  },
  {
   "id": "jacks-in-the-box",
   "name": "Jacks-in-the-Box",
-  "price": 6,
+  "value": 600,
+  "ton": 6,
   "estimated": false,
-  "emoji": "🎁",
-  "rarity": "common"
- },
- {
-  "id": "liberty-figures",
-  "name": "Liberty Figures",
-  "price": 6,
-  "estimated": false,
-  "emoji": "🗽",
-  "rarity": "common"
- },
- {
-  "id": "money-pots",
-  "name": "Money Pots",
-  "price": 6,
-  "estimated": false,
-  "emoji": "🍯",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/jacks-in-the-box.webp"
  },
  {
   "id": "mousse-cakes",
   "name": "Mousse Cakes",
-  "price": 6,
+  "value": 600,
+  "ton": 6,
   "estimated": false,
-  "emoji": "🍰",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/mousse-cakes.webp"
  },
  {
   "id": "party-sparklers",
   "name": "Party Sparklers",
-  "price": 6,
+  "value": 600,
+  "ton": 6,
   "estimated": false,
-  "emoji": "🎇",
-  "rarity": "common"
- },
- {
-  "id": "pretty-posies",
-  "name": "Pretty Posies",
-  "price": 6,
-  "estimated": false,
-  "emoji": "💐",
-  "rarity": "common"
- },
- {
-  "id": "restless-jars",
-  "name": "Restless Jars",
-  "price": 6,
-  "estimated": false,
-  "emoji": "🫙",
-  "rarity": "common"
- },
- {
-  "id": "snoop-doggs",
-  "name": "Snoop Doggs",
-  "price": 6,
-  "estimated": false,
-  "emoji": "🐶",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/party-sparklers.webp"
  },
  {
   "id": "spring-baskets",
   "name": "Spring Baskets",
-  "price": 6,
+  "value": 600,
+  "ton": 6,
   "estimated": false,
-  "emoji": "🧺",
-  "rarity": "common"
- },
- {
-  "id": "star-notepads",
-  "name": "Star Notepads",
-  "price": 6,
-  "estimated": false,
-  "emoji": "📒",
-  "rarity": "common"
- },
- {
-  "id": "stellar-rockets",
-  "name": "Stellar Rockets",
-  "price": 6,
-  "estimated": false,
-  "emoji": "🚀",
-  "rarity": "common"
- },
- {
-  "id": "swag-bags",
-  "name": "Swag Bags",
-  "price": 6,
-  "estimated": false,
-  "emoji": "👜",
-  "rarity": "common"
- },
- {
-  "id": "winter-wreaths",
-  "name": "Winter Wreaths",
-  "price": 6,
-  "estimated": false,
-  "emoji": "🎄",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/spring-baskets.webp"
  },
  {
   "id": "big-years",
   "name": "Big Years",
-  "price": 5,
+  "value": 500,
+  "ton": 5,
   "estimated": false,
-  "emoji": "🎆",
-  "rarity": "common"
- },
- {
-  "id": "candy-canes",
-  "name": "Candy Canes",
-  "price": 5,
-  "estimated": false,
-  "emoji": "🍬",
-  "rarity": "common"
- },
- {
-  "id": "chill-flames",
-  "name": "Chill Flames",
-  "price": 5,
-  "estimated": false,
-  "emoji": "🔥",
-  "rarity": "common"
- },
- {
-  "id": "easter-eggs",
-  "name": "Easter Eggs",
-  "price": 5,
-  "estimated": false,
-  "emoji": "🥚",
-  "rarity": "common"
- },
- {
-  "id": "happy-brownies",
-  "name": "Happy Brownies",
-  "price": 5,
-  "estimated": false,
-  "emoji": "🍫",
-  "rarity": "common"
- },
- {
-  "id": "holiday-drinks",
-  "name": "Holiday Drinks",
-  "price": 5,
-  "estimated": false,
-  "emoji": "🥂",
-  "rarity": "common"
- },
- {
-  "id": "ice-creams",
-  "name": "Ice Creams",
-  "price": 5,
-  "estimated": false,
-  "emoji": "🍦",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/big-years.webp"
  },
  {
   "id": "instant-ramens",
   "name": "Instant Ramens",
-  "price": 5,
+  "value": 500,
+  "ton": 5,
   "estimated": false,
-  "emoji": "🍜",
-  "rarity": "common"
- },
- {
-  "id": "jester-hats",
-  "name": "Jester Hats",
-  "price": 5,
-  "estimated": false,
-  "emoji": "🎩",
-  "rarity": "common"
- },
- {
-  "id": "lol-pops",
-  "name": "Lol Pops",
-  "price": 5,
-  "estimated": false,
-  "emoji": "🍭",
-  "rarity": "common"
- },
- {
-  "id": "lunar-snakes",
-  "name": "Lunar Snakes",
-  "price": 5,
-  "estimated": false,
-  "emoji": "🐍",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/instant-ramens.webp"
  },
  {
   "id": "mood-packs",
   "name": "Mood Packs",
-  "price": 5,
+  "value": 500,
+  "ton": 5,
   "estimated": false,
-  "emoji": "🎒",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/mood-packs.webp"
  },
  {
   "id": "pool-floats",
   "name": "Pool Floats",
-  "price": 5,
+  "value": 500,
+  "ton": 5,
   "estimated": false,
-  "emoji": "🦩",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/pool-floats.webp"
  },
  {
   "id": "snake-boxes",
   "name": "Snake Boxes",
-  "price": 5,
+  "value": 500,
+  "ton": 5,
   "estimated": false,
-  "emoji": "📦",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/snake-boxes.webp"
  },
  {
   "id": "tama-gadgets",
   "name": "Tama Gadgets",
-  "price": 5,
+  "value": 500,
+  "ton": 5,
   "estimated": false,
-  "emoji": "🎮",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/tama-gadgets.webp"
  },
  {
   "id": "timeless-books",
   "name": "Timeless Books",
-  "price": 5,
+  "value": 500,
+  "ton": 5,
   "estimated": false,
-  "emoji": "📕",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/timeless-books.webp"
  },
  {
   "id": "whip-cupcakes",
   "name": "Whip Cupcakes",
-  "price": 5,
+  "value": 500,
+  "ton": 5,
   "estimated": false,
-  "emoji": "🧁",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/whip-cupcakes.webp"
  },
  {
   "id": "algorithm-cups",
   "name": "Algorithm Cups",
-  "price": 12,
+  "value": 1000,
+  "ton": 10,
   "estimated": true,
-  "emoji": "🏆",
-  "rarity": "rare"
+  "kind": "nft",
+  "image": "images/gifts/algorithm-cups.webp"
  },
  {
   "id": "artisan-bricks",
   "name": "Artisan Bricks",
-  "price": 4,
+  "value": 1000,
+  "ton": 10,
   "estimated": true,
-  "emoji": "🧱",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/artisan-bricks.webp"
  },
  {
   "id": "berry-boxes",
   "name": "Berry Boxes",
-  "price": 4,
+  "value": 500,
+  "ton": 5,
   "estimated": true,
-  "emoji": "📦",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/berry-boxes.webp"
  },
  {
   "id": "durov-s-caps",
   "name": "Durov’s Caps",
-  "price": 8,
+  "value": 60000,
+  "ton": 600,
   "estimated": true,
-  "emoji": "🧢",
-  "rarity": "rare"
+  "kind": "nft",
+  "image": "images/gifts/durov-s-caps.webp"
  },
  {
   "id": "eternal-roses",
   "name": "Eternal Roses",
-  "price": 6,
+  "value": 1400,
+  "ton": 14,
   "estimated": true,
-  "emoji": "🌹",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/eternal-roses.webp"
  },
  {
   "id": "evil-eyes",
   "name": "Evil Eyes",
-  "price": 4,
+  "value": 600,
+  "ton": 6,
   "estimated": true,
-  "emoji": "👁️",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/evil-eyes.webp"
  },
  {
   "id": "fresh-socks",
   "name": "Fresh Socks",
-  "price": 4,
+  "value": 400,
+  "ton": 4,
   "estimated": true,
-  "emoji": "🧦",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/fresh-socks.webp"
  },
  {
   "id": "gem-signets",
   "name": "Gem Signets",
-  "price": 10,
+  "value": 5000,
+  "ton": 50,
   "estimated": true,
-  "emoji": "💍",
-  "rarity": "rare"
+  "kind": "nft",
+  "image": "images/gifts/gem-signets.webp"
  },
  {
   "id": "genie-lamps",
   "name": "Genie Lamps",
-  "price": 6,
+  "value": 4500,
+  "ton": 45,
   "estimated": true,
-  "emoji": "🪔",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/genie-lamps.webp"
  },
  {
   "id": "ginger-cookies",
   "name": "Ginger Cookies",
-  "price": 3,
+  "value": 300,
+  "ton": 3,
   "estimated": true,
-  "emoji": "🍪",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/ginger-cookies.webp"
  },
  {
   "id": "hex-pots",
   "name": "Hex Pots",
-  "price": 4,
+  "value": 400,
+  "ton": 4,
   "estimated": true,
-  "emoji": "🍯",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/hex-pots.webp"
  },
  {
   "id": "homemade-cakes",
   "name": "Homemade Cakes",
-  "price": 3,
+  "value": 300,
+  "ton": 3,
   "estimated": true,
-  "emoji": "🍰",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/homemade-cakes.webp"
  },
  {
   "id": "hypno-lollipops",
   "name": "Hypno Lollipops",
-  "price": 3,
+  "value": 400,
+  "ton": 4,
   "estimated": true,
-  "emoji": "🍭",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/hypno-lollipops.webp"
  },
  {
   "id": "jelly-bunnies",
   "name": "Jelly Bunnies",
-  "price": 4,
+  "value": 500,
+  "ton": 5,
   "estimated": true,
-  "emoji": "🐰",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/jelly-bunnies.webp"
  },
  {
   "id": "kissed-frogs",
   "name": "Kissed Frogs",
-  "price": 4,
+  "value": 2500,
+  "ton": 25,
   "estimated": true,
-  "emoji": "🐸",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/kissed-frogs.webp"
  },
  {
   "id": "lush-bouquets",
   "name": "Lush Bouquets",
-  "price": 4,
+  "value": 400,
+  "ton": 4,
   "estimated": true,
-  "emoji": "💐",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/lush-bouquets.webp"
  },
  {
   "id": "mad-pumpkins",
   "name": "Mad Pumpkins",
-  "price": 4,
+  "value": 1200,
+  "ton": 12,
   "estimated": true,
-  "emoji": "🎃",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/mad-pumpkins.webp"
  },
  {
   "id": "magic-potions",
   "name": "Magic Potions",
-  "price": 4,
+  "value": 5000,
+  "ton": 50,
   "estimated": true,
-  "emoji": "🧪",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/magic-potions.webp"
  },
  {
   "id": "mighty-arms",
   "name": "Mighty Arms",
-  "price": 5,
+  "value": 13000,
+  "ton": 130,
   "estimated": true,
-  "emoji": "💪",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/mighty-arms.webp"
  },
  {
   "id": "mini-oscars",
   "name": "Mini Oscars",
-  "price": 6,
+  "value": 5500,
+  "ton": 55,
   "estimated": true,
-  "emoji": "🏆",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/mini-oscars.webp"
  },
  {
   "id": "mirage-lamps",
   "name": "Mirage Lamps",
-  "price": 7,
+  "value": 600,
+  "ton": 6,
   "estimated": true,
-  "emoji": "🪔",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/mirage-lamps.webp"
  },
  {
   "id": "perfume-bottles",
   "name": "Perfume Bottles",
-  "price": 5,
+  "value": 7000,
+  "ton": 70,
   "estimated": true,
-  "emoji": "🧴",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/perfume-bottles.webp"
  },
  {
   "id": "pet-snakes",
   "name": "Pet Snakes",
-  "price": 3,
+  "value": 300,
+  "ton": 3,
   "estimated": true,
-  "emoji": "🐍",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/pet-snakes.webp"
  },
  {
   "id": "plush-pepes",
   "name": "Plush Pepes",
-  "price": 3500,
+  "value": 500000,
+  "ton": 5000,
   "estimated": true,
-  "emoji": "🐸",
-  "rarity": "legendary"
+  "kind": "nft",
+  "image": "images/gifts/plush-pepes.webp"
  },
  {
   "id": "precious-peaches",
   "name": "Precious Peaches",
-  "price": 4,
+  "value": 40000,
+  "ton": 400,
   "estimated": true,
-  "emoji": "🍑",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/precious-peaches.webp"
  },
  {
   "id": "santa-hats",
   "name": "Santa Hats",
-  "price": 3,
+  "value": 300,
+  "ton": 3,
   "estimated": true,
-  "emoji": "🎩",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/santa-hats.webp"
  },
  {
   "id": "scared-cats",
   "name": "Scared Cats",
-  "price": 4,
+  "value": 3000,
+  "ton": 30,
   "estimated": true,
-  "emoji": "🐱",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/scared-cats.webp"
  },
  {
   "id": "sharp-tongues",
   "name": "Sharp Tongues",
-  "price": 4,
+  "value": 2500,
+  "ton": 25,
   "estimated": true,
-  "emoji": "👅",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/sharp-tongues.webp"
  },
  {
   "id": "signet-rings",
   "name": "Signet Rings",
-  "price": 8,
+  "value": 2200,
+  "ton": 22,
   "estimated": true,
-  "emoji": "💍",
-  "rarity": "rare"
+  "kind": "nft",
+  "image": "images/gifts/signet-rings.webp"
  },
  {
   "id": "skull-flowers",
   "name": "Skull Flowers",
-  "price": 4,
+  "value": 800,
+  "ton": 8,
   "estimated": true,
-  "emoji": "🌸",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/skull-flowers.webp"
  },
  {
   "id": "spiced-wines",
   "name": "Spiced Wines",
-  "price": 3,
+  "value": 300,
+  "ton": 3,
   "estimated": true,
-  "emoji": "🍷",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/spiced-wines.webp"
  },
  {
   "id": "spy-agarics",
   "name": "Spy Agarics",
-  "price": 3,
+  "value": 400,
+  "ton": 4,
   "estimated": true,
-  "emoji": "🍄",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/spy-agarics.webp"
  },
  {
   "id": "trapped-hearts",
   "name": "Trapped Hearts",
-  "price": 4,
+  "value": 800,
+  "ton": 8,
   "estimated": true,
-  "emoji": "❤️",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/trapped-hearts.webp"
  },
  {
   "id": "valentine-boxes",
   "name": "Valentine Boxes",
-  "price": 3,
+  "value": 700,
+  "ton": 7,
   "estimated": true,
-  "emoji": "📦",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/valentine-boxes.webp"
  },
  {
   "id": "vice-creams",
   "name": "Vice Creams",
-  "price": 3,
+  "value": 400,
+  "ton": 4,
   "estimated": true,
-  "emoji": "🍦",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/vice-creams.webp"
  },
  {
   "id": "victory-medals",
   "name": "Victory Medals",
-  "price": 5,
+  "value": 500,
+  "ton": 5,
   "estimated": true,
-  "emoji": "🥇",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/victory-medals.webp"
  },
  {
   "id": "vintage-cigars",
   "name": "Vintage Cigars",
-  "price": 5,
+  "value": 2500,
+  "ton": 25,
   "estimated": true,
-  "emoji": "🚬",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/vintage-cigars.webp"
  },
  {
   "id": "witch-hats",
   "name": "Witch Hats",
-  "price": 3,
+  "value": 400,
+  "ton": 4,
   "estimated": true,
-  "emoji": "🎩",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/witch-hats.webp"
  },
  {
   "id": "xmas-stockings",
   "name": "Xmas Stockings",
-  "price": 3,
+  "value": 300,
+  "ton": 3,
   "estimated": true,
-  "emoji": "🧦",
-  "rarity": "common"
+  "kind": "nft",
+  "image": "images/gifts/xmas-stockings.webp"
+ },
+ {
+  "id": "heart-15",
+  "name": "Heart",
+  "value": 15,
+  "ton": 0.15,
+  "estimated": false,
+  "kind": "regular",
+  "image": "images/gifts/heart-15.webp"
+ },
+ {
+  "id": "bear-15",
+  "name": "Bear",
+  "value": 15,
+  "ton": 0.15,
+  "estimated": false,
+  "kind": "regular",
+  "image": "images/gifts/bear-15.webp"
+ },
+ {
+  "id": "gift-25",
+  "name": "Gift",
+  "value": 25,
+  "ton": 0.25,
+  "estimated": false,
+  "kind": "regular",
+  "image": "images/gifts/gift-25.webp"
+ },
+ {
+  "id": "cake-50",
+  "name": "Cake",
+  "value": 50,
+  "ton": 0.5,
+  "estimated": false,
+  "kind": "regular",
+  "image": "images/gifts/cake-50.webp"
+ },
+ {
+  "id": "trophy-100",
+  "name": "Trophy",
+  "value": 100,
+  "ton": 1,
+  "estimated": false,
+  "kind": "regular",
+  "image": "images/gifts/trophy-100.webp"
+ },
+ {
+  "id": "diamond-100",
+  "name": "Diamond",
+  "value": 100,
+  "ton": 1,
+  "estimated": false,
+  "kind": "regular",
+  "image": "images/gifts/diamond-100.webp"
  }
 ]
