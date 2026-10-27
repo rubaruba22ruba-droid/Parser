@@ -7,8 +7,15 @@ import { getUser } from './wallet.mjs';
 import { tg } from './tg.mjs';
 
 export const isAdmin = u => cfg.adminIds.includes(u.id) || (cfg.dev && cfg.adminIds.length === 0);
+// Кому выдать: 'me' / пусто — себе, '@username' или username, либо Telegram ID
+export function findUser(target, me) {
+  const t = String(target ?? '').trim();
+  if (!t || t.toLowerCase() === 'me' || t.toLowerCase() === 'себе') return getUser(me);
+  if (/^\d+$/.test(t)) return getUser(Number(t));
+  return one('SELECT * FROM users WHERE username=? COLLATE NOCASE', t.replace(/^@/, ''));
+}
 const DAY = 86400000;
-const NUM_KEYS = ['caseRtp', 'generosity', 'maxHit', 'upgradeFactor', 'upgradeMaxChance', 'referralPercent', 'refPromoBonus', 'withdrawMinTon', 'withdrawWindowDays', 'starsPerTon', 'minDepositTon', 'dailyShares', 'freeCooldownHours'];
+const NUM_KEYS = ['caseRtp', 'generosity', 'generosityDown', 'maxHit', 'upgradeFactor', 'upgradeMaxChance', 'referralPercent', 'refPromoBonus', 'withdrawMinTon', 'withdrawWindowDays', 'starsPerTon', 'minDepositTon', 'dailyShares', 'freeCooldownHours'];
 
 function caseView(c) {
   return { id: c.id, name: c.name, price: c.price, free: c.free, disabled: !!c.disabled, rtp: c.rtp, hit: c.hit, manual: !!(settings().cases[c.id] || {}).manual,
@@ -36,11 +43,11 @@ async function broadcast(text) {
 }
 
 export const adminRoutes = {
-  'admin/overview': () => ({ stats: stats(), settings: settings(), cases: CASES.map(caseView) }),
+  'admin/overview': u => ({ me: { id: u.id, balance: getUser(u.id).balance }, stats: stats(), settings: settings(), cases: CASES.map(caseView) }),
   'admin/settings/save': (u, b) => {
     const patch = {};
     for (const k of NUM_KEYS) if (b[k] !== undefined && b[k] !== '') { const v = Number(b[k]); if (!Number.isFinite(v) || v < 0) throw new Error(`Неверное значение ${k}`); patch[k] = v; }
-    if (patch.caseRtp > 3 || patch.upgradeFactor > 1.5 || patch.upgradeMaxChance > 1 || patch.maxHit > 0.95) throw new Error('Слишком большое значение');
+    if (patch.caseRtp > 3 || patch.upgradeFactor > 1.5 || patch.upgradeMaxChance > 1 || patch.maxHit > 0.95 || patch.generosity > 20 || patch.generosityDown > 20) throw new Error('Слишком большое значение');
     saveSettings(patch); rebuildCases(); return { ok: true, settings: settings(), cases: CASES.map(caseView) };
   },
   'admin/case/save': (u, b) => {
@@ -58,7 +65,13 @@ export const adminRoutes = {
     return q(`SELECT u.id, u.username, u.name, u.balance, u.banned, u.created, COALESCE((SELECT SUM(ton) FROM deposits d WHERE d.user_id=u.id AND d.kind!='admin'),0) dep_ton,
       (SELECT COUNT(*) FROM users r WHERE r.referred_by=u.id) refs FROM users u WHERE ?='' OR CAST(u.id AS TEXT)=? OR u.username LIKE ? OR u.name LIKE ? ORDER BY u.last_seen DESC LIMIT 50`, s, s, like, like);
   },
-  'admin/user/balance': (u, b) => { const t = getUser(Number(b.id)); if (!t) throw new Error('Нет юзера'); run('UPDATE users SET balance=MAX(0,balance+?) WHERE id=?', Math.round(Number(b.delta) || 0), t.id); return getUser(t.id); },
+  'admin/user/balance': (u, b) => {
+    const t = findUser(b.target ?? b.id, u.id); if (!t) throw new Error('Юзер не найден — он должен хотя бы раз открыть бота');
+    const delta = Math.round(Number(b.delta) || 0); if (!delta) throw new Error('Укажите сумму');
+    run('UPDATE users SET balance=MAX(0,balance+?) WHERE id=?', delta, t.id);
+    run('INSERT INTO kv(k,v) VALUES(?,?)', 'grant:' + Date.now() + ':' + t.id, JSON.stringify({ by: u.id, to: t.id, delta }));
+    return getUser(t.id);
+  },
   'admin/user/ban': (u, b) => { run('UPDATE users SET banned=? WHERE id=?', b.banned ? 1 : 0, Number(b.id)); return getUser(Number(b.id)); },
   'admin/withdrawals': () => q(`SELECT w.id, w.user_id, w.state, w.created, i.name, i.value, i.image, us.username, COALESCE((SELECT SUM(ton) FROM deposits d WHERE d.user_id=w.user_id AND d.kind!='admin'),0) dep_ton
       FROM withdrawals w JOIN inventory i ON i.id=w.inv_id JOIN users us ON us.id=w.user_id ORDER BY (w.state='pending') DESC, w.id DESC LIMIT 100`),

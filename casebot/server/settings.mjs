@@ -3,9 +3,10 @@ import { cfg } from './config.mjs';
 import { one, run } from './db.mjs';
 
 const DEFAULTS = () => ({
-  caseRtp: Number(process.env.CASE_RTP || 0.70),   // средняя выдача кейсов (0.70 = 70%)
-  generosity: 2.2,                                  // чем больше — тем чаще «чуть дороже кейса», тем реже джекпоты
-  maxHit: 0.6,                                      // потолок шанса «в плюс»
+  caseRtp: Number(process.env.CASE_RTP || 0.88),   // средняя выдача кейсов (0.82 = 82%)
+  generosity: 5,                                    // вес «чуть дороже кейса»: больше — чаще дорогой дроп, реже джекпоты                                  // чем больше — тем чаще «чуть дороже кейса», тем реже джекпоты
+  generosityDown: 2.5,                              // в проигрышных дропах — тянуть к самой дешёвой мелочи
+  maxHit: 0.66,                                     // потолок шанса «в плюс» (≈60% открытий дороже кейса)
   upgradeFactor: cfg.upgradeFactor,                 // шанс апгрейда = ставка / цель × factor
   upgradeMaxChance: cfg.upgradeMaxChance,
   referralPercent: cfg.referralPercent,

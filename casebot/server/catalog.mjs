@@ -13,7 +13,7 @@ export function rebuildCases() {
   CASES = DEFS.map(d => {
     const o = s.cases[d.id] || {};
     return computeCase({ ...d, price: o.price ?? d.price, disabled: !!o.disabled }, GIFT_BY_ID,
-      { rtp: o.rtp ?? s.caseRtp, kUp: s.generosity, maxHit: s.maxHit, manual: o.manual });
+      { rtp: o.rtp ?? s.caseRtp, kUp: s.generosity, kDown: s.generosityDown, maxHit: s.maxHit, manual: o.manual });
   });
   CASE_BY_ID = new Map(CASES.map(c => [c.id, c]));
   return CASES;

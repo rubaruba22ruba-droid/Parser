@@ -31,8 +31,9 @@
       const f = (k, label, hint, step = 'any') => `<label class="f"><span>${label}</span><input name="${k}" type="number" step="${step}" value="${s[k]}">${hint ? `<div class="hint">${hint}</div>` : ''}</label>`;
       return `<form class="card" id="setForm"><h3>Свои проценты</h3>
         ${f('caseRtp', 'RTP кейсов (0.70 = 70%)', 'Какую долю цены кейса в среднем отдаёт кейс. Применяется ко всем кейсам, если у кейса не задан свой.')}
-        ${f('generosity', 'Щедрость дропа', 'Больше — чаще выпадает «чуть дороже кейса», реже джекпоты. 1.5–3.')}
-        ${f('maxHit', 'Потолок шанса «в плюс» (0.6 = 60%)')}
+        ${f('generosity', 'Щедрость дропа', 'Больше — чаще выпадает «чуть дороже кейса», реже джекпоты. 3–6.')}
+        ${f('generosityDown', 'Мелочь в проигрыше', 'Больше — проигрышный дроп тянется к самым дешёвым подаркам, а шанс «в плюс» растёт. 1–3.')}
+        ${f('maxHit', 'Потолок шанса «в плюс» (0.66 = 66%)')}
         ${f('upgradeFactor', 'Апгрейд: множитель шанса', 'Шанс = ставка / цель × множитель. 0.6 → на x2 шанс 30%. Меньше — апгрейды чаще сливают.')}
         ${f('upgradeMaxChance', 'Апгрейд: максимальный шанс (0.6 = 60%)')}
         ${f('referralPercent', 'Реферальный % с депозитов друзей')}
@@ -58,7 +59,14 @@
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" name="save">Сохранить цену/RTP</button><button class="btn sm ghost" name="manual">Сохранить шансы вручную</button><button class="btn sm ghost" name="auto">Шансы авто</button></div></form>`).join('');
     },
     async users() {
-      return `<div class="card"><input id="uq" placeholder="ID, @username или имя"></div><div class="card" id="ulist"><div class="a-empty">Введите запрос</div></div>`;
+      data = data || await api('admin/overview');
+      return `<form class="card" id="grantForm"><h3>Выдать баланс</h3>
+        <div class="hint">Твой баланс: <b>${fmt(data.me.balance)} ⭐</b> · твой ID ${data.me.id}</div>
+        <label class="f"><span>Кому (пусто — себе, @username или ID)</span><input id="gTarget" name="target" placeholder="себе"></label>
+        <label class="f"><span>Сколько ⭐ (минус — списать)</span><input id="gDelta" name="delta" type="number" value="1000"></label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${[1000, 10000, 100000, 1000000].map(v => `<button type="button" class="btn sm ghost" data-quick="${v}">+${fmt(v)}</button>`).join('')}</div>
+        <div style="display:flex;gap:8px"><button class="btn g" name="go">Выдать</button><button type="button" class="btn ghost" data-self="1">Себе</button></div></form>
+        <div class="card"><input id="uq" placeholder="Поиск: ID, @username или имя"></div><div class="card" id="ulist"><div class="a-empty">Введите запрос — или нажмите «±⭐» у юзера</div></div>`;
     },
     async withdrawals() {
       const list = await api('admin/withdrawals');
@@ -89,6 +97,10 @@
     e.preventDefault(); const f = e.target, fd = Object.fromEntries(new FormData(f));
     try {
       if (f.id === 'setForm') { const r = await api('admin/settings/save', fd); data.settings = r.settings; data.cases = r.cases; toast('Сохранено'); }
+      else if (f.id === 'grantForm') {
+        const r = await api('admin/user/balance', { target: fd.target, delta: fd.delta });
+        toast(`Готово: ${r.id} теперь ${fmt(r.balance)} ⭐`); if (r.id === data.me.id) data.me.balance = r.balance; show('users');
+      }
       else if (f.id === 'promoForm') { await api('admin/promo/create', fd); toast('Промокод создан'); show('promos'); }
       else if (f.id === 'bcForm') { const r = await api('admin/broadcast', fd); toast(`В очереди: ${r.queued}`); f.reset(); }
       else if (f.classList.contains('case-f')) {
@@ -105,7 +117,9 @@
     try {
       if (wd) { await api('admin/withdrawal/set', { id: wd.dataset.wd, state: wd.dataset.st }); toast('Готово'); show('withdrawals'); }
       if (del) { await api('admin/promo/delete', { code: del.dataset.del }); show('promos'); }
-      if (ub) { const v = prompt('Сколько ⭐ добавить (минус — списать)?', '100'); if (v) { await api('admin/user/balance', { id: ub.dataset.ubal, delta: v }); toast('Баланс изменён'); searchUsers(); } }
+      if (ub) { $('gTarget').value = ub.dataset.ubal; $('gDelta').focus(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      const qb = e.target.closest('[data-quick]'); if (qb) $('gDelta').value = qb.dataset.quick;
+      const sb = e.target.closest('[data-self]'); if (sb) { $('gTarget').value = ''; const r = await api('admin/user/balance', { target: 'me', delta: $('gDelta').value }); data.me.balance = r.balance; toast(`Себе: теперь ${fmt(r.balance)} ⭐`); show('users'); }
       if (ban) { await api('admin/user/ban', { id: ban.dataset.ban, banned: ban.dataset.v === '1' }); searchUsers(); }
     } catch (err) { toast(err.message); }
   });

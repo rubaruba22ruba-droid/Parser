@@ -4,7 +4,7 @@ import { settings as S } from './settings.mjs';
 import { one, run, q } from './db.mjs';
 import { tg } from './tg.mjs';
 import { addDeposit, getUser } from './wallet.mjs';
-import { promoFor, usePromo } from './admin.mjs';
+import { promoFor, usePromo, findUser } from './admin.mjs';
 
 const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const appKeyboard = () => cfg.webappUrl ? { inline_keyboard: [[{ text: '🎮 Играть', web_app: { url: cfg.webappUrl } }], [{ text: '💬 Поддержка', url: `https://t.me/${cfg.support.replace(/^@/, '')}` }]] } : undefined;
@@ -47,9 +47,10 @@ async function adminCommand(m) {
     tg('sendMessage', { chat_id: w.user_id, text: cmd === '/done' ? '✅ Ваш подарок выдан. Спасибо за игру!' : '❌ Заявка на вывод отклонена, подарок вернулся в инвентарь.' }).catch(() => {});
     return say(`Заявка #${w.id}: ${cmd === '/done' ? 'выдан' : 'отклонена'}`);
   }
-  if (cmd === '/give') {
-    const uid = Number(a), n = parseInt(b, 10); if (!getUser(uid) || !Number.isFinite(n)) return say('Использование: /give &lt;user_id&gt; &lt;звёзды&gt;');
-    run('UPDATE users SET balance=balance+? WHERE id=?', n, uid); return say(`Баланс ${uid}: ${getUser(uid).balance} ⭐`);
+  if (cmd === '/give') {   // /give me 10000 · /give @username 500 · /give 123456 -100
+    const t = findUser(a, m.from.id), n = parseInt(b, 10);
+    if (!t || !Number.isFinite(n)) return say('Использование: /give me|@username|id сумма\nПример: /give me 10000');
+    run('UPDATE users SET balance=MAX(0,balance+?) WHERE id=?', n, t.id); return say(`✅ ${n > 0 ? '+' : ''}${n} ⭐ → ${t.id} @${esc(t.username || '—')}\nБаланс: ${getUser(t.id).balance} ⭐`);
   }
   if (cmd === '/ban') { run('UPDATE users SET banned=1 WHERE id=?', Number(a)); return say('Заблокирован'); }
 }

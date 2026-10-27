@@ -24,7 +24,7 @@ const DEFS = [
   { id: 'case2', name: 'Free', price: 0, theme: ['#38bdf8', '#1e3a8a', '#a5f3fc'], free: [['heart-15', 0.97], ['xmas-stockings', 0.03]], art: ['xmas-stockings', 'heart-15', 'heart-15', 'heart-15', 'heart-15'] },
   // ФАРМ
   { id: 'case4', name: 'Hearts', price: 49, theme: ['#f43f5e', '#881337', '#fda4af'], items: ['heart-15', 'bear-15', 'gift-25', 'cake-50', 'trophy-100', 'diamond-100', 'big-years', 'mood-packs'] },
-  { id: 'case5', name: 'Sweet', price: 249, theme: ['#fb923c', '#7c2d12', '#fed7aa'], items: ['gift-25', 'cake-50', 'trophy-100', 'diamond-100', 'big-years', 'whip-cupcakes', 'mousse-cakes', 'ginger-cookies', 'bunny-muffins', 'love-candles'] },
+  { id: 'case5', name: 'Sweet', price: 449, theme: ['#fb923c', '#7c2d12', '#fed7aa'], items: ['gift-25', 'cake-50', 'trophy-100', 'diamond-100', 'big-years', 'whip-cupcakes', 'mousse-cakes', 'ginger-cookies', 'bunny-muffins', 'love-candles'] },
   { id: 'case6', name: 'Party', price: 399, theme: ['#22d3ee', '#164e63', '#a5f3fc'], items: ['cake-50', 'trophy-100', 'diamond-100', 'instant-ramens', 'party-sparklers', 'jacks-in-the-box', 'snow-globes', 'jolly-chimps', 'hanging-stars', 'joyful-bundles', 'record-players', 'crystal-balls', 'love-potions'] },
   // ОБЫЧНЫЕ
   { id: 'case3', name: 'Wonderland', price: 790, theme: ['#a78bfa', '#3b0764', '#e9d5ff'], items: ['cake-50', 'trophy-100', 'diamond-100', 'big-years', 'mousse-cakes', 'spring-baskets', 'jacks-in-the-box', 'witch-hats', 'top-hats', 'sleigh-bells', 'flying-brooms', 'crystal-balls', 'mad-pumpkins', 'cupid-charms', 'eternal-roses'] },
@@ -47,7 +47,7 @@ writeFileSync(ROOT + 'server/gifts.json', JSON.stringify(gifts, null, 1));
 writeFileSync(ROOT + 'server/cases.json', JSON.stringify({ starsPerTon: STARS_PER_TON, cases: defs }, null, 1));
 console.log(`подарков с реальной 3D-картинкой: ${gifts.length}/${all.length}` + (missing.length ? `; ждут картинку: ${missing.join(', ')}` : ''));
 for (const d of defs) {
-  const c = computeCase(d, G, { rtp: 0.7 });
+  const c = computeCase(d, G, { rtp: 0.88, kUp: 5, kDown: 2.5, maxHit: 0.66 });
   const top = G.get(c.items[0].giftId);
   console.log(d.id.padEnd(7), d.name.padEnd(11), String(d.price || 'FREE').padStart(6), '⭐ ·', String(c.items.length).padStart(2), 'шт ·',
     c.rtp ? `RTP ${(c.rtp * 100).toFixed(1)}% · дороже кейса: ${(c.hit * 100).toFixed(0)}%` : 'бесплатный', '· топ:', top.name, top.value + '⭐');

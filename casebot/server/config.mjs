@@ -24,8 +24,8 @@ export const cfg = {
   dailyShares: Number(env.DAILY_SHARES || 3),
   referralPercent: Number(env.REFERRAL_PERCENT || 10),
   // апгрейд: шанс = ставка / цель × factor (не больше maxChance)
-  upgradeFactor: Number(env.UPGRADE_FACTOR || 0.6),
-  upgradeMaxChance: Number(env.UPGRADE_MAX_CHANCE || 0.6),
+  upgradeFactor: Number(env.UPGRADE_FACTOR || 0.95),   // апгрейды заходят часто
+  upgradeMaxChance: Number(env.UPGRADE_MAX_CHANCE || 0.92),
   upgradeMaxItems: 6,
   refPromoBonus: Number(env.REF_PROMO_BONUS || 10),
   publicUrl: (env.PUBLIC_URL || env.WEBAPP_URL || env.RENDER_EXTERNAL_URL || (env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + env.RAILWAY_PUBLIC_DOMAIN : '')).replace(/\/$/, ''),

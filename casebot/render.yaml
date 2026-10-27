@@ -1,4 +1,4 @@
-# Render Blueprint: New → Blueprint → выбрать репозиторий. Задайте BOT_TOKEN и ADMIN_IDS — адрес мини-апп подставится сам.
+# Render Blueprint: New → Blueprint → выбрать репозиторий → вставить BOT_TOKEN. Адрес мини-апп подставится сам.
 services:
   - type: web
     name: drade-drop
@@ -11,7 +11,7 @@ services:
       - key: BOT_TOKEN
         sync: false
       - key: ADMIN_IDS
-        sync: false
+        value: "7595917205"
       - key: TON_ADDRESS
         value: UQCvGGYFcqrPS3h_AXiVzVHvmUTKLJJ5DurV_VBhpMXcQtd3
       - key: SUPPORT
