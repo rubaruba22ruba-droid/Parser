@@ -5,6 +5,7 @@ import { cfg } from './config.mjs';
 import { one, run } from './db.mjs';
 import { verifyInitData } from './auth.mjs';
 import { routes, inventoryOf, ApiError } from './api.mjs';
+import { adminRoutes, isAdmin } from './admin.mjs';
 import { startDepositWatcher } from './ton.mjs';
 import { startBot } from './bot.mjs';
 import { getUser } from './wallet.mjs';
@@ -26,7 +27,7 @@ function upsertUser(tg, startParam) {
 async function handleApi(req, res, url) {
   const name = url.pathname.slice(5);
   const m = /^inventory\/(\d+)$/.exec(name);
-  const handler = m ? null : routes[name];
+  const handler = m ? null : (routes[name] || adminRoutes[name]);
   if (!m && !handler) return json(res, 404, { error: 'not found' });
   let body = {};
   if (req.method === 'POST') { let raw = ''; for await (const ch of req) { raw += ch; if (raw.length > 1e5) return json(res, 413, { error: 'too big' }); } try { body = raw ? JSON.parse(raw) : {}; } catch { return json(res, 400, { error: 'bad json' }); } }
@@ -37,9 +38,11 @@ async function handleApi(req, res, url) {
   if (user.banned) return json(res, 403, { error: 'banned' });
   try {
     if (m) { if (Number(m[1]) !== user.id) throw new ApiError('forbidden', 403); return json(res, 200, inventoryOf(user)); }
+    if (adminRoutes[name] && !isAdmin(user)) throw new ApiError('forbidden', 403);
     const out = await handler(user, body); json(res, 200, out);
   } catch (e) {
     if (e instanceof ApiError) return json(res, e.status, { success: false, error: e.message, ...(e.code ? { code: e.code } : {}) });
+    if (adminRoutes[name]) return json(res, 400, { success: false, error: e.message });
     console.error('api', name, e); json(res, 500, { success: false, error: 'Ошибка сервера' });
   }
 }

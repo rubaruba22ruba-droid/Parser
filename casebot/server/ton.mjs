@@ -1,8 +1,10 @@
 // Пополнение TON: TonConnect-платёж с уникальным комментарием + ручной перевод с комментарием dep<telegram_id>.
 import { randomBytes } from 'node:crypto';
 import { cfg } from './config.mjs';
+import { settings as S } from './settings.mjs';
 import { q, one, run } from './db.mjs';
 import { addDeposit } from './wallet.mjs';
+import { promoFor, usePromo } from './admin.mjs';
 
 // --- проверка адреса (base64url, CRC16-XMODEM) ---
 const crc16 = b => { let c = 0; for (const x of b) { c ^= x << 8; for (let i = 0; i < 8; i++) c = c & 0x8000 ? ((c << 1) ^ 0x1021) & 0xffff : (c << 1) & 0xffff; } return c; };
@@ -18,10 +20,10 @@ export function commentBoc(text) {
   return Buffer.concat([Buffer.from([0xb5, 0xee, 0x9c, 0x72, 0x01, 0x01, 0x01, 0x01, 0x00, cell.length, 0x00]), cell]).toString('base64');
 }
 
-export function createIntent(userId, amountTon) {
+export function createIntent(userId, amountTon, promo = null) {
   const nano = BigInt(Math.round(amountTon * 1e9));
   const id = randomBytes(6).toString('hex'), comment = 'cg' + id;
-  run('INSERT INTO intents(id,user_id,amount_nano,amount_ton,comment,created) VALUES(?,?,?,?,?,?)', id, userId, nano.toString(), amountTon, comment, Date.now());
+  run('INSERT INTO intents(id,user_id,amount_nano,amount_ton,comment,created,promo) VALUES(?,?,?,?,?,?,?)', id, userId, nano.toString(), amountTon, comment, Date.now(), promo);
   return { intentId: id, walletAddress: cfg.tonAddress, amountNano: nano.toString(), comment, commentBoc: commentBoc(comment) };
 }
 
@@ -47,15 +49,16 @@ export function pollDeposits(force = false) {
       const intent = pending.find(i => i.comment === text);
       if (intent) {
         if (nano * 100n < BigInt(intent.amount_nano) * 99n) continue; // недоплата (>1%) — не засчитываем
-        const ton = Number(nano) / 1e9, stars = Math.floor(ton * cfg.starsPerTon);
-        if (addDeposit({ ref: hash, kind: 'ton', userId: intent.user_id, stars, ton })) run("UPDATE intents SET status='completed', credited=? WHERE id=?", stars, intent.id);
+        const ton = Number(nano) / 1e9, stars = Math.floor(ton * S().starsPerTon);
+        const promo = intent.promo ? promoFor(intent.promo, 'bonus') : null, bonus = promo && usePromo(promo, intent.user_id) ? Math.floor(stars * promo.value / 100) : 0;
+        if (addDeposit({ ref: hash, kind: 'ton', userId: intent.user_id, stars, ton, bonus })) run("UPDATE intents SET status='completed', credited=? WHERE id=?", stars + bonus, intent.id);
         else run("UPDATE intents SET status='completed' WHERE id=?", intent.id);
         continue;
       }
       const mt = /^dep(\d+)$/.exec(text); // ручной перевод с любого кошелька
       if (mt && one('SELECT 1 FROM users WHERE id=?', Number(mt[1]))) {
-        const ton = Number(nano) / 1e9; if (ton < cfg.minDepositTon) continue;
-        addDeposit({ ref: hash, kind: 'ton', userId: Number(mt[1]), stars: Math.floor(ton * cfg.starsPerTon), ton });
+        const ton = Number(nano) / 1e9; if (ton < S().minDepositTon) continue;
+        addDeposit({ ref: hash, kind: 'ton', userId: Number(mt[1]), stars: Math.floor(ton * S().starsPerTon), ton });
       }
     }
     run("UPDATE intents SET status='expired' WHERE status='pending' AND created<?", Date.now() - 6 * 3600000);

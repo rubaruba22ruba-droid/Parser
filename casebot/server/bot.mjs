@@ -1,9 +1,10 @@
 // Telegram-бот (long polling): приветствие → Mini App, платежи Stars, команды админа.
 import { cfg } from './config.mjs';
+import { settings as S } from './settings.mjs';
 import { one, run, q } from './db.mjs';
 import { tg } from './tg.mjs';
 import { addDeposit, getUser } from './wallet.mjs';
-import { RTP } from './catalog.mjs';
+import { promoFor, usePromo } from './admin.mjs';
 
 const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const appKeyboard = () => cfg.webappUrl ? { inline_keyboard: [[{ text: '🎮 Играть', web_app: { url: cfg.webappUrl } }], [{ text: '💬 Поддержка', url: `https://t.me/${cfg.support.replace(/^@/, '')}` }]] } : undefined;
@@ -33,7 +34,7 @@ async function adminCommand(m) {
   if (cmd === '/stats') {
     const o = one('SELECT COUNT(*) n, COALESCE(SUM(price),0) inn, COALESCE(SUM(value),0) out FROM opens WHERE price>0');
     const u = one('SELECT COUNT(*) n, COALESCE(SUM(balance),0) bal FROM users'), d = one("SELECT COALESCE(SUM(ton),0) t FROM deposits WHERE kind!='admin'");
-    return say(`📊 Пользователей: ${u.n}\nБаланс игроков: ${u.bal} ⭐\nДепозиты: ${d.t.toFixed(2)} TON\nОткрытий платных: ${o.n}\nПринято: ${o.inn} ⭐ · Выдано: ${o.out} ⭐\nФактический RTP: ${o.inn ? (o.out / o.inn * 100).toFixed(1) : '—'}% (план ${RTP * 100}%)`);
+    return say(`📊 Пользователей: ${u.n}\nБаланс игроков: ${u.bal} ⭐\nДепозиты: ${d.t.toFixed(2)} TON\nОткрытий платных: ${o.n}\nПринято: ${o.inn} ⭐ · Выдано: ${o.out} ⭐\nФактический RTP: ${o.inn ? (o.out / o.inn * 100).toFixed(1) : '—'}% (план ${Math.round(S().caseRtp * 100)}%)`);
   }
   if (cmd === '/wd') {
     const rows = q("SELECT w.id, w.user_id, i.name, i.value, u.username FROM withdrawals w JOIN inventory i ON i.id=w.inv_id JOIN users u ON u.id=w.user_id WHERE w.state='pending' ORDER BY w.id");
@@ -57,23 +58,28 @@ async function onUpdate(u) {
   if (u.pre_checkout_query) return tg('answerPreCheckoutQuery', { pre_checkout_query_id: u.pre_checkout_query.id, ok: true });
   const m = u.message; if (!m) return;
   if (m.successful_payment) {
-    const p = m.successful_payment, mt = /^stars:(\d+):(\d+)$/.exec(p.invoice_payload || '');
+    const p = m.successful_payment, mt = /^stars:(\d+):(\d+)(?::([\w-]+))?$/.exec(p.invoice_payload || '');
     if (mt && Number(mt[1]) === m.from.id && p.currency === 'XTR') {
-      const stars = p.total_amount; addDeposit({ ref: 'xtr:' + p.telegram_payment_charge_id, kind: 'stars', userId: m.from.id, stars, ton: stars / cfg.starsPerTon });
-      await tg('sendMessage', { chat_id: m.chat.id, text: `✅ Баланс пополнен на ${stars} ⭐` });
+      const stars = p.total_amount, promo = mt[3] ? promoFor(mt[3], 'bonus') : null, bonus = promo && usePromo(promo, m.from.id) ? Math.floor(stars * promo.value / 100) : 0;
+      addDeposit({ ref: 'xtr:' + p.telegram_payment_charge_id, kind: 'stars', userId: m.from.id, stars, ton: stars / S().starsPerTon, bonus });
+      await tg('sendMessage', { chat_id: m.chat.id, text: `✅ Баланс пополнен на ${stars + bonus} ⭐${bonus ? ` (с бонусом ${promo.value}%)` : ''}` });
     }
     return;
   }
   if (!m.text) return;
   if (m.text.startsWith('/start')) return onStart(m);
+  if (m.text.startsWith('/support')) return tg('sendMessage', { chat_id: m.chat.id, text: `💬 Поддержка и вывод подарков: ${cfg.support}\nДля вывода нужен депозит от ${S().withdrawMinTon} TON за последние ${S().withdrawWindowDays} дней.` });
   if (cfg.adminIds.includes(m.from.id) && /^\/(stats|wd|done|reject|give|ban)\b/.test(m.text)) return adminCommand(m);
   if (m.chat.type === 'private') await tg('sendMessage', { chat_id: m.chat.id, text: 'Нажми «Играть», чтобы открыть кейсы 👇', reply_markup: appKeyboard() });
 }
 
 export async function startBot() {
   const me = await tg('getMe'); if (!cfg.botUsername) cfg.botUsername = me.username;
-  await tg('setMyCommands', { commands: [{ command: 'start', description: 'Открыть игру' }] }).catch(() => {});
+  await tg('setMyCommands', { commands: [{ command: 'start', description: 'Открыть игру' }, { command: 'support', description: 'Поддержка и вывод подарков' }] }).catch(() => {});
   if (cfg.webappUrl) await tg('setChatMenuButton', { menu_button: { type: 'web_app', text: '🎮 Играть', web_app: { url: cfg.webappUrl } } }).catch(() => {});
+  else console.warn('WEBAPP_URL не задан — кнопка «Играть» не появится. Укажите https-адрес сервера.');
+  await tg('setMyDescription', { description: `🎁 ${cfg.brand} — кейсы с NFT-подарками Telegram.\n\n🆓 Бесплатные кейсы каждый день\n🚀 Апгрейдер\n💎 Пополнение TON и Stars\n\nНажми «Старт» 👇` }).catch(() => {});
+  await tg('setMyShortDescription', { short_description: `Кейсы с NFT-подарками Telegram · бесплатные кейсы · апгрейдер` }).catch(() => {});
   console.log(`bot @${cfg.botUsername} запущен`);
   let offset = 0;
   for (;;) {

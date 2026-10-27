@@ -59,9 +59,9 @@ def place(canvas, icon, cx, cy, size, rot, glow):
 def compose(theme, hero, sats, seed):
     c1, c2, c3 = (hexrgb(c) for c in theme)
     base = Image.new('RGBA', (S, S)); d = ImageDraw.Draw(base)
-    for y in range(S):
-        t = y / S; d.line([(0, y), (S, y)], fill=(int(18 + c2[0] * .18 * (1 - t)), int(20 + c2[1] * .18 * (1 - t)), int(38 + c2[2] * .22 * (1 - t)), 255))
-    base.alpha_composite(radial(S, c1, 210, .55, (.5, .48)))
+    for y in range(S):   # фон в цвете кейса (не чёрный): сверху светлее, снизу глубже
+        t = y / S; k = .78 - .38 * t; d.line([(0, y), (S, y)], fill=(int(c2[0] * k + 14), int(c2[1] * k + 14), int(c2[2] * k + 26), 255))
+    base.alpha_composite(radial(S, c1, 235, .62, (.5, .46)))
     base.alpha_composite(rays(S, [c1, c3, (255, 255, 255), c3], seed=seed))
     base.alpha_composite(radial(S, c3, 160, .3, (.5, .5)))
     base.alpha_composite(sparkles(S, seed))

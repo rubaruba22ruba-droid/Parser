@@ -1,10 +1,12 @@
 import { randomInt } from 'node:crypto';
 import { cfg } from './config.mjs';
+import { settings as S } from './settings.mjs';
 import { q, one, run, tx } from './db.mjs';
 import { CASE_BY_ID, GIFT_BY_ID, GIFTS, casesForClient } from './catalog.mjs';
 import { getUser, depositedTon, depositedStars, referralStats } from './wallet.mjs';
 import { createIntent, pollDeposits, walletBalance } from './ton.mjs';
 import { tg, botLink, notifyAdmins } from './tg.mjs';
+import { isAdmin, promoFor, usePromo } from './admin.mjs';
 
 export class ApiError extends Error { constructor(msg, status = 400, code) { super(msg); this.status = status; this.code = code; } }
 const DAY = 86400000, today = () => new Date().toISOString().slice(0, 10);
@@ -25,17 +27,17 @@ async function isSubscribed(userId) {
 }
 async function freeStatus(u, caseId) {
   const rec = one('SELECT opened_at FROM free_opens WHERE user_id=? AND case_id=?', u.id, caseId);
-  const opened = !!rec && Date.now() - rec.opened_at < DAY;
+  const cd = S().freeCooldownHours * 3600000, opened = !!rec && Date.now() - rec.opened_at < cd;
   const needTasks = caseId === 'case1';
   const shareCount = needTasks ? (one('SELECT n FROM daily_shares WHERE user_id=? AND day=?', u.id, today())?.n || 0) : 0;
-  const sharesDone = !needTasks || shareCount >= cfg.dailyShares;
+  const sharesDone = !needTasks || shareCount >= S().dailyShares;
   const subscribed = !needTasks || await isSubscribed(u.id);
-  return { canOpen: !opened && sharesDone && subscribed, freeCaseOpenedToday: opened, nextResetAt: opened ? new Date(rec.opened_at + DAY).toISOString() : nextUtcMidnight(),
+  return { canOpen: !opened && sharesDone && subscribed, freeCaseOpenedToday: opened, nextResetAt: opened ? new Date(rec.opened_at + cd).toISOString() : nextUtcMidnight(),
     sharesDone, shareCount, subscribed, needTasks, channelUsername: cfg.dailyChannel ? '@' + cfg.dailyChannel : null };
 }
 
 async function openCase(u, b) {
-  const c = CASE_BY_ID.get(String(b.caseId)); if (!c) throw new ApiError('Кейс не найден', 404);
+  const c = CASE_BY_ID.get(String(b.caseId)); if (!c || c.disabled) throw new ApiError('Кейс не найден', 404);
   const isFree = c.free, isRef = !!c.referralPrice;
   const count = isFree || isRef ? 1 : Math.min(Math.max(parseInt(b.count, 10) || 1, 1), 5);
   const demo = !!b.isDemo && !isFree && !isRef;
@@ -72,8 +74,8 @@ async function openCase(u, b) {
 function initWithdraw(u, b) {
   const it = one("SELECT * FROM inventory WHERE id=? AND user_id=? AND state='owned'", Number(b.itemId), u.id); if (!it) throw new ApiError('Предмет не найден');
   const dep = depositedTon(u.id);
-  if (dep + 1e-9 < cfg.withdrawMinTon)
-    throw new ApiError(`Для вывода нужно пополнить баланс минимум на ${cfg.withdrawMinTon} TON за последние ${cfg.withdrawWindowDays} дней (сейчас ${dep.toFixed(2)} TON). Вывод — через поддержку ${cfg.support}`);
+  if (dep + 1e-9 < S().withdrawMinTon)
+    throw new ApiError(`Для вывода нужно пополнить баланс минимум на ${S().withdrawMinTon} TON за последние ${S().withdrawWindowDays} дней (сейчас ${dep.toFixed(2)} TON). Вывод — через поддержку ${cfg.support}`);
   const id = tx(() => { run("UPDATE inventory SET state='withdraw' WHERE id=?", it.id); return Number(run('INSERT INTO withdrawals(user_id,inv_id,created,updated) VALUES(?,?,?,?)', u.id, it.id, Date.now(), Date.now()).lastInsertRowid); });
   notifyAdmins(`📤 <b>Заявка на вывод #${id}</b>\n${it.name} (${it.value} ⭐)\nПользователь: ${u.id} @${u.username || '—'}\n/done ${id} — выдан, /reject ${id} — вернуть в инвентарь`).catch(() => {});
   return { success: true, withdrawalId: id, message: 'Запрос на вывод создан' };
@@ -91,7 +93,7 @@ function upgrade(u, b) {
     if (items.some(x => !x)) throw new ApiError('Предмет не найден');
     const stake = items.reduce((s, x) => s + x.value, 0);
     if (t.value <= stake || t.value > stake * 100) throw new ApiError('Цель должна быть дороже ставки');
-    const chance = Math.min(cfg.upgradeMaxChance, stake / t.value * cfg.upgradeFactor);
+    const chance = Math.min(S().upgradeMaxChance, stake / t.value * S().upgradeFactor);
     const roll = randomInt(0, 1e9) / 1e9, win = roll < chance;
     for (const x of items) run("UPDATE inventory SET state=? WHERE id=?", win ? 'upgraded' : 'upgrade_lost', x.id);
     let item = null;
@@ -102,7 +104,7 @@ function upgrade(u, b) {
 }
 
 // ---------- промо / рефералы ----------
-const refEarnings = id => Math.floor(one("SELECT COALESCE(SUM(d.stars),0) s FROM deposits d JOIN users r ON r.id=d.user_id WHERE r.referred_by=? AND d.kind!='admin'", id).s * cfg.referralPercent / 100);
+const refEarnings = id => Math.floor(one("SELECT COALESCE(SUM(d.stars),0) s FROM deposits d JOIN users r ON r.id=d.user_id WHERE r.referred_by=? AND d.kind!='admin'", id).s * S().referralPercent / 100);
 async function prepareShare(u) {
   if (!cfg.botToken) throw new ApiError('Бот не настроен', 500);
   const link = `${botLink()}?start=ref_${u.id}`;
@@ -114,12 +116,12 @@ async function prepareShare(u) {
 
 export const routes = {
   'check-ban': u => ({ banned: !!u.banned }),
-  'admin/meta': () => ({ isAdmin: false }),
+  'admin/meta': u => ({ isAdmin: isAdmin(u) }),
   'get-cases': () => casesForClient(),
   'get-balance': u => ({ balance: u.balance }),
   'referral-count': u => referralStats(u.id),
   'gifts': () => GIFTS.map(g => ({ id: g.id, name: g.name, value: g.value, image: g.image, kind: g.kind })),
-  'upgrade/config': () => ({ factor: cfg.upgradeFactor, maxChance: cfg.upgradeMaxChance, maxItems: cfg.upgradeMaxItems }),
+  'upgrade/config': () => ({ factor: S().upgradeFactor, maxChance: S().upgradeMaxChance, maxItems: cfg.upgradeMaxItems }),
   'log-client-error': () => ({ ok: true }),
   'check-promo': () => ({ valid: false }),
   'confirm-prize': () => ({ success: false, error: 'not used' }),
@@ -140,23 +142,25 @@ export const routes = {
   }),
 
   // --- TON / Stars ---
-  'ton/config': () => ({ twaReturnUrl: cfg.twaReturnUrl, starsPerTon: cfg.starsPerTon }),
+  'ton/config': () => ({ twaReturnUrl: cfg.twaReturnUrl, starsPerTon: S().starsPerTon }),
   'ton/deposit-intent': (u, b) => {
-    const amount = Number(b.amountTon); if (!Number.isFinite(amount) || amount < cfg.minDepositTon || amount > 500) throw new ApiError(`Сумма от ${cfg.minDepositTon} до 500 TON`);
-    return { success: true, ...createIntent(u.id, Math.round(amount * 1e9) / 1e9) };
+    const amount = Number(b.amountTon); if (!Number.isFinite(amount) || amount < S().minDepositTon || amount > 500) throw new ApiError(`Сумма от ${S().minDepositTon} до 500 TON`);
+    const promo = b.promoCode ? promoFor(b.promoCode, 'bonus') : null; if (b.promoCode && !promo) throw new ApiError('Промокод не найден или закончился');
+    return { success: true, ...createIntent(u.id, Math.round(amount * 1e9) / 1e9, promo?.code), bonusPercent: promo?.value };
   },
   'ton/check-payment': async (u, b) => {
     const it = one('SELECT * FROM intents WHERE id=? AND user_id=?', String(b.intentId), u.id); if (!it) throw new ApiError('Платёж не найден', 404);
     if (it.status === 'pending') { try { await pollDeposits(); } catch (e) { console.error('check-payment', e.message); } }
     const cur = one('SELECT * FROM intents WHERE id=?', it.id);
-    return { status: cur.status, credited: cur.status === 'completed' ? cur.credited || Math.floor(cur.amount_ton * cfg.starsPerTon) : 0 };
+    return { status: cur.status, credited: cur.status === 'completed' ? cur.credited || Math.floor(cur.amount_ton * S().starsPerTon) : 0 };
   },
   'ton/wallet-info': async (u, b) => { const addr = String(b.address || ''); let balance = null; try { balance = (await walletBalance(addr)).toFixed(2); } catch { } return { addressFormatted: addr, balance }; },
   'create-stars-invoice': async (u, b) => {
     const amount = parseInt(b.amount, 10); if (!(amount >= 1 && amount <= 100000)) throw new ApiError('Сумма от 1 до 100000 ⭐');
     if (!cfg.botToken) throw new ApiError('Бот не настроен', 500);
-    const url = await tg('createInvoiceLink', { title: `Пополнение ${amount} ⭐`, description: `Пополнение баланса ${cfg.brand}`, payload: `stars:${u.id}:${amount}`, provider_token: '', currency: 'XTR', prices: [{ label: 'Stars', amount }] });
-    return { success: true, invoice_url: url };
+    const promo = b.promoCode ? promoFor(b.promoCode, 'bonus') : null; if (b.promoCode && !promo) throw new ApiError('Промокод не найден или закончился');
+    const url = await tg('createInvoiceLink', { title: `Пополнение ${amount} ⭐`, description: `Пополнение баланса ${cfg.brand}`, payload: `stars:${u.id}:${amount}${promo ? ':' + promo.code : ''}`, provider_token: '', currency: 'XTR', prices: [{ label: 'Stars', amount }] });
+    return { success: true, invoice_url: url, bonusPercent: promo?.value };
   },
 
   // --- бесплатные кейсы ---
@@ -164,8 +168,8 @@ export const routes = {
   'daily-case/prepare-share': (u) => prepareShare(u),
   'referral/prepare-share': (u) => prepareShare(u),
   'daily-case/record-share': u => {
-    run('INSERT INTO daily_shares(user_id,day,n) VALUES(?,?,1) ON CONFLICT(user_id,day) DO UPDATE SET n=MIN(n+1,?)', u.id, today(), cfg.dailyShares);
-    const n = one('SELECT n FROM daily_shares WHERE user_id=? AND day=?', u.id, today()).n; return { shareCount: n, sharesDone: n >= cfg.dailyShares };
+    run('INSERT INTO daily_shares(user_id,day,n) VALUES(?,?,1) ON CONFLICT(user_id,day) DO UPDATE SET n=MIN(n+1,?)', u.id, today(), S().dailyShares);
+    const n = one('SELECT n FROM daily_shares WHERE user_id=? AND day=?', u.id, today()).n; return { shareCount: n, sharesDone: n >= S().dailyShares };
   },
   'daily-case/verify': async u => { const st = await freeStatus(u, 'case1'); return { success: st.canOpen, subscribed: st.subscribed, sharesDone: st.sharesDone, shareCount: st.shareCount }; },
 
@@ -182,13 +186,15 @@ export const routes = {
     const taken = one('SELECT user_id FROM ref_promos WHERE code=? COLLATE NOCASE', code); if (taken && taken.user_id !== u.id) throw new ApiError('Такой промокод уже занят');
     run('INSERT INTO ref_promos(code,user_id) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET code=excluded.code', code, u.id); return { success: true, code };
   },
-  'ref-promo-status': u => ({ canUseRefPromo: !u.used_ref_promo }),
+  'ref-promo-status': () => ({ canUseRefPromo: true }),
   'use-ref-promo': (u, b) => tx(() => {
-    const cur = getUser(u.id); if (cur.used_ref_promo) throw new ApiError('Вы уже вводили промокод');
+    const admin = promoFor(b.code, 'stars');   // промокод от админа: ⭐ сразу на баланс, один раз на человека
+    if (admin) { if (!usePromo(admin, u.id)) throw new ApiError('Вы уже активировали этот промокод'); run('UPDATE users SET balance=balance+? WHERE id=?', Math.round(admin.value), u.id); return { success: true, bonus: Math.round(admin.value), newBalance: balanceOf(u.id) }; }
+    const cur = getUser(u.id); if (cur.used_ref_promo) throw new ApiError('Вы уже вводили реферальный промокод');
     const p = one('SELECT * FROM ref_promos WHERE code=? COLLATE NOCASE', String(b.code || '').trim()); if (!p) throw new ApiError('Промокод не найден');
     if (p.user_id === u.id) throw new ApiError('Нельзя использовать свой промокод');
-    run('UPDATE users SET used_ref_promo=1, balance=balance+?, referred_by=COALESCE(referred_by,?) WHERE id=?', cfg.refPromoBonus, p.user_id, u.id);
-    run('UPDATE ref_promos SET uses=uses+1 WHERE code=?', p.code); return { success: true, bonus: cfg.refPromoBonus, newBalance: balanceOf(u.id) };
+    run('UPDATE users SET used_ref_promo=1, balance=balance+?, referred_by=COALESCE(referred_by,?) WHERE id=?', S().refPromoBonus, p.user_id, u.id);
+    run('UPDATE ref_promos SET uses=uses+1 WHERE code=?', p.code); return { success: true, bonus: S().refPromoBonus, newBalance: balanceOf(u.id) };
   }),
 };
 export const inventoryOf = u => q("SELECT * FROM inventory WHERE user_id=? AND state='owned' ORDER BY id DESC", u.id).map(invRow);

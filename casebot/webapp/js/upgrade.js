@@ -133,3 +133,6 @@
   };
   window.hideAllShowCases = function () { const s = $('upgrade-section'); if (s) { s.classList.add('hidden'); s.style.display = 'none'; } };
 })();
+
+// Админ-панель — отдельная страница
+window.showAdminPanel = function () { location.href = 'admin.html'; };

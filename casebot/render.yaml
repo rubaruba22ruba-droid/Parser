@@ -1,0 +1,18 @@
+# Render Blueprint: New → Blueprint → выбрать репозиторий. Задайте BOT_TOKEN и ADMIN_IDS — адрес мини-апп подставится сам.
+services:
+  - type: web
+    name: drade-drop
+    runtime: docker
+    rootDir: casebot
+    plan: starter
+    healthCheckPath: /
+    disk: { name: data, mountPath: /data, sizeGB: 1 }
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_IDS
+        sync: false
+      - key: TON_ADDRESS
+        value: UQCvGGYFcqrPS3h_AXiVzVHvmUTKLJJ5DurV_VBhpMXcQtd3
+      - key: SUPPORT
+        value: "@entoni"

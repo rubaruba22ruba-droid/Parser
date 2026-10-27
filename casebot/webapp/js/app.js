@@ -1396,7 +1396,7 @@ async function renderInventory() {
     if (invData.length === 0) {
       container.innerHTML = `
         <div class="empty-state empty-state-inventory">
-          <img src="images/gifts/plush-pepes.png" alt="" class="empty-state-inventory-img">
+          <img src="images/gifts/plush-pepes.webp" alt="" class="empty-state-inventory-img">
           <p class="empty-state-inventory-title">Пока что тут пусто</p>
           <p class="empty-state-inventory-sub">Открывай кейсы, чтобы здесь появились подарки</p>
           <button type="button" class="empty-state-go-cases">Перейти к кейсам</button>

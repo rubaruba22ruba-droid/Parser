@@ -1,18 +1,19 @@
 // Баланс в ⭐, депозиты, реферальные начисления.
 import { one, run, q, tx } from './db.mjs';
 import { cfg } from './config.mjs';
+import { settings as S } from './settings.mjs';
 
 export const getUser = id => one('SELECT * FROM users WHERE id=?', id);
 
 // Зачисляет депозит ровно один раз (ref уникален: хэш транзакции TON или charge_id Stars).
-export function addDeposit({ ref, kind, userId, stars, ton }) {
+export function addDeposit({ ref, kind, userId, stars, ton, bonus = 0 }) {
   return tx(() => {
     const r = run('INSERT OR IGNORE INTO deposits(ref,kind,user_id,stars,ton,created) VALUES(?,?,?,?,?,?)', ref, kind, userId, stars, ton, Date.now());
     if (!r.changes) return 0;
-    run('UPDATE users SET balance=balance+? WHERE id=?', stars, userId);
+    run('UPDATE users SET balance=balance+? WHERE id=?', stars + bonus, userId);   // bonus — промокод на пополнение
     const u = getUser(userId);
     if (u?.referred_by && kind !== 'admin') {
-      const bonus = Math.floor(stars * cfg.referralPercent / 100);
+      const bonus = Math.floor(stars * S().referralPercent / 100);
       if (bonus > 0) run('UPDATE users SET balance=balance+? WHERE id=?', bonus, u.referred_by);
     }
     return stars;
@@ -20,7 +21,7 @@ export function addDeposit({ ref, kind, userId, stars, ton }) {
 }
 
 // Сколько TON (в эквиваленте) пользователь пополнил за окно вывода.
-export function depositedTon(userId, days = cfg.withdrawWindowDays) {
+export function depositedTon(userId, days = S().withdrawWindowDays) {
   const since = Date.now() - days * 86400000;
   return one("SELECT COALESCE(SUM(ton),0) s FROM deposits WHERE user_id=? AND created>=? AND kind!='admin'", userId, since).s;
 }

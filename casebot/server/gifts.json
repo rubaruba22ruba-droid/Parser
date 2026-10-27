@@ -1,5 +1,239 @@
 [
  {
+  "id": "intelligence-cups",
+  "name": "Intelligence Cups",
+  "value": 309900,
+  "ton": 3099,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/intelligence-cups.webp"
+ },
+ {
+  "id": "heart-lockets",
+  "name": "Heart Lockets",
+  "value": 144400,
+  "ton": 1444,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/heart-lockets.webp"
+ },
+ {
+  "id": "resistance-dogs",
+  "name": "Resistance Dogs",
+  "value": 86700,
+  "ton": 867,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/resistance-dogs.webp"
+ },
+ {
+  "id": "durov-s-glasses",
+  "name": "Durov’s Glasses",
+  "value": 22900,
+  "ton": 229,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/durov-s-glasses.webp"
+ },
+ {
+  "id": "heroic-helmets",
+  "name": "Heroic Helmets",
+  "value": 19000,
+  "ton": 190,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/heroic-helmets.webp"
+ },
+ {
+  "id": "mighty-arms",
+  "name": "Mighty Arms",
+  "value": 15000,
+  "ton": 150,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/mighty-arms.webp"
+ },
+ {
+  "id": "nail-bracelets",
+  "name": "Nail Bracelets",
+  "value": 14900,
+  "ton": 149,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/nail-bracelets.webp"
+ },
+ {
+  "id": "loot-bags",
+  "name": "Loot Bags",
+  "value": 14100,
+  "ton": 141,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/loot-bags.webp"
+ },
+ {
+  "id": "westside-signs",
+  "name": "Westside Signs",
+  "value": 12800,
+  "ton": 128,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/westside-signs.webp"
+ },
+ {
+  "id": "ion-gems",
+  "name": "Ion Gems",
+  "value": 8500,
+  "ton": 85,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/ion-gems.webp"
+ },
+ {
+  "id": "mini-oscars",
+  "name": "Mini Oscars",
+  "value": 7800,
+  "ton": 78,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/mini-oscars.webp"
+ },
+ {
+  "id": "swiss-watches",
+  "name": "Swiss Watches",
+  "value": 7500,
+  "ton": 75,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/swiss-watches.webp"
+ },
+ {
+  "id": "gem-signets",
+  "name": "Gem Signets",
+  "value": 7200,
+  "ton": 72,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/gem-signets.webp"
+ },
+ {
+  "id": "low-riders",
+  "name": "Low Riders",
+  "value": 6200,
+  "ton": 62,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/low-riders.webp"
+ },
+ {
+  "id": "neko-helmets",
+  "name": "Neko Helmets",
+  "value": 4500,
+  "ton": 45,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/neko-helmets.webp"
+ },
+ {
+  "id": "bonded-rings",
+  "name": "Bonded Rings",
+  "value": 4500,
+  "ton": 45,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/bonded-rings.webp"
+ },
+ {
+  "id": "voodoo-dolls",
+  "name": "Voodoo Dolls",
+  "value": 4300,
+  "ton": 43,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/voodoo-dolls.webp"
+ },
+ {
+  "id": "genie-lamps",
+  "name": "Genie Lamps",
+  "value": 4000,
+  "ton": 40,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/genie-lamps.webp"
+ },
+ {
+  "id": "toy-bears",
+  "name": "Toy Bears",
+  "value": 3800,
+  "ton": 38,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/toy-bears.webp"
+ },
+ {
+  "id": "diamond-rings",
+  "name": "Diamond Rings",
+  "value": 3700,
+  "ton": 37,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/diamond-rings.webp"
+ },
+ {
+  "id": "electric-skulls",
+  "name": "Electric Skulls",
+  "value": 3600,
+  "ton": 36,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/electric-skulls.webp"
+ },
+ {
+  "id": "rare-birds",
+  "name": "Rare Birds",
+  "value": 3000,
+  "ton": 30,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/rare-birds.webp"
+ },
+ {
+  "id": "bling-binkies",
+  "name": "Bling Binkies",
+  "value": 2900,
+  "ton": 29,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/bling-binkies.webp"
+ },
+ {
+  "id": "khabib-s-papakhas",
+  "name": "Khabib’s Papakhas",
+  "value": 2700,
+  "ton": 27,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/khabib-s-papakhas.webp"
+ },
+ {
+  "id": "cupid-charms",
+  "name": "Cupid Charms",
+  "value": 2500,
+  "ton": 25,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/cupid-charms.webp"
+ },
+ {
+  "id": "mad-pumpkins",
+  "name": "Mad Pumpkins",
+  "value": 2300,
+  "ton": 23,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/mad-pumpkins.webp"
+ },
+ {
   "id": "sky-stilettos",
   "name": "Sky Stilettos",
   "value": 2000,
@@ -7,6 +241,105 @@
   "estimated": false,
   "kind": "nft",
   "image": "images/gifts/sky-stilettos.webp"
+ },
+ {
+  "id": "ionic-dryers",
+  "name": "Ionic Dryers",
+  "value": 1900,
+  "ton": 19,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/ionic-dryers.webp"
+ },
+ {
+  "id": "ufc-strikes",
+  "name": "UFC Strikes",
+  "value": 1900,
+  "ton": 19,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/ufc-strikes.webp"
+ },
+ {
+  "id": "snoop-cigars",
+  "name": "Snoop Cigars",
+  "value": 1800,
+  "ton": 18,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/snoop-cigars.webp"
+ },
+ {
+  "id": "love-potions",
+  "name": "Love Potions",
+  "value": 1600,
+  "ton": 16,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/love-potions.webp"
+ },
+ {
+  "id": "crystal-balls",
+  "name": "Crystal Balls",
+  "value": 1500,
+  "ton": 15,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/crystal-balls.webp"
+ },
+ {
+  "id": "flying-brooms",
+  "name": "Flying Brooms",
+  "value": 1400,
+  "ton": 14,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/flying-brooms.webp"
+ },
+ {
+  "id": "record-players",
+  "name": "Record Players",
+  "value": 1300,
+  "ton": 13,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/record-players.webp"
+ },
+ {
+  "id": "valentine-boxes",
+  "name": "Valentine Boxes",
+  "value": 1300,
+  "ton": 13,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/valentine-boxes.webp"
+ },
+ {
+  "id": "love-candles",
+  "name": "Love Candles",
+  "value": 1200,
+  "ton": 12,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/love-candles.webp"
+ },
+ {
+  "id": "sakura-flowers",
+  "name": "Sakura Flowers",
+  "value": 1200,
+  "ton": 12,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/sakura-flowers.webp"
+ },
+ {
+  "id": "sleigh-bells",
+  "name": "Sleigh Bells",
+  "value": 1200,
+  "ton": 12,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/sleigh-bells.webp"
  },
  {
   "id": "top-hats",
@@ -18,6 +351,15 @@
   "image": "images/gifts/top-hats.webp"
  },
  {
+  "id": "hanging-stars",
+  "name": "Hanging Stars",
+  "value": 1100,
+  "ton": 11,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/hanging-stars.webp"
+ },
+ {
   "id": "joyful-bundles",
   "name": "Joyful Bundles",
   "value": 1100,
@@ -25,6 +367,87 @@
   "estimated": false,
   "kind": "nft",
   "image": "images/gifts/joyful-bundles.webp"
+ },
+ {
+  "id": "snow-mittens",
+  "name": "Snow Mittens",
+  "value": 1000,
+  "ton": 10,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/snow-mittens.webp"
+ },
+ {
+  "id": "witch-hats",
+  "name": "Witch Hats",
+  "value": 1000,
+  "ton": 10,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/witch-hats.webp"
+ },
+ {
+  "id": "fine-pens",
+  "name": "Fine Pens",
+  "value": 900,
+  "ton": 9,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/fine-pens.webp"
+ },
+ {
+  "id": "jolly-chimps",
+  "name": "Jolly Chimps",
+  "value": 800,
+  "ton": 8,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/jolly-chimps.webp"
+ },
+ {
+  "id": "eternal-candles",
+  "name": "Eternal Candles",
+  "value": 700,
+  "ton": 7,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/eternal-candles.webp"
+ },
+ {
+  "id": "lush-bouquets",
+  "name": "Lush Bouquets",
+  "value": 700,
+  "ton": 7,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/lush-bouquets.webp"
+ },
+ {
+  "id": "snow-globes",
+  "name": "Snow Globes",
+  "value": 700,
+  "ton": 7,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/snow-globes.webp"
+ },
+ {
+  "id": "fresh-socks",
+  "name": "Fresh Socks",
+  "value": 600,
+  "ton": 6,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/fresh-socks.webp"
+ },
+ {
+  "id": "ginger-cookies",
+  "name": "Ginger Cookies",
+  "value": 600,
+  "ton": 6,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/ginger-cookies.webp"
  },
  {
   "id": "jacks-in-the-box",
@@ -63,6 +486,24 @@
   "image": "images/gifts/spring-baskets.webp"
  },
  {
+  "id": "victory-medals",
+  "name": "Victory Medals",
+  "value": 600,
+  "ton": 6,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/victory-medals.webp"
+ },
+ {
+  "id": "mirage-lamps",
+  "name": "Mirage Lamps",
+  "value": 600,
+  "ton": 6,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/mirage-lamps.webp"
+ },
+ {
   "id": "big-years",
   "name": "Big Years",
   "value": 500,
@@ -90,24 +531,6 @@
   "image": "images/gifts/mood-packs.webp"
  },
  {
-  "id": "pool-floats",
-  "name": "Pool Floats",
-  "value": 500,
-  "ton": 5,
-  "estimated": false,
-  "kind": "nft",
-  "image": "images/gifts/pool-floats.webp"
- },
- {
-  "id": "snake-boxes",
-  "name": "Snake Boxes",
-  "value": 500,
-  "ton": 5,
-  "estimated": false,
-  "kind": "nft",
-  "image": "images/gifts/snake-boxes.webp"
- },
- {
   "id": "tama-gadgets",
   "name": "Tama Gadgets",
   "value": 500,
@@ -126,19 +549,28 @@
   "image": "images/gifts/timeless-books.webp"
  },
  {
-  "id": "whip-cupcakes",
-  "name": "Whip Cupcakes",
+  "id": "vice-creams",
+  "name": "Vice Creams",
   "value": 500,
   "ton": 5,
   "estimated": false,
   "kind": "nft",
-  "image": "images/gifts/whip-cupcakes.webp"
+  "image": "images/gifts/vice-creams.webp"
+ },
+ {
+  "id": "xmas-stockings",
+  "name": "Xmas Stockings",
+  "value": 500,
+  "ton": 5,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/xmas-stockings.webp"
  },
  {
   "id": "algorithm-cups",
   "name": "Algorithm Cups",
-  "value": 1000,
-  "ton": 10,
+  "value": 200900,
+  "ton": 2009,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/algorithm-cups.webp"
@@ -146,11 +578,20 @@
  {
   "id": "artisan-bricks",
   "name": "Artisan Bricks",
-  "value": 1000,
-  "ton": 10,
+  "value": 9000,
+  "ton": 90,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/artisan-bricks.webp"
+ },
+ {
+  "id": "astral-shards",
+  "name": "Astral Shards",
+  "value": 14900,
+  "ton": 149,
+  "estimated": true,
+  "kind": "nft",
+  "image": "images/gifts/astral-shards.webp"
  },
  {
   "id": "berry-boxes",
@@ -162,10 +603,19 @@
   "image": "images/gifts/berry-boxes.webp"
  },
  {
+  "id": "bunny-muffins",
+  "name": "Bunny Muffins",
+  "value": 900,
+  "ton": 9,
+  "estimated": true,
+  "kind": "nft",
+  "image": "images/gifts/bunny-muffins.webp"
+ },
+ {
   "id": "durov-s-caps",
   "name": "Durov’s Caps",
-  "value": 60000,
-  "ton": 600,
+  "value": 48000,
+  "ton": 480,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/durov-s-caps.webp"
@@ -173,8 +623,8 @@
  {
   "id": "eternal-roses",
   "name": "Eternal Roses",
-  "value": 1400,
-  "ton": 14,
+  "value": 2900,
+  "ton": 29,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/eternal-roses.webp"
@@ -189,46 +639,10 @@
   "image": "images/gifts/evil-eyes.webp"
  },
  {
-  "id": "fresh-socks",
-  "name": "Fresh Socks",
-  "value": 400,
-  "ton": 4,
-  "estimated": true,
-  "kind": "nft",
-  "image": "images/gifts/fresh-socks.webp"
- },
- {
-  "id": "gem-signets",
-  "name": "Gem Signets",
-  "value": 5000,
-  "ton": 50,
-  "estimated": true,
-  "kind": "nft",
-  "image": "images/gifts/gem-signets.webp"
- },
- {
-  "id": "genie-lamps",
-  "name": "Genie Lamps",
-  "value": 4500,
-  "ton": 45,
-  "estimated": true,
-  "kind": "nft",
-  "image": "images/gifts/genie-lamps.webp"
- },
- {
-  "id": "ginger-cookies",
-  "name": "Ginger Cookies",
-  "value": 300,
-  "ton": 3,
-  "estimated": true,
-  "kind": "nft",
-  "image": "images/gifts/ginger-cookies.webp"
- },
- {
   "id": "hex-pots",
   "name": "Hex Pots",
-  "value": 400,
-  "ton": 4,
+  "value": 700,
+  "ton": 7,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/hex-pots.webp"
@@ -252,6 +666,15 @@
   "image": "images/gifts/hypno-lollipops.webp"
  },
  {
+  "id": "input-keys",
+  "name": "Input Keys",
+  "value": 800,
+  "ton": 8,
+  "estimated": true,
+  "kind": "nft",
+  "image": "images/gifts/input-keys.webp"
+ },
+ {
   "id": "jelly-bunnies",
   "name": "Jelly Bunnies",
   "value": 500,
@@ -261,73 +684,37 @@
   "image": "images/gifts/jelly-bunnies.webp"
  },
  {
+  "id": "jingle-bells",
+  "name": "Jingle Bells",
+  "value": 1200,
+  "ton": 12,
+  "estimated": true,
+  "kind": "nft",
+  "image": "images/gifts/jingle-bells.webp"
+ },
+ {
   "id": "kissed-frogs",
   "name": "Kissed Frogs",
-  "value": 2500,
-  "ton": 25,
+  "value": 5500,
+  "ton": 55,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/kissed-frogs.webp"
  },
  {
-  "id": "lush-bouquets",
-  "name": "Lush Bouquets",
-  "value": 400,
-  "ton": 4,
-  "estimated": true,
-  "kind": "nft",
-  "image": "images/gifts/lush-bouquets.webp"
- },
- {
-  "id": "mad-pumpkins",
-  "name": "Mad Pumpkins",
-  "value": 1200,
-  "ton": 12,
-  "estimated": true,
-  "kind": "nft",
-  "image": "images/gifts/mad-pumpkins.webp"
- },
- {
   "id": "magic-potions",
   "name": "Magic Potions",
-  "value": 5000,
-  "ton": 50,
+  "value": 7300,
+  "ton": 73,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/magic-potions.webp"
  },
  {
-  "id": "mighty-arms",
-  "name": "Mighty Arms",
-  "value": 13000,
-  "ton": 130,
-  "estimated": true,
-  "kind": "nft",
-  "image": "images/gifts/mighty-arms.webp"
- },
- {
-  "id": "mini-oscars",
-  "name": "Mini Oscars",
-  "value": 5500,
-  "ton": 55,
-  "estimated": true,
-  "kind": "nft",
-  "image": "images/gifts/mini-oscars.webp"
- },
- {
-  "id": "mirage-lamps",
-  "name": "Mirage Lamps",
-  "value": 600,
-  "ton": 6,
-  "estimated": true,
-  "kind": "nft",
-  "image": "images/gifts/mirage-lamps.webp"
- },
- {
   "id": "perfume-bottles",
   "name": "Perfume Bottles",
-  "value": 7000,
-  "ton": 70,
+  "value": 9500,
+  "ton": 95,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/perfume-bottles.webp"
@@ -344,17 +731,26 @@
  {
   "id": "plush-pepes",
   "name": "Plush Pepes",
-  "value": 500000,
-  "ton": 5000,
+  "value": 780200,
+  "ton": 7802,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/plush-pepes.webp"
  },
  {
+  "id": "pool-floats",
+  "name": "Pool Floats",
+  "value": 500,
+  "ton": 5,
+  "estimated": true,
+  "kind": "nft",
+  "image": "images/gifts/pool-floats.webp"
+ },
+ {
   "id": "precious-peaches",
   "name": "Precious Peaches",
-  "value": 40000,
-  "ton": 400,
+  "value": 29600,
+  "ton": 296,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/precious-peaches.webp"
@@ -371,8 +767,8 @@
  {
   "id": "scared-cats",
   "name": "Scared Cats",
-  "value": 3000,
-  "ton": 30,
+  "value": 32100,
+  "ton": 321,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/scared-cats.webp"
@@ -380,8 +776,8 @@
  {
   "id": "sharp-tongues",
   "name": "Sharp Tongues",
-  "value": 2500,
-  "ton": 25,
+  "value": 5600,
+  "ton": 56,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/sharp-tongues.webp"
@@ -389,8 +785,8 @@
  {
   "id": "signet-rings",
   "name": "Signet Rings",
-  "value": 2200,
-  "ton": 22,
+  "value": 3900,
+  "ton": 39,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/signet-rings.webp"
@@ -398,11 +794,20 @@
  {
   "id": "skull-flowers",
   "name": "Skull Flowers",
-  "value": 800,
-  "ton": 8,
+  "value": 1400,
+  "ton": 14,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/skull-flowers.webp"
+ },
+ {
+  "id": "snake-boxes",
+  "name": "Snake Boxes",
+  "value": 500,
+  "ton": 5,
+  "estimated": true,
+  "kind": "nft",
+  "image": "images/gifts/snake-boxes.webp"
  },
  {
   "id": "spiced-wines",
@@ -425,65 +830,29 @@
  {
   "id": "trapped-hearts",
   "name": "Trapped Hearts",
-  "value": 800,
-  "ton": 8,
+  "value": 1900,
+  "ton": 19,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/trapped-hearts.webp"
  },
  {
-  "id": "valentine-boxes",
-  "name": "Valentine Boxes",
-  "value": 700,
-  "ton": 7,
-  "estimated": true,
-  "kind": "nft",
-  "image": "images/gifts/valentine-boxes.webp"
- },
- {
-  "id": "vice-creams",
-  "name": "Vice Creams",
-  "value": 400,
-  "ton": 4,
-  "estimated": true,
-  "kind": "nft",
-  "image": "images/gifts/vice-creams.webp"
- },
- {
-  "id": "victory-medals",
-  "name": "Victory Medals",
-  "value": 500,
-  "ton": 5,
-  "estimated": true,
-  "kind": "nft",
-  "image": "images/gifts/victory-medals.webp"
- },
- {
   "id": "vintage-cigars",
   "name": "Vintage Cigars",
-  "value": 2500,
-  "ton": 25,
+  "value": 4300,
+  "ton": 43,
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/vintage-cigars.webp"
  },
  {
-  "id": "witch-hats",
-  "name": "Witch Hats",
-  "value": 400,
-  "ton": 4,
+  "id": "whip-cupcakes",
+  "name": "Whip Cupcakes",
+  "value": 500,
+  "ton": 5,
   "estimated": true,
   "kind": "nft",
-  "image": "images/gifts/witch-hats.webp"
- },
- {
-  "id": "xmas-stockings",
-  "name": "Xmas Stockings",
-  "value": 300,
-  "ton": 3,
-  "estimated": true,
-  "kind": "nft",
-  "image": "images/gifts/xmas-stockings.webp"
+  "image": "images/gifts/whip-cupcakes.webp"
  },
  {
   "id": "heart-15",

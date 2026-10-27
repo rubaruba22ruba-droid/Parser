@@ -26,16 +26,31 @@ casebot/
 ```
 
 ## Суть
-- Валюта — ⭐ (1 TON = 100 ⭐). Пополнение: TON на `UQCvGGYFcqrPS3h_AXiVzVHvmUTKLJJ5DurV_VBhpMXcQtd3` или Telegram Stars.
-- 2 бесплатных кейса раз в 24 ч (Daily — с заданиями: 3 шеринга + подписка на `DAILY_CHANNEL`): сердечки по 15 ⭐ и одно NFT.
-- 9 платных кейсов: Фарм (25 / 75 / 199 ⭐), Обычные (450 / 790 / 1990 ⭐), ALL IN (4 990 / 12 990 / 49 990 ⭐). RTP каждого — ровно 70%.
-- Апгрейдер: ставка 1–6 подарков → цель (x1.5…x20) → шанс = ставка/цель × 0.9 (макс. 75%). Сервер возвращает `roll`, стрелка встаёт ровно туда.
-- Вывод подарков: нужен депозит ≥ 50 TON за последние 7 дней, заявка уходит в поддержку @entoni и админам в бот (`/wd`, `/done id`, `/reject id`).
-- В игре показываются только подарки с реальной картинкой. Добавить подарок = положить `webapp/images/gifts/<id>.webp` и запустить сборку.
+- Валюта — ⭐ (1 TON = 100 ⭐). Пополнение: TON на `UQCvGGYFcqrPS3h_AXiVzVHvmUTKLJJ5DurV_VBhpMXcQtd3` (TonConnect или вручную с комментарием `dep<id>`) или Telegram Stars.
+- 2 бесплатных кейса раз в 24 ч: сердечки по 15 ⭐ и одно NFT. Daily — с заданиями (3 шеринга + подписка на `DAILY_CHANNEL`).
+- 9 платных кейсов: Фарм 49 / 249 / 399 ⭐, Обычные 790 / 1490 / 2990 ⭐, ALL IN 7 990 / 24 990 / 99 990 ⭐.
+- Шансы — модель «щедрый дроп»: при RTP 70% примерно 22–44% открытий дают подарок дороже кейса, остальное — мелочь.
+- Апгрейдер (как CaseBattle): ставка 1–6 подарков → цель (x1.5…x20) → шанс = ставка/цель × 0.6 (часто сливает). Сервер даёт `roll`, стрелка встаёт ровно туда.
+- Вывод подарков: депозит ≥ 50 TON за 7 дней, заявка → поддержка @entoni и админам в бот.
+- **Админка** (`/admin.html`, кнопка Admin в профиле для `ADMIN_IDS`): свои проценты (RTP, щедрость, шанс апгрейда, реферальный %, условия вывода, курс), цены и ручные шансы каждого кейса, вкл/выкл кейсов, юзеры (баланс, бан), заявки на вывод, промокоды (⭐ сразу или +% к пополнению), рассылка.
+- Бот: `/start` → приветствие с баннером и кнопкой «Играть» (Mini App), кнопка меню «Играть» ставится сама, `/support`, оплата Stars, админ-команды `/stats /wd /done /reject /give /ban`.
+
+## Картинки подарков
+Только реальные 3D-рендеры. `tools/images.py` режет их со скриншотов (маркет Telegram «Купить подарок» → tggifts → RubUP),
+увеличивает x4 нейросетью Real-ESRGAN и убирает фон. Подарок без картинки в игру не попадает.
+Сейчас есть 101 из 128. Ждут картинку: Surge Boards, Desk Calendars, Light Swords, Moon Pendants, Clover Pins, Cookie Hearts,
+Faith Amulets, Liberty Figures, Money Pots, Pretty Posies, Restless Jars, Snoop Doggs, Star Notepads, Stellar Rockets, Swag Bags,
+Winter Wreaths, Easter Eggs, Happy Brownies, Lol Pops, Lunar Snakes, B-Day Candles, Bow Ties, Candy Canes, Chill Flames,
+Holiday Drinks, Ice Creams, Jester Hats.
+
+Цены: `tools/gifts-raw.txt` — свежий floor tggifts; для «no listings» — цена маркета Telegram ⭐ / 81 (средний курс по подаркам,
+где известны обе цены) или прошлый floor. Это оценки — сверьте перед запуском (Plush Pepe ≈ 7 800 TON, Algorithm Cups ≈ 2 000 TON).
 
 ## Запуск
-```
-cp .env.example .env         # BOT_TOKEN, WEBAPP_URL (https), ADMIN_IDS ...
-npm start                    # локально без Telegram: npm run dev
-```
-Пересборка после правки цен/кейсов: `node tools/build.mjs && python3 tools/case_art.py`.
+**Быстро (Render):** New → Blueprint → этот репозиторий (`casebot/render.yaml`), задать `BOT_TOKEN` (от @BotFather) и `ADMIN_IDS`.
+Адрес Mini App подставится сам, бот при старте пропишет кнопку «Играть» — ссылка вшита, ничего вручную не настраивать.
+Railway / свой сервер: `docker build -t drade casebot && docker run -p 8080:8080 -v drade:/data -e BOT_TOKEN=... -e WEBAPP_URL=https://... drade`
+(нужен https-домен). Локально без Telegram: `npm run dev`.
+
+Пересборка после правки цен/кейсов: `npm run build` (`node tools/build.mjs && python3 tools/case_art.py`).
+Демо-превью без сервера: `node tools/demo.mjs <папка>`.

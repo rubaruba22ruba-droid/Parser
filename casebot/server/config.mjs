@@ -3,7 +3,8 @@ export const cfg = {
   port: Number(env.PORT || 8080),
   botToken: env.BOT_TOKEN || '',
   botUsername: (env.BOT_USERNAME || '').replace(/^@/, ''),
-  webappUrl: env.WEBAPP_URL || '',              // https-адрес Mini App
+  // https-адрес Mini App. На Render/Railway подставляется сам — ссылка на мини-апп «вшивается» в бота автоматически.
+  webappUrl: env.WEBAPP_URL || env.PUBLIC_URL || env.RENDER_EXTERNAL_URL || (env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + env.RAILWAY_PUBLIC_DOMAIN : ''),
   brand: env.BRAND || 'Drade Drop',
   support: env.SUPPORT || '@entoni',            // куда писать для вывода подарков
   dev: env.DEV === '1',                         // DEV=1 — вход без Telegram (только локально)
@@ -23,10 +24,10 @@ export const cfg = {
   dailyShares: Number(env.DAILY_SHARES || 3),
   referralPercent: Number(env.REFERRAL_PERCENT || 10),
   // апгрейд: шанс = ставка / цель × factor (не больше maxChance)
-  upgradeFactor: Number(env.UPGRADE_FACTOR || 0.9),
-  upgradeMaxChance: Number(env.UPGRADE_MAX_CHANCE || 0.75),
+  upgradeFactor: Number(env.UPGRADE_FACTOR || 0.6),
+  upgradeMaxChance: Number(env.UPGRADE_MAX_CHANCE || 0.6),
   upgradeMaxItems: 6,
   refPromoBonus: Number(env.REF_PROMO_BONUS || 10),
-  publicUrl: (env.PUBLIC_URL || env.WEBAPP_URL || '').replace(/\/$/, ''),
+  publicUrl: (env.PUBLIC_URL || env.WEBAPP_URL || env.RENDER_EXTERNAL_URL || (env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + env.RAILWAY_PUBLIC_DOMAIN : '')).replace(/\/$/, ''),
   twaReturnUrl: env.TWA_RETURN_URL || '',        // напр. https://t.me/<bot>/<app>
 };

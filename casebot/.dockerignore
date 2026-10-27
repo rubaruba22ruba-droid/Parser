@@ -1,0 +1,3 @@
+data.db*
+.env
+tools/__pycache__
