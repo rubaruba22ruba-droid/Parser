@@ -51,18 +51,15 @@
     raf = parts.length ? requestAnimationFrame(loop) : 0; if (!raf) cx2.clearRect(0, 0, innerWidth, innerHeight);
   }
 
-  // ---- лента кейса: тики при прохождении карточки через центр + размытие от скорости ----
-  const slot = { last: null, lastT: 0, idx: null };
+  // ---- лента кейса: тик, когда карточка проходит через центр (без blur — он съедает кадры на телефонах) ----
+  const slot = { idx: null };
   function slotFrame(pos, el, step) {
-    const now = performance.now();
-    if (slot.last !== null) {
-      const v = Math.abs(pos - slot.last) / Math.max(1, now - slot.lastT);   // px/ms
-      el.style.filter = v > 0.25 ? `blur(${Math.min(3.2, (v - 0.25) * 1.6).toFixed(2)}px)` : '';
-    }
     const idx = Math.floor(-pos / (step || 123)); if (slot.idx !== null && idx !== slot.idx) tick();
-    slot.idx = idx; slot.last = pos; slot.lastT = now;
+    slot.idx = idx;
   }
-  function slotReset(el) { slot.last = null; slot.idx = null; if (el) el.style.filter = ''; }
+  function slotReset() { slot.idx = null; }
+  // колонка x2–x5 встала: глухой «тук» с вибрацией, каждая следующая — чуть выше
+  function stop(i) { tone(180 + (i || 0) * 40, 0.09, 'triangle', 0.16, 0, 120); tone(900 + (i || 0) * 80, 0.03, 'square', 0.04); haptic('rigid'); }
 
   // ---- окно выигрыша: лучи, свечение по редкости, счётчик стоимости ----
   function decorateWin(items) {
@@ -77,5 +74,5 @@
   }
 
   function setMuted(m) { muted = m; try { localStorage.setItem('dd_muted', m ? '1' : '0'); } catch (e) { } }
-  window.FX = { tick, win, lose, whoosh, haptic, confetti, slotFrame, slotReset, decorateWin, RARITY, setMuted, isMuted: () => muted };
+  window.FX = { tick, stop, tone, win, lose, whoosh, haptic, confetti, slotFrame, slotReset, decorateWin, RARITY, setMuted, isMuted: () => muted };
 })();

@@ -1,8 +1,9 @@
-// Telegram-бот (long polling): приветствие → Mini App, платежи Stars, команды админа.
+// Telegram-бот (long polling): приветствие с кнопкой «Играть» (закрепляется в чате), платежи Stars, команды админа.
+import { readFile } from 'node:fs/promises';
 import { cfg } from './config.mjs';
 import { settings as S } from './settings.mjs';
 import { one, run, q } from './db.mjs';
-import { tg } from './tg.mjs';
+import { tg, tgUpload } from './tg.mjs';
 import { addDeposit, getUser } from './wallet.mjs';
 import { promoFor, usePromo, findUser } from './admin.mjs';
 
@@ -10,10 +11,30 @@ const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&
 const appKeyboard = () => cfg.webappUrl ? { inline_keyboard: [[{ text: '🎮 Играть', web_app: { url: cfg.webappUrl } }], [{ text: '💬 Поддержка', url: `https://t.me/${cfg.support.replace(/^@/, '')}` }]] } : undefined;
 
 function welcome(name) {
-  return `👋 <b>Привет${name ? ', ' + esc(name) : ''}!</b>\n\n` +
-    `🎁 Добро пожаловать в <b>${esc(cfg.brand)}</b> — кейсы с настоящими NFT-подарками Telegram.\n\n` +
-    `🆓 2 бесплатных кейса каждый день\n🔥 Кейсы от 25 ⭐ до ALL IN с Plush Pepe\n🚀 Апгрейдер: поставь подарки — забери дороже\n💎 Пополнение через TON и Telegram Stars\n\n` +
+  return `👋 <b>Приветствую${name ? ', ' + esc(name) : ''}!</b>\n\n` +
+    `🎁 Ты в <b>${esc(cfg.brand)}</b> — здесь открывают кейсы с настоящими NFT-подарками Telegram.\n\n` +
+    `🆓 2 бесплатных кейса каждый день\n🔥 ${Math.round((S().hitTarget || 0.6) * 100)}% открытий — подарок дороже кейса\n` +
+    `🚀 Апгрейдер: поставь подарки — забери дороже\n💎 Пополнение через TON и Telegram Stars\n📤 Вывод подарков прямо в Telegram\n\n` +
     `Жми «Играть» 👇 и забирай первый подарок!`;
+}
+
+// Баннер загружаем файлом один раз, дальше шлём по file_id — работает на любом хостинге, даже без публичного адреса картинок
+async function sendBanner(chatId, caption) {
+  const kv = one("SELECT v FROM kv WHERE k='banner_file_id'");
+  if (kv) return tg('sendPhoto', { chat_id: chatId, photo: kv.v, caption, parse_mode: 'HTML', reply_markup: appKeyboard() });
+  const img = await readFile(new URL('../webapp/images/banner.jpg', import.meta.url));
+  const msg = await tgUpload('sendPhoto', { chat_id: chatId, caption, parse_mode: 'HTML', reply_markup: appKeyboard() ? JSON.stringify(appKeyboard()) : undefined }, 'photo', img, 'banner.jpg', 'image/jpeg');
+  const fid = msg.photo && msg.photo[msg.photo.length - 1].file_id;
+  if (fid) run("INSERT INTO kv(k,v) VALUES('banner_file_id',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", fid);
+  return msg;
+}
+
+// Закрепляем приветствие в чате (старое — открепляем, чтобы не копились)
+async function pinWelcome(chatId, messageId) {
+  const key = 'pin:' + chatId, prev = one('SELECT v FROM kv WHERE k=?', key);
+  if (prev && Number(prev.v) !== messageId) await tg('unpinChatMessage', { chat_id: chatId, message_id: Number(prev.v) }).catch(() => {});
+  await tg('pinChatMessage', { chat_id: chatId, message_id: messageId, disable_notification: true });
+  run('INSERT INTO kv(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v', key, String(messageId));
 }
 
 async function onStart(m) {
@@ -23,10 +44,10 @@ async function onStart(m) {
     run('INSERT INTO users(id,username,name,referred_by,created,last_seen) VALUES(?,?,?,?,?,?)', from.id, from.username || '', from.first_name || '', ref, Date.now(), Date.now());
   }
   const caption = welcome(from.first_name);
-  if (cfg.publicUrl) { // приветствие с баннером (webapp/images/banner.jpg)
-    try { return await tg('sendPhoto', { chat_id: m.chat.id, photo: `${cfg.publicUrl}/images/banner.jpg`, caption, parse_mode: 'HTML', reply_markup: appKeyboard() }); } catch (e) { console.error('banner', e.message); }
-  }
-  await tg('sendMessage', { chat_id: m.chat.id, text: caption, parse_mode: 'HTML', reply_markup: appKeyboard(), link_preview_options: { is_disabled: true } });
+  let msg = null;
+  try { msg = await sendBanner(m.chat.id, caption); } catch (e) { console.error('banner', e.message); }
+  if (!msg) msg = await tg('sendMessage', { chat_id: m.chat.id, text: caption, parse_mode: 'HTML', reply_markup: appKeyboard(), link_preview_options: { is_disabled: true } });
+  if (m.chat.type === 'private') await pinWelcome(m.chat.id, msg.message_id).catch(e => console.error('pin', e.message));
 }
 
 async function adminCommand(m) {
@@ -78,7 +99,7 @@ export async function startBot() {
   const me = await tg('getMe'); if (!cfg.botUsername) cfg.botUsername = me.username;
   await tg('setMyCommands', { commands: [{ command: 'start', description: 'Открыть игру' }, { command: 'support', description: 'Поддержка и вывод подарков' }] }).catch(() => {});
   if (cfg.webappUrl) await tg('setChatMenuButton', { menu_button: { type: 'web_app', text: '🎮 Играть', web_app: { url: cfg.webappUrl } } }).catch(() => {});
-  else console.warn('WEBAPP_URL не задан — кнопка «Играть» не появится. Укажите https-адрес сервера.');
+  else console.warn('⚠ Не знаю https-адрес мини-аппа — кнопки «Играть» не будет. Впиши в .env строку WEBAPP_URL=https://твой-домен и перезапусти.');
   await tg('setMyDescription', { description: `🎁 ${cfg.brand} — кейсы с NFT-подарками Telegram.\n\n🆓 Бесплатные кейсы каждый день\n🚀 Апгрейдер\n💎 Пополнение TON и Stars\n\nНажми «Старт» 👇` }).catch(() => {});
   await tg('setMyShortDescription', { short_description: `Кейсы с NFT-подарками Telegram · бесплатные кейсы · апгрейдер` }).catch(() => {});
   console.log(`bot @${cfg.botUsername} запущен`);

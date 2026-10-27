@@ -5,4 +5,4 @@ COPY . .
 ENV PORT=8080 DB_PATH=/data/data.db
 VOLUME /data
 EXPOSE 8080
-CMD ["node", "--no-warnings", "server/main.mjs"]
+CMD ["node", "--no-warnings", "index.js"]

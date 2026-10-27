@@ -108,15 +108,17 @@
     "bunny-muffins",
     "mousse-cakes",
     "ginger-cookies",
-    "big-years"
+    "whip-cupcakes"
    ],
    "items": [
-    "gift-25",
     "cake-50",
     "trophy-100",
-    "diamond-100",
-    "big-years",
+    "homemade-cakes",
+    "hypno-lollipops",
     "whip-cupcakes",
+    "berry-boxes",
+    "jelly-bunnies",
+    "vice-creams",
     "mousse-cakes",
     "ginger-cookies",
     "bunny-muffins",
@@ -141,10 +143,15 @@
     "joyful-bundles"
    ],
    "items": [
-    "cake-50",
     "trophy-100",
     "diamond-100",
+    "pet-snakes",
+    "santa-hats",
+    "spiced-wines",
+    "hypno-lollipops",
     "instant-ramens",
+    "pool-floats",
+    "tama-gadgets",
     "party-sparklers",
     "jacks-in-the-box",
     "snow-globes",
@@ -174,13 +181,17 @@
     "flying-brooms"
    ],
    "items": [
-    "cake-50",
-    "trophy-100",
     "diamond-100",
     "big-years",
     "mousse-cakes",
     "spring-baskets",
-    "jacks-in-the-box",
+    "spy-agarics",
+    "hypno-lollipops",
+    "eternal-candles",
+    "hex-pots",
+    "jolly-chimps",
+    "bunny-muffins",
+    "snow-mittens",
     "witch-hats",
     "top-hats",
     "sleigh-bells",
@@ -209,7 +220,6 @@
     "cupid-charms"
    ],
    "items": [
-    "heart-15",
     "diamond-100",
     "big-years",
     "lush-bouquets",
@@ -229,7 +239,7 @@
   {
    "id": "case9",
    "name": "Magic",
-   "price": 2990,
+   "price": 2490,
    "image": "images/cases/case9.webp",
    "theme": [
     "#c026d3",
@@ -239,9 +249,9 @@
    "art": [
     "scared-cats",
     "magic-potions",
-    "voodoo-dolls",
-    "vintage-cigars",
-    "genie-lamps"
+    "sharp-tongues",
+    "kissed-frogs",
+    "voodoo-dolls"
    ],
    "items": [
     "hex-pots",
@@ -249,10 +259,13 @@
     "skull-flowers",
     "crystal-balls",
     "mad-pumpkins",
+    "eternal-roses",
     "electric-skulls",
     "genie-lamps",
     "voodoo-dolls",
     "vintage-cigars",
+    "kissed-frogs",
+    "sharp-tongues",
     "magic-potions",
     "scared-cats"
    ]
@@ -291,6 +304,7 @@
     "swiss-watches",
     "mini-oscars",
     "ion-gems",
+    "artisan-bricks",
     "perfume-bottles",
     "westside-signs",
     "loot-bags",
@@ -341,7 +355,7 @@
   {
    "id": "case14",
    "name": "Plush Pepe",
-   "price": 99990,
+   "price": 129990,
    "image": "images/cases/case14.webp",
    "theme": [
     "#34d399",

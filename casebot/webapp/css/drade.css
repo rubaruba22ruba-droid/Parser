@@ -118,12 +118,20 @@ body { background-image: none !important; }
 .r-legendary, .rarity-legendary { --t: #9a8a3c; --b: #775d3c; --bar: #e8b13f; }
 .slot-card, .case_item, .upg-item { background: linear-gradient(180deg, var(--t, #4464ad), var(--b, #2e4990)) !important; border: 0 !important;
   box-shadow: inset 0 -4px 0 var(--bar, #3d6df0) !important; }
-.slot-card { border-radius: 18px !important; transition: transform .45s var(--spring), opacity .45s var(--ease), filter .45s !important; }
+.slot-card { border-radius: 18px !important; transition: transform .45s var(--spring), opacity .45s var(--ease) !important; contain: layout paint style; }
 .slot-card-bar { display: none !important; }
-.slot-card-img img { max-width: 88px !important; max-height: 88px !important; object-fit: contain !important; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .35)) !important; }
+.slot-card-img img { max-width: 88px !important; max-height: 88px !important; object-fit: contain !important; filter: none !important; -webkit-user-drag: none; }
 .slot-card-name { font-weight: 700 !important; font-size: 12px !important; color: #fff !important; }
 .slot-card-value { font-family: var(--fh) !important; color: #fff !important; }
-.dd-done .slot-card:not(.winner) { opacity: .3; transform: scale(.9); }
+.dd-done .slot-card.dd-dim { opacity: .3; transform: scale(.9); }
+#slotTrack, .vertical-column-inner { will-change: transform; backface-visibility: hidden; }
+/* x2–x5: колонки и карточки — в CSS, а не инлайном на каждую из сотен карточек */
+.case_opening_process.vertical-mode .slot-column { position: relative; height: 100%; min-width: 0; overflow: hidden; border-radius: 14px; background: rgba(0, 0, 0, .2); display: flex; flex-direction: column; flex: 1 1 0; contain: layout paint; }
+.vertical-column-inner { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 0; }
+.case_opening_process.vertical-mode .slot-card-vertical { flex: none; width: 100%; height: 100px; min-height: 100px; padding: 8px 6px; gap: 6px; margin: 0; align-items: center; justify-content: center; border-radius: 14px !important; }
+.case_opening_process.vertical-mode .slot-card-vertical .slot-card-img { width: min(60px, 88%); height: auto; aspect-ratio: 1; min-height: 0; padding: 0; background: transparent; flex-shrink: 0; }
+.case_opening_process.vertical-mode .slot-card-vertical .slot-card-img img { width: 100%; height: 100%; max-width: none !important; max-height: none !important; }
+.case_opening_process.vertical-mode .slot-card-vertical .slot-card-value { font-size: 12px; font-weight: 700; white-space: nowrap; }
 .slot-card.winner { --win-color: #fff; transform: scale(1.12) !important; z-index: 6; animation: none !important;
   box-shadow: inset 0 -4px 0 var(--bar), 0 0 0 3px #fff, 0 12px 40px rgba(0, 0, 0, .45) !important; }
 .slot-card.winner .slot-card-img img { animation: ddBounce .8s var(--spring) both; }
@@ -153,7 +161,8 @@ body { background-image: none !important; }
 .case_item:active { transform: scale(.95) !important; }
 .case_item::before { display: none !important; }
 .case_item-img { width: 100% !important; flex: 1 1 auto !important; height: auto !important; min-height: 0 !important; padding: 6px 0 0 !important; display: flex; align-items: center; justify-content: center; }
-.case_item-img img { width: 78% !important; height: auto !important; max-height: 100% !important; object-fit: contain !important; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .3)); }
+.case_item-img img, .case_item .case_item-img img { width: 74% !important; height: auto !important; max-width: 120px !important; max-height: 100% !important; aspect-ratio: 1; object-fit: contain !important; filter: none !important; }
+.case_item-img::after { display: none !important; }
 .case_item_content { width: 100%; align-items: flex-start !important; text-align: left !important; padding: 0 2px !important; margin-top: 0 !important; display: flex !important; flex-direction: column !important; gap: 3px; }
 .case_item .case_item_name { font-weight: 600 !important; font-size: 12.5px !important; color: #fff !important; text-align: left !important; line-height: 15px !important; max-height: 30px !important; margin: 0 !important; letter-spacing: 0 !important; }
 .case_item-price { justify-content: flex-start !important; }
@@ -165,6 +174,21 @@ body { background-image: none !important; }
 #winModal.show { background: rgba(10, 12, 24, .82) !important; }
 #winModalCard { --win-c: #6a68f8; background: var(--card) !important; border: 0 !important; border-radius: 30px !important; box-shadow: 0 30px 80px rgba(0, 0, 0, .5) !important; }
 #winModalCard .win-modal-glow { display: none; }
+/* окно выигрыша прокручивается, если не влезает (x5 на маленьком экране, свёрнутый мини-апп), кнопки прилипают к низу */
+#winModal { z-index: 1000 !important; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+#winModal > div { padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)) !important; }
+#winModalCard { overflow: clip !important; }
+#winModalCard > #winActions { position: sticky; bottom: 0; z-index: 3 !important; background: var(--card); border-radius: 0 0 30px 30px; padding-top: 12px; }
+#winModalCard > .pt-8 { padding-top: 26px !important; }
+.dd-win-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.dd-win-grid.n2, .dd-win-grid.n4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dd-win-tile { border-radius: 18px; padding: 10px 6px 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0;
+  background: linear-gradient(180deg, var(--t, #4464ad), var(--b, #2e4990)); box-shadow: inset 0 -4px 0 var(--bar, #3d6df0); }
+.dd-win-tile img { width: 68%; max-width: 84px; aspect-ratio: 1; object-fit: contain; animation: ddPop .7s var(--spring) both !important; filter: none !important; }
+.dd-win-tile:nth-child(2) img { animation-delay: .06s !important; } .dd-win-tile:nth-child(3) img { animation-delay: .12s !important; }
+.dd-win-tile:nth-child(4) img { animation-delay: .18s !important; } .dd-win-tile:nth-child(5) img { animation-delay: .24s !important; }
+.dd-win-name { font: 700 11.5px/1.25 var(--fb, inherit); color: #fff; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+.dd-win-val { font: 800 12px/1 var(--fh); color: #fff; opacity: .92; }
 .dd-rays { position: absolute; left: 50%; top: 120px; width: 560px; height: 560px; margin: -280px 0 0 -280px; pointer-events: none; z-index: 0; opacity: .5;
   background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--win-c) 55%, transparent) 0 7deg, transparent 7deg 20deg);
   -webkit-mask: radial-gradient(circle, #000 0, transparent 60%); mask: radial-gradient(circle, #000 0, transparent 60%); animation: ddSpin 18s linear infinite; }
@@ -250,3 +274,24 @@ body { background-image: none !important; }
 .upg-none { grid-column: 1 / -1; text-align: center; color: var(--mute); padding: 26px 10px; font-size: 14px; }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+.upg-tick-big.lit { stroke: #fff !important; stroke-width: 4 !important; }
+
+/* ---------- адаптив: телефоны от 320px, планшеты, десктоп ---------- */
+#case-selection { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; max-width: none !important; }
+#case-selection > .cases_block_title { grid-column: 1 / -1; }
+@media (min-width: 520px) { #case-selection { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } .case_items_content { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; } }
+@media (min-width: 760px) {
+  .app-container { max-width: 760px !important; margin-left: auto !important; margin-right: auto !important; background: transparent !important; }
+  .nav_profile { padding-left: calc((100vw - 760px) / 2 + 14px) !important; padding-right: calc((100vw - 760px) / 2 + 14px) !important; }
+  #case-selection { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  .case_items_content { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+}
+@media (max-width: 359px) {
+  .app-container { padding-left: 10px !important; padding-right: 10px !important; }
+  #case-selection { gap: 8px !important; }
+  .case-name { font-size: 13px !important; }
+  .case_opening_process.vertical-mode .slot-card-vertical .slot-card-value { font-size: 10.5px; }
+  .upg-mults { gap: 4px; } .upg-mults button { font-size: 12px; padding-left: 0; padding-right: 0; }
+  .dd-win-tile { padding: 8px 4px 10px; } .dd-win-name { font-size: 10.5px; }
+}
+@media (prefers-reduced-motion: reduce) { .dd-rays, .dd-pulse { animation: none !important; } }

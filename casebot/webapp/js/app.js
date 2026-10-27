@@ -769,6 +769,7 @@ function openRefLink() {
 }
 
 async function openCase(caseId) {
+  window.scrollTo(0, 0);
   if (freeCaseCountdownIntervalId) {
     clearInterval(freeCaseCountdownIntervalId);
     freeCaseCountdownIntervalId = null;
@@ -864,7 +865,7 @@ async function openCase(caseId) {
   }
 
   // Set up items for rendering
-  itemsList = [...currentCase.items, ...currentCase.items, ...currentCase.items];
+  itemsList = currentCase.items.length < 8 ? [...currentCase.items, ...currentCase.items] : currentCase.items.slice();
 
   // Set vertical mode class based on openCount
   if (openCount > 1) {
@@ -873,8 +874,10 @@ async function openCase(caseId) {
   } else {
     document.querySelector('.case_opening_process').classList.remove('vertical-mode');
     renderSlotItems(itemsList);
-    slotTrack.style.transform = 'translateX(0)';
+    slotTrack.style.transform = 'translate3d(0,0,0)';
   }
+  // заранее декодируем картинки кейса, чтобы лента не подгружала их на ходу
+  currentCase.items.forEach(it => { const im = new Image(); im.src = it.image; im.decode && im.decode().catch(() => { }); });
 
   isAnimationRunning = false;
   winningItem = null;
@@ -1014,6 +1017,7 @@ async function startAnimation(promoCode = null) {
   }
 
   isCaseBeingOpened = true;
+  revealSpinner(document.querySelector('.case_opening_process'));
   showOpeningState();
   openBtn.disabled = true;
   resultMessage.textContent = '';
@@ -1107,142 +1111,39 @@ async function startAnimation(promoCode = null) {
       wonItems.forEach(w => w._isDemo = true);
     }
 
-    const cardWidth = 115;
-    const itemHeight = 110 + 14 + 10 + 4;
-    const gap = 8;
-    const itemWidth = cardWidth + gap;
-    const copies = 10;
-
-    // Calculate final targets for all columns
+    // Ленты короткие (STRIP карточек, выигрыш на WIN_AT): мало DOM — плавно даже при x5 на слабых телефонах
+    const proc = document.querySelector('.case_opening_process');
     const columnsData = [];
+    const pickStrip = (win) => {
+      const pool = currentCase.items, out = new Array(SLOT_STRIP);
+      for (let i = 0; i < SLOT_STRIP; i++) out[i] = pool[(Math.random() * pool.length) | 0];
+      out[SLOT_WIN_AT] = pool.find(it => it.name === win.name && it.image === win.image) || win;
+      return out;
+    };
 
     if (openCount > 1) {
-      const verticalCardHeight = 100;
-      const verticalGapBetween = 4;
-      const verticalItemTotalHeight = verticalCardHeight + verticalGapBetween;
-      const processEl = document.querySelector('.case_opening_process.vertical-mode');
-      const containerHeight = processEl ? processEl.offsetHeight || 200 : 200;
-      const containerCenter = containerHeight / 2;
-      const cardCenterOffset = verticalCardHeight / 2;
-      const sharedRandomOffset = (Math.random() - 0.5) * (verticalCardHeight * 0.3);
-
-      document.querySelector('.case_opening_process').classList.add('vertical-mode');
-      slotTrack.innerHTML = '';
+      proc.classList.add('vertical-mode');
       slotTrack.style.transform = 'none';
-
-      for (let col = 0; col < openCount; col++) {
-        const colList = [];
-        for (let i = 0; i < copies; i++) {
-          colList.push(...currentCase.items);
-        }
-
-        let localWinningItem = wonItems[col];
-        if (!localWinningItem) localWinningItem = wonItems[0];
-
-        const winIndexInOriginal = currentCase.items.findIndex(item =>
-          item.name === localWinningItem.name &&
-          item.image === localWinningItem.image
-        );
-
-        let finalIndex = Math.floor(copies * 0.8) * currentCase.items.length + winIndexInOriginal;
-        let tPosition = -(finalIndex * verticalItemTotalHeight);
-        tPosition += containerCenter - cardCenterOffset + sharedRandomOffset;
-
-        columnsData.push({
-          element: null,
-          items: colList,
-          targetPosition: tPosition,
-          finalIndex: finalIndex,
-          winningItem: localWinningItem
-        });
-      }
-
-      // Render columns
-      columnsData.forEach((colData, i) => {
-        const colDiv = document.createElement('div');
-        colDiv.className = 'case_opening_items_list slot-column';
-        // Force critical inline styles to bypass CSS cache issues
-        colDiv.style.cssText = 'position:relative; height:100%; min-width:0; overflow:hidden; border-radius:14px; background:rgba(0,0,0,0.2); display:flex; flex-direction:column; flex:1 1 0;';
-
-        const innerTarget = document.createElement('div');
-        innerTarget.className = 'case_opening_items vertical-column-inner';
-        innerTarget.style.cssText = 'display:flex; flex-direction:column; gap:4px; width:100%; padding:0; will-change:transform;';
-        colDiv.appendChild(innerTarget);
-
-        const rarityColorMap = {
-          uncommon: '#b4bed2', common: '#3b82f6', rare: '#22d3ee',
-          epic: '#a855f7', purple: '#ec4899', mythic: '#ef4444', legendary: '#facc15',
-        };
-
-        colData.items.forEach((item, index) => {
-          const rarity = item.rarity || 'common';
-          const barColor = rarityColorMap[rarity] || '#3b82f6';
-          const value = item.value != null ? Number(item.value).toLocaleString('ru-RU') : '—';
-
-          const card = document.createElement('div');
-          card.className = 'slot-card slot-card-vertical r-' + rarity;
-          card.style.cssText = 'flex:none; width:100%; height:100px; min-height:100px; flex-direction:column; padding:8px 10px; gap:6px; margin:0; flex-shrink:0; align-items:center; justify-content:center;';
-          card.dataset.itemIndex = index;
-          card.innerHTML = `
-            <div class="slot-card-img" style="width:64px; height:64px; min-width:64px; min-height:64px; padding:0; background:transparent; flex-shrink:0;">
-              <span class="slot-card-preloader" aria-hidden="true" style="width:22px;height:22px;"></span>
-              <img alt="${item.name}" src="${item.image}" loading="lazy" style="width:100%;height:100%;object-fit:contain;"/>
-            </div>
-            <div class="slot-card-value" style="display:flex; align-items:center; justify-content:center; gap:4px; font-size:13px; font-weight:700; color:#FFCA5A;"><span aria-hidden="true">★</span> ${value}</div>
-            <div class="slot-card-bar" style="position:absolute; bottom:0; left:0; width:100%; height:2px; border-radius:0 0 6px 6px; background: ${barColor}; box-shadow: 0 0 8px ${barColor}80;"></div>
-          `;
-          innerTarget.appendChild(card);
-        });
-
-        // Append overlay elements as DOM nodes (do NOT use innerHTML += — it would wipe innerTarget and all cards)
-        const fadeTop = document.createElement('div');
-        fadeTop.className = 'slot-fade top';
-        const fadeBottom = document.createElement('div');
-        fadeBottom.className = 'slot-fade bottom';
-        const indLeft = document.createElement('div');
-        indLeft.className = 'slot-indicator left-indicator';
-        indLeft.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#0099ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        const indRight = document.createElement('div');
-        indRight.className = 'slot-indicator right-indicator';
-        indRight.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="#0099ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        colDiv.appendChild(fadeTop);
-        colDiv.appendChild(fadeBottom);
-        colDiv.appendChild(indLeft);
-        colDiv.appendChild(indRight);
-
-        slotTrack.appendChild(colDiv);
-        colData.element = innerTarget;
-      });
-
-      // Линия по центру уже в HTML (.slot-center-line-inner), в vertical-mode показывается через CSS
+      slotTrack.innerHTML = wonItems.slice(0, openCount).map(w =>
+        `<div class="case_opening_items_list slot-column"><div class="case_opening_items vertical-column-inner">${pickStrip(w).map(it => slotCardHtml(it, true)).join('')}</div>` +
+        '<div class="slot-fade top"></div><div class="slot-fade bottom"></div></div>').join('');
+      const cols = slotTrack.querySelectorAll('.vertical-column-inner');
+      const c0 = cols[0].children, step = c0[1].offsetTop - c0[0].offsetTop, cardH = c0[0].offsetHeight;
+      const center = (proc.offsetHeight || 200) / 2, jitter = (Math.random() - 0.5) * cardH * 0.3;
+      cols.forEach((el, i) => columnsData.push({
+        element: el, finalIndex: SLOT_WIN_AT, winningItem: wonItems[i] || wonItems[0],
+        targetPosition: -(SLOT_WIN_AT * step) + center - cardH / 2 + jitter,
+        duration: SLOT_MULTI_MS + i * SLOT_STAGGER_MS, step, stopped: false,
+      }));
     } else {
-      // Original horizontal logic
-      document.querySelector('.case_opening_process').classList.remove('vertical-mode');
-      itemsList = [];
-      for (let i = 0; i < copies; i++) {
-        itemsList.push(...currentCase.items);
-      }
+      proc.classList.remove('vertical-mode');
+      itemsList = pickStrip(wonItems[0]);
       renderSlotItems(itemsList);
-
-      let localWinningItem = wonItems[0];
-
-      const winIndexInOriginal = currentCase.items.findIndex(item =>
-        item.name === localWinningItem.name &&
-        item.image === localWinningItem.image
-      );
-
-      if (winIndexInOriginal !== -1) {
-        finalItemIndex = Math.floor(copies * 0.8) * currentCase.items.length + winIndexInOriginal;
-        targetPosition = -(finalItemIndex * itemWidth);
-
-        const container = document.querySelector('.case_opening_items_wrapper');
-        const containerWidth = container.offsetWidth;
-        const centerOffset = (containerWidth - cardWidth) / 2;
-        targetPosition += centerOffset;
-
-        const randomOffset = (Math.random() - 0.5) * (cardWidth * 0.55);
-        targetPosition += randomOffset;
-      }
+      finalItemIndex = SLOT_WIN_AT;
+      const c = slotTrack.children, step = c[1].offsetLeft - c[0].offsetLeft, cardW = c[0].offsetWidth;
+      const containerWidth = document.querySelector('.case_opening_items_wrapper').offsetWidth;
+      slotStep = step;
+      targetPosition = -(finalItemIndex * step) + (containerWidth - cardW) / 2 + (Math.random() - 0.5) * cardW * 0.55;
     }
 
     // Attach column data to global state
@@ -1250,7 +1151,7 @@ async function startAnimation(promoCode = null) {
 
 
     isAnimationRunning = true;
-    slotTrack.style.transform = 'translateX(0)';
+    if (openCount === 1) slotTrack.style.transform = 'translate3d(0,0,0)';
     document.querySelector('.case_opening_process')?.classList.remove('dd-done');
     if (window.FX) { FX.slotReset(slotTrack); FX.whoosh(); }
     animationStartTime = null;
@@ -1268,38 +1169,42 @@ async function startAnimation(promoCode = null) {
   }
 }
 
+const SLOT_STRIP = 48, SLOT_WIN_AT = 40, SLOT_SINGLE_MS = 6200, SLOT_MULTI_MS = 4600, SLOT_STAGGER_MS = 380;
+let slotStep = 123;
+const slotEase = p => 1 - Math.pow(1 - p, 3.5);
+
+// если лента/колесо ушли за экран (долистали вниз до предметов) — плавно возвращаем их в центр
+function revealSpinner(el) {
+  if (!el) return;
+  const r = el.getBoundingClientRect(), top = 64, bottom = innerHeight - 90;
+  if (r.top < top || r.bottom > bottom) window.scrollTo({ top: Math.max(0, scrollY + r.top - top - 8), behavior: 'smooth' });
+}
+
 function animateSlotMachine(timestamp) {
   if (!animationStartTime) animationStartTime = timestamp;
   const elapsed = timestamp - animationStartTime;
-  const animDuration = 6800;
-  const progress = Math.min(elapsed / animDuration, 1);
-
-  const easingProgress = 1 - Math.pow(1 - progress, 3.5);
+  let running = false;
 
   if (openCount > 1 && window.animationColumnsData) {
-    // vertical
-    window.animationColumnsData.forEach((colData, i) => {
-      // Add slight delay to each column based on its index
-      let colProgress = progress;
-      if (colProgress > 0) {
-        const colEasing = 1 - Math.pow(1 - colProgress, 3.5);
-        let cPos = colData.targetPosition * colEasing;
-        colData.element.style.transform = `translateY(${cPos}px)`;
-        if (i === 0 && window.FX) FX.slotFrame(cPos, slotTrack, 104);
-      }
+    // x2–x5: колонки останавливаются по очереди, тики — по последней (самой долгой)
+    const cols = window.animationColumnsData, last = cols.length - 1;
+    cols.forEach((col, i) => {
+      if (col.stopped) return;
+      const p = Math.min(elapsed / col.duration, 1), y = col.targetPosition * slotEase(p);
+      col.element.style.transform = `translate3d(0,${y.toFixed(1)}px,0)`;
+      if (i === last && window.FX) FX.slotFrame(y, null, col.step);
+      if (p >= 1) { col.stopped = true; if (window.FX) FX.stop(i); } else running = true;
     });
   } else {
-    // horizontal
-    currentPosition = targetPosition * easingProgress;
-    slotTrack.style.transform = `translateX(${currentPosition}px)`;
-    if (window.FX) FX.slotFrame(currentPosition, slotTrack, 123);
+    const p = Math.min(elapsed / SLOT_SINGLE_MS, 1);
+    currentPosition = targetPosition * slotEase(p);
+    slotTrack.style.transform = `translate3d(${currentPosition.toFixed(1)}px,0,0)`;
+    if (window.FX) FX.slotFrame(currentPosition, null, slotStep);
+    running = p < 1;
   }
 
-  if (progress < 1) {
-    animationFrameId = requestAnimationFrame(animateSlotMachine);
-  } else {
-    finishAnimation();
-  }
+  if (running) animationFrameId = requestAnimationFrame(animateSlotMachine);
+  else finishAnimation();
 }
 
 function finishAnimation() {
@@ -1320,11 +1225,13 @@ function finishAnimation() {
 
   if (openCount > 1 && window.animationColumnsData) {
     window.animationColumnsData.forEach(colData => {
-      const cards = colData.element.querySelectorAll('.slot-card');
+      const cards = colData.element.children;
+      dimNeighbours(cards, colData.finalIndex);
       const winCard = cards[colData.finalIndex];
       if (winCard) applyWinningStyle(winCard, colData.winningItem);
     });
   } else {
+    dimNeighbours(slotTrack.children, finalItemIndex);
     highlightWinningCard();
   }
 
@@ -1332,6 +1239,11 @@ function finishAnimation() {
     showWinModal(wonItems);
   }, 250);
   openBtn.disabled = false;
+}
+
+// Затемняем только видимых соседей выигрыша (а не всю ленту) — дешёвая анимация в конце
+function dimNeighbours(cards, idx) {
+  for (let i = Math.max(0, idx - 4); i <= Math.min(cards.length - 1, idx + 4); i++) if (i !== idx) cards[i].classList.add('dd-dim');
 }
 
 function applyWinningStyle(winCard, item) {
@@ -1347,8 +1259,7 @@ function applyWinningStyle(winCard, item) {
 
 function highlightWinningCard() {
   if (!wonItems || !wonItems.length || finalItemIndex === undefined) return;
-  const cards = slotTrack.querySelectorAll('.slot-card');
-  const winCard = cards[finalItemIndex];
+  const winCard = slotTrack.children[finalItemIndex];
   if (winCard) {
     applyWinningStyle(winCard, wonItems[0]);
   }
@@ -1701,44 +1612,17 @@ async function hideOpeningState() {
   }
 }
 
+// Карточка ленты: без спиннеров и теней — их сотни, и каждая стоит кадров
+function slotCardHtml(item, vertical) {
+  const r = item.rarity || 'common';
+  const img = `<div class="slot-card-img"><img alt="" src="${item.image}" decoding="async" draggable="false"></div>`;
+  return vertical
+    ? `<div class="slot-card slot-card-vertical r-${r}">${img}<div class="slot-card-value"><span aria-hidden="true">★</span> ${item.value != null ? Number(item.value).toLocaleString('ru-RU') : '—'}</div></div>`
+    : `<div class="slot-card r-${r}">${img}<div class="slot-card-name">${item.name}</div></div>`;
+}
+
 function renderSlotItems(items) {
-  slotTrack.innerHTML = '';
-
-  const rarityColorMap = {
-    uncommon: '#b4bed2',
-    common: '#3b82f6',
-    rare: '#22d3ee',
-    epic: '#a855f7',
-    purple: '#ec4899',
-    mythic: '#ef4444',
-    legendary: '#facc15',
-  };
-
-  items.forEach((item, index) => {
-    const rarity = item.rarity || 'common';
-    const barColor = rarityColorMap[rarity] || '#3b82f6';
-
-    const card = document.createElement('div');
-    card.className = 'slot-card r-' + rarity;
-    card.dataset.itemIndex = index;
-
-    card.innerHTML = `
-      <div class="slot-card-img">
-        <span class="slot-card-preloader" aria-hidden="true"></span>
-        <img alt="${item.name}" src="${item.image}" loading="eager" />
-      </div>
-      <div class="slot-card-name">${item.name}</div>
-      <div class="slot-card-bar" style="background: ${barColor}; box-shadow: 0 0 10px ${barColor}80;"></div>
-    `;
-
-    slotTrack.appendChild(card);
-    const cardImg = card.querySelector('.slot-card-img img');
-    const cardLoader = card.querySelector('.slot-card-preloader');
-    if (cardImg && cardLoader) {
-      if (cardImg.complete) cardLoader.remove();
-      else cardImg.onload = cardImg.onerror = () => cardLoader.remove();
-    }
-  });
+  slotTrack.innerHTML = items.map(it => slotCardHtml(it, false)).join('');
 }
 
 function showWinModal(itemsArray) {
@@ -1764,19 +1648,22 @@ function showWinModal(itemsArray) {
   // Add all items to container
   if (itemsArray && itemsArray.length) {
     // Switch single view to grid if multiple
-    if (itemsArray.length > 1) {
-      container.className = "flex flex-wrap justify-center gap-4";
-    } else {
-      container.className = "flex flex-col items-center gap-4";
-    }
+    const multi = itemsArray.length > 1;
+    container.className = multi ? `dd-win-grid n${itemsArray.length}` : "flex flex-col items-center gap-4";
 
     itemsArray.forEach(item => {
       totalValue += (item.value || 0);
       if (!item._autoSold) allAutoSold = false;
       if (item._autoSold) totalCredited += (item._creditedAmount || item.value);
 
-      const html = `
-        <div class="flex flex-col items-center ${itemsArray.length > 1 ? 'w-24' : ''}">
+      // x2–x5: компактная плитка с ценой — окно влезает в маленький экран, «Продать» всегда видно
+      const html = multi ? `
+        <div class="dd-win-tile r-${item.rarity || 'common'}">
+          <img src="${item.image}" alt="" decoding="async" />
+          <div class="dd-win-name" title="${item.name}">${item.name}</div>
+          <div class="dd-win-val">★ ${Number(item.value || 0).toLocaleString('ru-RU')}</div>
+        </div>` : `
+        <div class="flex flex-col items-center">
           <div class="${itemsArray.length > 1 ? 'w-20 h-20' : 'w-36 h-36'} flex items-center justify-center mb-4"
             style="filter: drop-shadow(0 0 20px rgba(0,220,255,0.2));">
             <img src="${item.image}" alt="win" class="max-h-full max-w-full object-contain"

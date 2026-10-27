@@ -69,22 +69,30 @@
     FX.haptic('medium'); paint(); st.tab = 'gifts'; grid();
   }
 
-  function spin(roll) { // стрелка делает 6+ оборотов и останавливается ровно на roll (0..1 по кругу от верхней точки)
+  // Стрелка делает 5+ оборотов и встаёт ровно на roll (0..1 по кругу от верхней точки).
+  // Звук — как у ленты кейса: щелчок на каждой крупной отметке (через 30°), к концу всё реже, в конце — «тук».
+  function spin(roll) {
     return new Promise(res => {
-      const needle = $('upgNeedle'), from = st.angle % 360, to = from + 360 * 6 + ((roll * 360 - from) % 360 + 360) % 360, dur = 5600, t0 = performance.now();
-      let lastTick = Math.floor(from / 5);
-      const ease = t => 1 - Math.pow(1 - t, 4.2);
+      const needle = $('upgNeedle'), from = st.angle % 360, to = from + 360 * 5 + ((roll * 360 - from) % 360 + 360) % 360, dur = 6000, t0 = performance.now();
+      const marks = document.querySelectorAll('#upgTicks .upg-tick-big');
+      let lastTick = Math.floor(from / 30), lit = null;
+      const ease = t => 1 - Math.pow(1 - t, 3.5);
       (function f(now) {
         const k = Math.min(1, (now - t0) / dur), a = from + (to - from) * ease(k);
-        needle.style.transform = `rotate(${a}deg)`; st.angle = a;
-        const tk = Math.floor(a / 5); if (tk !== lastTick) { lastTick = tk; FX.tick(); }
-        if (k < 1) requestAnimationFrame(f); else res();
+        needle.style.transform = `rotate(${a.toFixed(2)}deg)`; st.angle = a;
+        const tk = Math.floor(a / 30);
+        if (tk !== lastTick) {
+          lastTick = tk; FX.tick();
+          if (lit) lit.classList.remove('lit'); lit = marks[((tk % 12) + 12) % 12]; if (lit) lit.classList.add('lit');
+        }
+        if (k < 1) requestAnimationFrame(f); else { if (lit) lit.classList.remove('lit'); FX.stop(0); res(); }
       })(t0);
     });
   }
   async function go() {
     if (st.spinning || !st.target || !stake()) return;
     st.spinning = true; paint(); const wheel = $('upgWheel'); wheel.classList.remove('win', 'lose'); wheel.classList.add('spinning');
+    if (window.revealSpinner) revealSpinner(wheel);
     try {
       const r = await fetch('/api/upgrade', { method: 'POST', headers: hdr(), body: JSON.stringify({ inventoryItemIds: st.sel, targetGiftId: st.target.id }) });
       const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Ошибка');

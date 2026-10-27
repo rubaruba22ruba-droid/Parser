@@ -16,7 +16,7 @@ writeFileSync(OUT + '/demo-data.json', JSON.stringify({
 }));
 let html = readFileSync(ROOT + 'webapp/index.html', 'utf8');
 const head = html.slice(html.indexOf('<head>') + 6, html.indexOf('</head>')), body = html.slice(html.indexOf('<body>') + 6, html.lastIndexOf('</body>'));
-const keep = head.split('\n').filter(l => !/telegram-web-app|tonconnect|tgs-player|sweetalert|http-equiv|<meta charset|name="viewport"|preconnect|dns-prefetch/.test(l)).join('\n')
+const keep = head.split('\n').filter(l => !/telegram-web-app|tonconnect|tgs-player|sweetalert|http-equiv|<meta charset|preconnect|dns-prefetch/.test(l)).join('\n')
   .replace(/<script>\s*\(function \(\) \{\s*var blocked[\s\S]*?<\/script>/, '');
 let page = `<title>Drade Drop</title>\n<style>:root{color-scheme:dark}html,body{background:#1a1d2e}</style>\n${keep}\n${body}`;
 page = page.replace('<script src="/config.js"></script>', '<script src="js/demo.js"></script>').replace(/\?v=\d+/g, '');

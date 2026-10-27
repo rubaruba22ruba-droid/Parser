@@ -1,10 +1,20 @@
+// .env рядом с package.json подхватывается всегда — даже если хостинг запускает просто «node index.js».
+// Переменные, заданные в панели хостинга, важнее .env.
+try { process.loadEnvFile(new URL('../.env', import.meta.url).pathname); } catch { }
 const env = process.env;
+// Публичный https-адрес: сами подставляют Render, Railway, Koyeb, Fly, Replit, Glitch; иначе — WEBAPP_URL из .env
+const detected = env.WEBAPP_URL || env.PUBLIC_URL || env.RENDER_EXTERNAL_URL
+  || (env.RAILWAY_PUBLIC_DOMAIN && 'https://' + env.RAILWAY_PUBLIC_DOMAIN)
+  || (env.KOYEB_PUBLIC_DOMAIN && 'https://' + env.KOYEB_PUBLIC_DOMAIN)
+  || (env.FLY_APP_NAME && `https://${env.FLY_APP_NAME}.fly.dev`)
+  || (env.REPLIT_DEV_DOMAIN && 'https://' + env.REPLIT_DEV_DOMAIN)
+  || (env.PROJECT_DOMAIN && `https://${env.PROJECT_DOMAIN}.glitch.me`) || '';
 export const cfg = {
   port: Number(env.PORT || 8080),
   botToken: env.BOT_TOKEN || '',
   botUsername: (env.BOT_USERNAME || '').replace(/^@/, ''),
   // https-адрес Mini App. На Render/Railway подставляется сам — ссылка на мини-апп «вшивается» в бота автоматически.
-  webappUrl: env.WEBAPP_URL || env.PUBLIC_URL || env.RENDER_EXTERNAL_URL || (env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + env.RAILWAY_PUBLIC_DOMAIN : ''),
+  webappUrl: detected.replace(/\/$/, ''),
   brand: env.BRAND || 'Drade Drop',
   support: env.SUPPORT || '@entoni',            // куда писать для вывода подарков
   dev: env.DEV === '1',                         // DEV=1 — вход без Telegram (только локально)
@@ -28,6 +38,6 @@ export const cfg = {
   upgradeMaxChance: Number(env.UPGRADE_MAX_CHANCE || 0.92),
   upgradeMaxItems: 6,
   refPromoBonus: Number(env.REF_PROMO_BONUS || 10),
-  publicUrl: (env.PUBLIC_URL || env.WEBAPP_URL || env.RENDER_EXTERNAL_URL || (env.RAILWAY_PUBLIC_DOMAIN ? 'https://' + env.RAILWAY_PUBLIC_DOMAIN : '')).replace(/\/$/, ''),
+  publicUrl: detected.replace(/\/$/, ''),
   twaReturnUrl: env.TWA_RETURN_URL || '',        // напр. https://t.me/<bot>/<app>
 };
