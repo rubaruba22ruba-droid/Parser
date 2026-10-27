@@ -1,4 +1,18 @@
 
+// Данные входа Telegram: сохраняем, а если клиент потерял их после перехода/перезагрузки — восстанавливаем
+(function () {
+  try {
+    var W = window.Telegram && Telegram.WebApp; if (!W) return;
+    if (W.initData) { sessionStorage.setItem('dd_init', W.initData); return; }
+    var s = sessionStorage.getItem('dd_init'); if (!s) return;
+    var p = new URLSearchParams(s), unsafe = Object.assign({}, W.initDataUnsafe || {});
+    try { unsafe.user = JSON.parse(p.get('user') || 'null'); } catch (e) { }
+    unsafe.auth_date = p.get('auth_date'); unsafe.hash = p.get('hash'); if (p.get('start_param')) unsafe.start_param = p.get('start_param');
+    try { W.initData = s; W.initDataUnsafe = unsafe; } catch (e) { }
+    if (W.initData !== s) { Object.defineProperty(W, 'initData', { value: s, configurable: true }); Object.defineProperty(W, 'initDataUnsafe', { value: unsafe, configurable: true }); }
+  } catch (e) { }
+})();
+
 (function () {
   var _ce = console.error;
   console.error = function () {
@@ -1393,8 +1407,8 @@ async function initWithdraw(itemId) {
       throw new Error(result.error || 'Ошибка при создании запроса на вывод');
     }
 
-    showAlert('✅ ' + (result.message || 'Запрос на вывод создан') + '\nНапишите в поддержку ' + (window.__SUPPORT || '@entoni'), 'success', { title: 'Вывод' });
-    try { Telegram.WebApp.openTelegramLink('https://t.me/' + String(window.__SUPPORT || 'entoni').replace(/^@/, '')); } catch (e) { }
+    showAlert('✅ ' + (result.message || 'Запрос на вывод создан') + '\nНапишите в поддержку ' + (window.__SUPPORT || '@RelayerDrade'), 'success', { title: 'Вывод' });
+    try { Telegram.WebApp.openTelegramLink('https://t.me/' + String(window.__SUPPORT || 'RelayerDrade').replace(/^@/, '')); } catch (e) { }
     await renderInventory();
   } catch (err) {
     console.error("Withdraw error:", err);
@@ -1412,7 +1426,7 @@ async function initWithdraw(itemId) {
 
 function updateBalance() {
   if (topBalanceEl) {
-    topBalanceEl.textContent = balance;
+    topBalanceEl.textContent = Number(balance).toLocaleString('ru-RU');
   }
   updateProfileBalance();
   updateCaseOpenButtonState();
@@ -4694,6 +4708,8 @@ function handleDailyCaseChannel() {
 
   const cleanUsername = channelUsername.replace(/^@/, '');
   const channelUrl = `https://t.me/${cleanUsername}`;
+  // переход в канал засчитывается как подписка (режим SUB_CHECK=click)
+  fetch('/api/daily-case/channel-click', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': Telegram.WebApp.initData } }).catch(() => { });
 
   try {
     Telegram.WebApp.openTelegramLink(channelUrl);

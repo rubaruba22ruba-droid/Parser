@@ -1,10 +1,14 @@
 /* Drade Drop — админ-панель (открывается из профиля в Mini App). */
 (function () {
-  const tg = window.Telegram && Telegram.WebApp;
-  // подпись Telegram: из WebApp, а если страница открыта переходом из мини-аппа — из сохранённой там копии
+  // обычно админка открыта окном (iframe) внутри мини-аппа — подпись Telegram берём у него
+  const embedded = window.parent !== window;
+  let parentTg = null; try { parentTg = embedded && window.parent.Telegram && window.parent.Telegram.WebApp; } catch (e) { }
+  const tg = !embedded && window.Telegram && Telegram.WebApp;
   let saved = ''; try { saved = sessionStorage.getItem('dd_init') || ''; } catch (e) { }
-  const initData = (tg && tg.initData) || saved || window.__DEMO_INIT || '';
-  if (tg) { try { tg.ready(); tg.expand(); tg.BackButton.show(); tg.BackButton.onClick(() => { location.href = './'; }); } catch (e) { } }
+  const initData = (parentTg && parentTg.initData) || (tg && tg.initData) || saved || window.__DEMO_INIT || '';
+  const close = () => { if (embedded && window.parent.closeAdminPanel) window.parent.closeAdminPanel(); else location.href = './'; };
+  document.addEventListener('click', e => { if (e.target.closest('.a-back')) { e.preventDefault(); close(); } });
+  if (tg) { try { tg.ready(); tg.expand(); tg.BackButton.show(); tg.BackButton.onClick(close); } catch (e) { } }
   const $ = id => document.getElementById(id), view = $('view');
   const fmt = n => Number(n || 0).toLocaleString('ru-RU');
   const pct = x => x == null ? '—' : (x * 100).toFixed(1) + '%';

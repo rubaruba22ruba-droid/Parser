@@ -142,8 +142,17 @@
   window.hideAllShowCases = function () { const s = $('upgrade-section'); if (s) { s.classList.add('hidden'); s.style.display = 'none'; } };
 })();
 
-// Админ-панель — отдельная страница
+// Админ-панель — окном поверх мини-аппа (iframe), без перехода со страницы:
+// при переходе Telegram на некоторых клиентах теряет данные входа, и после «назад» мини-апп ломался
 window.showAdminPanel = function () {
-  try { if (window.Telegram && Telegram.WebApp.initData) sessionStorage.setItem('dd_init', Telegram.WebApp.initData); } catch (e) { }
-  location.href = 'admin.html';
+  if (document.getElementById('ddAdmin')) return;
+  const ov = document.createElement('div'); ov.id = 'ddAdmin'; ov.className = 'dd-admin-ov';
+  ov.innerHTML = '<iframe src="admin.html?embed=1" title="Админка"></iframe>';
+  document.body.appendChild(ov); document.body.style.overflow = 'hidden';
+  try { const bb = Telegram.WebApp.BackButton; bb.onClick(window.closeAdminPanel); bb.show(); } catch (e) { }
+};
+window.closeAdminPanel = function () {
+  const ov = document.getElementById('ddAdmin'); if (ov) ov.remove(); document.body.style.overflow = '';
+  try { const bb = Telegram.WebApp.BackButton; bb.offClick(window.closeAdminPanel); bb.hide(); } catch (e) { }
+  try { loadBalance().then(() => updateBalance()); } catch (e) { }   // админ мог выдать себе баланс
 };

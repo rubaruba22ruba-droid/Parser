@@ -23,6 +23,7 @@ function roll(c) { // криптостойкий выбор по весам
 async function isSubscribed(userId) {
   if (!cfg.dailyChannel) return true;
   if (cfg.dev) return true;
+  if (cfg.subCheck === 'click') return !!one('SELECT 1 FROM kv WHERE k=?', 'sub:' + userId);   // нажал «перейти в канал» — засчитано
   try { const m = await tg('getChatMember', { chat_id: '@' + cfg.dailyChannel, user_id: userId }, 8000); return ['member', 'administrator', 'creator'].includes(m.status); } catch { return false; }
 }
 async function freeStatus(u, caseId) {
@@ -56,7 +57,11 @@ async function openCase(u, b) {
       if (cur.balance < c.price * count) throw new ApiError(`Недостаточно Stars! Нужно ещё ${c.price * count - cur.balance} ⭐`);
       run('UPDATE users SET balance=balance-? WHERE id=?', c.price * count, u.id);
     }
-    if (isFree) run('INSERT INTO free_opens(user_id,case_id,opened_at) VALUES(?,?,?) ON CONFLICT(user_id,case_id) DO UPDATE SET opened_at=excluded.opened_at', u.id, c.id, Date.now());
+    if (isFree) {   // повторная проверка внутри транзакции: два одновременных запроса не откроют бесплатный кейс дважды
+      const rec = one('SELECT opened_at FROM free_opens WHERE user_id=? AND case_id=?', u.id, c.id);
+      if (rec && Date.now() - rec.opened_at < S().freeCooldownHours * 3600000) throw new ApiError('Бесплатный кейс уже открыт. Попробуйте позже', 400, 'cooldown');
+      run('INSERT INTO free_opens(user_id,case_id,opened_at) VALUES(?,?,?) ON CONFLICT(user_id,case_id) DO UPDATE SET opened_at=excluded.opened_at', u.id, c.id, Date.now());
+    }
     for (let i = 0; i < count; i++) {
       const it = roll(c), g = GIFT_BY_ID.get(it.giftId); let dbId = null;
       if (!demo) {
@@ -76,7 +81,10 @@ function initWithdraw(u, b) {
   const dep = depositedTon(u.id);
   if (dep + 1e-9 < S().withdrawMinTon)
     throw new ApiError(`Для вывода нужно пополнить баланс минимум на ${S().withdrawMinTon} TON за последние ${S().withdrawWindowDays} дней (сейчас ${dep.toFixed(2)} TON). Вывод — через поддержку ${cfg.support}`);
-  const id = tx(() => { run("UPDATE inventory SET state='withdraw' WHERE id=?", it.id); return Number(run('INSERT INTO withdrawals(user_id,inv_id,created,updated) VALUES(?,?,?,?)', u.id, it.id, Date.now(), Date.now()).lastInsertRowid); });
+  const id = tx(() => {
+    // только если подарок всё ещё в инвентаре (не продан и не поставлен в апгрейд параллельным запросом)
+    if (!run("UPDATE inventory SET state='withdraw' WHERE id=? AND state='owned'", it.id).changes) throw new ApiError('Предмет не найден или уже продан');
+    return Number(run('INSERT INTO withdrawals(user_id,inv_id,created,updated) VALUES(?,?,?,?)', u.id, it.id, Date.now(), Date.now()).lastInsertRowid); });
   notifyAdmins(`📤 <b>Заявка на вывод #${id}</b>\n${it.name} (${it.value} ⭐)\nПользователь: ${u.id} @${u.username || '—'}\n/done ${id} — выдан, /reject ${id} — вернуть в инвентарь`).catch(() => {});
   return { success: true, withdrawalId: id, message: 'Запрос на вывод создан' };
 }
@@ -171,6 +179,7 @@ export const routes = {
     run('INSERT INTO daily_shares(user_id,day,n) VALUES(?,?,1) ON CONFLICT(user_id,day) DO UPDATE SET n=MIN(n+1,?)', u.id, today(), S().dailyShares);
     const n = one('SELECT n FROM daily_shares WHERE user_id=? AND day=?', u.id, today()).n; return { shareCount: n, sharesDone: n >= S().dailyShares };
   },
+  'daily-case/channel-click': u => { run("INSERT INTO kv(k,v) VALUES(?,?) ON CONFLICT(k) DO NOTHING", 'sub:' + u.id, String(Date.now())); return { ok: true }; },
   'daily-case/verify': async u => { const st = await freeStatus(u, 'case1'); return { success: st.canOpen, subscribed: st.subscribed, sharesDone: st.sharesDone, shareCount: st.shareCount }; },
 
   // --- рефералы ---

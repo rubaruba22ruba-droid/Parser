@@ -16,7 +16,7 @@ export const cfg = {
   // https-адрес Mini App. На Render/Railway подставляется сам — ссылка на мини-апп «вшивается» в бота автоматически.
   webappUrl: detected.replace(/\/$/, ''),
   brand: env.BRAND || 'Drade Drop',
-  support: env.SUPPORT || '@entoni',            // куда писать для вывода подарков
+  support: env.SUPPORT || '@RelayerDrade',            // куда писать для вывода подарков
   dev: env.DEV === '1',                         // DEV=1 — вход без Telegram (только локально)
   adminIds: (env.ADMIN_IDS || '').split(',').map(s => s.trim()).filter(Boolean).map(Number),
   dbPath: env.DB_PATH || new URL('../data.db', import.meta.url).pathname,
@@ -30,7 +30,9 @@ export const cfg = {
   withdrawMinTon: Number(env.WITHDRAW_MIN_TON || 50),
   withdrawWindowDays: Number(env.WITHDRAW_WINDOW_DAYS || 7),
   // ежедневный кейс
-  dailyChannel: (env.DAILY_CHANNEL || '').replace(/^@/, ''), // канал для подписки (бот должен быть админом); пусто — без проверки
+  dailyChannel: (env.DAILY_CHANNEL || '').replace(/^@/, ''), // канал для подписки на Daily; пусто — без подписки
+  // click — подписка засчитывается, когда игрок нажал «перейти в канал» (бот не админ канала); real — настоящая проверка (бот должен быть админом)
+  subCheck: env.SUB_CHECK === 'real' ? 'real' : 'click',
   dailyShares: Number(env.DAILY_SHARES || 3),
   referralPercent: Number(env.REFERRAL_PERCENT || 10),
   // апгрейд: шанс = ставка / цель × factor (не больше maxChance)

@@ -184,6 +184,40 @@
           </div>
 
           <div id="depositTonContent" class="deposit-tab-content hidden">
+            <!-- оплата TON через Tonkeeper по ссылке: без подключения кошелька (js/tonpay.js) -->
+            <div class="dd-tonpay">
+              <div id="tpForm">
+                <div class="deposit-field-block">
+                  <span class="deposit-field-block-label">Сумма в TON</span>
+                  <div class="dd-tp-amount">
+                    <input type="text" inputmode="decimal" id="tpAmount" class="deposit-input deposit-input-inblock" placeholder="Например, 5" autocomplete="off">
+                    <span id="tpPreview" class="dd-tp-preview">≈0 ⭐</span>
+                  </div>
+                </div>
+                <div class="dd-tp-quick"><button type="button" data-ton="1">1 TON</button><button type="button" data-ton="5">5 TON</button><button type="button" data-ton="10">10 TON</button><button type="button" data-ton="50">50 TON</button></div>
+                <p class="deposit-rate">Курс: 1 TON = 100 ⭐ · от 0.1 TON</p>
+                <div class="deposit-field-block">
+                  <span class="deposit-field-block-label">Промокод (если есть)</span>
+                  <input type="text" id="tpPromo" class="deposit-input deposit-input-inblock" placeholder="XX-XX-XX" autocomplete="off">
+                </div>
+                <button type="button" id="tpPay" class="deposit-submit-btn dd-tp-pay" disabled>Оплатить в Tonkeeper</button>
+              </div>
+              <div id="tpWait" class="dd-tp-wait" hidden>
+                <div class="ton-confirm-spinner"></div>
+                <p class="dd-tp-title">Ждём перевод</p>
+                <p class="dd-tp-sub">Подтверди перевод в Tonkeeper — баланс пополнится сам за 10–60 секунд, бот пришлёт сообщение.</p>
+                <button type="button" id="tpOpen" class="deposit-submit-btn dd-tp-pay">Открыть Tonkeeper</button>
+                <div class="dd-tp-manual">
+                  <div class="dd-tp-row"><span>Адрес</span><b id="tpAddr"></b><button type="button" data-copy="addr">Копировать</button></div>
+                  <div class="dd-tp-row"><span>Сумма</span><b id="tpSum"></b><button type="button" data-copy="sum">Копировать</button></div>
+                  <div class="dd-tp-row"><span>Комментарий</span><b id="tpComment"></b><button type="button" data-copy="comment">Копировать</button></div>
+                  <p class="dd-tp-note">Платишь из другого кошелька (например, @wallet)? Переведи на этот адрес эту сумму и обязательно вставь комментарий — по нему зачислим.</p>
+                </div>
+                <button type="button" id="tpCancel" class="dd-tp-cancel">Назад</button>
+              </div>
+            </div>
+            <!-- старый блок TonConnect: скрыт, оставлен ради ссылок из app.js -->
+            <div id="tonLegacy" hidden>
             <div class="deposit-ton-block">
               <h3 class="deposit-data-title">Заполните данные</h3>
               <div id="tonConnectWrap" class="ton-connect-wrap">
@@ -261,6 +295,7 @@
               <p class="ton-confirm-title">Подтвердите платёж в кошельке</p>
               <p class="ton-confirm-sub">Откройте Tonkeeper или Wallet в Telegram и подтвердите перевод.</p>
               <button type="button" id="tonOpenWalletBtn" class="ton-open-wallet-btn">Открыть кошелёк</button>
+            </div>
             </div>
           </div>
         </div>
@@ -441,7 +476,7 @@
             <div class="ref-banner-content">
               <span class="ref-banner-tag">ВЫВОД</span>
               <div class="ref-banner-title">Выводи подарки через поддержку</div>
-              <a href="https://t.me/entoni" target="_blank" class="ref-banner-btn">@entoni</a>
+              <a href="https://t.me/RelayerDrade" target="_blank" class="ref-banner-btn">@RelayerDrade</a>
             </div>
             <img src="images/promocode.webp" class="ref-banner-img" alt="">
           </div>
@@ -803,8 +838,6 @@
   </section>
   <div id="upgradePickerModal" class="hidden"></div>
 
-  </div>
-
 
   <div class="mobile-menu-container">
     <div class="mob_menu_list">
@@ -878,8 +911,8 @@
       color: #aaa;
       line-height: 1.5;
     ">
-        Для вывода нужен депозит за последние 7 дней. Заявка уйдёт в поддержку <a href="https://t.me/entoni" style="color: #4a90e2; text-decoration: none; font-weight: 500;"
-          target="_blank">@entoni</a>
+        Для вывода нужен депозит за последние 7 дней. Заявка уйдёт в поддержку <a href="https://t.me/RelayerDrade" style="color: #4a90e2; text-decoration: none; font-weight: 500;"
+          target="_blank">@RelayerDrade</a>
       </div>
       <div style="display: flex; gap: 12px;">
         <button id="confirmCancel" style="
@@ -967,8 +1000,9 @@
 
   <script src="/config.js"></script>
   <script src="js/fx.js?v=3"></script>
-  <script src="js/app.js?v=4"></script>
-  <script src="js/upgrade.js?v=4"></script>
+  <script src="js/app.js?v=5"></script>
+  <script src="js/upgrade.js?v=5"></script>
+  <script src="js/tonpay.js?v=1"></script>
 </body>
 
 </html>

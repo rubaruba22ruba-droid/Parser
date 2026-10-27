@@ -7,7 +7,7 @@
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { } };
   const noop = () => { };
   const user = { id: 1, first_name: 'Гость', username: 'demo' };
-  window.__BOT_USERNAME = 'DradeDropBot'; window.__BRAND = 'Drade Drop'; window.__SUPPORT = '@entoni';
+  window.__BOT_USERNAME = 'DradeDropBot'; window.__BRAND = 'Drade Drop'; window.__SUPPORT = '@RelayerDrade';
   window.Telegram = { WebApp: {
     initData: 'user=' + encodeURIComponent(JSON.stringify(user)) + '&demo=1', initDataUnsafe: { user }, version: '8.0', platform: 'web',
     ready: noop, expand: noop, close: noop, onEvent: noop, offEvent: noop, setHeaderColor: noop, setBackgroundColor: noop, isVersionAtLeast: () => true,
@@ -51,7 +51,7 @@
       }
       case 'sell-item': { const k = st.inv.findIndex(i => i.id === Number(body.itemId)); if (k < 0) return fail('Предмет не найден'); const [it] = st.inv.splice(k, 1); st.balance += it.value; save(); return ok({ success: true, newBalance: st.balance, itemValue: it.value }); }
       case 'sell-all-items': { const total = st.inv.reduce((s, i) => s + i.value, 0), n = st.inv.length; st.inv = []; st.balance += total; save(); return ok({ success: true, newBalance: st.balance, soldCount: n, totalValue: total }); }
-      case 'init-withdraw': return fail(`Для вывода нужно пополнить баланс минимум на ${D.withdrawMinTon} TON за последние ${D.withdrawWindowDays} дней. Вывод — через поддержку @entoni`);
+      case 'init-withdraw': return fail(`Для вывода нужно пополнить баланс минимум на ${D.withdrawMinTon} TON за последние ${D.withdrawWindowDays} дней. Вывод — через поддержку @RelayerDrade`);
       case 'upgrade': {
         const ids = body.inventoryItemIds || [], items = st.inv.filter(i => ids.includes(i.id)), t = G.get(body.targetGiftId);
         if (!items.length || !t) return fail('Выберите подарки и цель');
@@ -63,6 +63,11 @@
       }
       case 'create-stars-invoice': { const n = parseInt(body.amount, 10); if (!(n > 0)) return fail('Введите сумму'); return ok({ success: true, invoice_url: 'demo:' + n }); }
       case 'ton/config': return ok({});
+      case 'ton/deposit-intent': { const a = Number(body.amountTon); st.tonPending = { a, polls: 0 }; save();
+        return ok({ success: true, intentId: 'demo', walletAddress: 'UQCvGGYFcqrPS3h_AXiVzVHvmUTKLJJ5DurV_VBhpMXcQtd3', amountNano: String(Math.round(a * 1e9)), comment: 'cg' + Math.random().toString(16).slice(2, 14) }); }
+      case 'ton/check-payment': { const p = st.tonPending; if (!p) return ok({ status: 'expired' });
+        if (++p.polls < 2) { save(); return ok({ status: 'pending' }); }
+        const n = Math.floor(p.a * 100); st.balance += n; st.tonPending = null; save(); return ok({ status: 'completed', credited: n }); }
       case 'referral-data': return ok({ referrals: [], totalCount: 0 });
       case 'my-ref-promo': return ok({});
       case 'ref-promo-status': return ok({ canUseRefPromo: false });

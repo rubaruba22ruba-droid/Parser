@@ -272,6 +272,31 @@ body { background-image: none !important; }
 .deposit-tab { width: 100% !important; margin: 0 !important; min-height: 54px; border-radius: 18px !important; }
 .deposit-card .deposit-field-block, .deposit-card .deposit-submit-btn, .deposit-card .ton-connect-custom-btn { width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; box-sizing: border-box; }
 
+/* пополнение TON через Tonkeeper (js/tonpay.js) */
+.dd-tonpay [hidden] { display: none !important; }
+.dd-tp-amount { display: flex; align-items: center; gap: 8px; }
+.dd-tp-amount input { flex: 1; min-width: 0; }
+.dd-tp-preview { flex: none; font: 700 13px/1 var(--fb); color: var(--mute); }
+.dd-tp-quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 2px 0 10px; }
+.dd-tp-quick button { margin: 0; width: 100%; padding: 10px 0; border-radius: 12px; background: var(--card2); color: var(--text); font: 700 13px/1 var(--fb); }
+.dd-tp-quick button:active { transform: scale(.95); }
+.dd-tp-pay { margin-top: 6px !important; }
+.dd-tp-pay:disabled { opacity: .45; box-shadow: none !important; }
+.dd-tp-wait { text-align: center; padding: 6px 0 2px; }
+.dd-tp-title { font: 800 20px/1.2 var(--fh); color: var(--text); margin: 12px 0 6px; }
+.dd-tp-sub { font-size: 13.5px; line-height: 1.4; color: var(--mute); margin: 0 0 14px; }
+.dd-tp-manual { margin-top: 14px; background: rgba(0, 0, 0, .18); border-radius: 18px; padding: 6px 12px 10px; text-align: left; }
+.dd-tp-row { display: grid; grid-template-columns: 92px 1fr auto; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.dd-tp-row span { font-size: 12.5px; color: var(--mute); }
+.dd-tp-row b { font: 700 13.5px/1.2 var(--fb); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd-tp-row button { margin: 0; width: auto; padding: 7px 10px; border-radius: 10px; background: var(--card2); color: var(--text); font: 700 12px/1 var(--fb); }
+.dd-tp-note { font-size: 12px; line-height: 1.4; color: var(--mute); margin: 10px 0 0; }
+.dd-tp-cancel { margin: 12px 0 0; width: 100%; background: transparent; color: var(--mute); font: 700 14px/1 var(--fb); padding: 10px; }
+
+/* админка окном поверх мини-аппа */
+.dd-admin-ov { position: fixed; inset: 0; z-index: 3000; background: var(--bg); animation: ddRise .3s var(--ease) both; }
+.dd-admin-ov iframe { width: 100%; height: 100%; border: 0; display: block; background: var(--bg); }
+
 /* ================= АПГРЕЙД ================= */
 .upg { position: absolute; top: 0; left: 0; right: 0; z-index: 5; min-height: 100vh; background: var(--bg); padding: 76px 16px 130px; }
 .upg > * { max-width: 520px; margin-left: auto; margin-right: auto; }

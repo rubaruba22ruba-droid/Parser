@@ -10,7 +10,7 @@ import { tonStatus, pollDeposits } from './ton.mjs';
 
 const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const appKeyboard = () => cfg.webappUrl ? { inline_keyboard: [[{ text: '🎮 Играть', web_app: { url: cfg.webappUrl } }],
-  [...(cfg.dailyChannel ? [{ text: '📢 Канал', url: `https://t.me/${cfg.dailyChannel}` }] : []), { text: '💬 Поддержка', url: `https://t.me/${cfg.support.replace(/^@/, '')}` }]] } : undefined;
+  [{ text: '💬 Поддержка', url: `https://t.me/${cfg.support.replace(/^@/, '')}` }]] } : undefined;
 const kvGet = k => one('SELECT v FROM kv WHERE k=?', k)?.v;
 const kvSet = (k, v) => run('INSERT INTO kv(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v', k, String(v));
 const AVATAR_VERSION = '1';   // поменять — и бот при старте заново поставит аватарку из webapp/images/avatar.jpg
@@ -34,7 +34,7 @@ async function setupProfile() {
 
 // Канал: бот должен быть админом (иначе не проверить подписку для Daily); пустую аватарку канала ставим сами
 async function setupChannel(me) {
-  if (!cfg.dailyChannel) return;
+  if (!cfg.dailyChannel || cfg.subCheck !== 'real') return;   // чужой канал (подписка по клику) — ничего не трогаем
   const chat = '@' + cfg.dailyChannel;
   const m = await tg('getChatMember', { chat_id: chat, user_id: me.id }).catch(e => ({ status: 'error', error: e.message }));
   if (m.status !== 'administrator') {
@@ -63,7 +63,10 @@ function welcome(name) {
 // Баннер загружаем файлом один раз, дальше шлём по file_id — работает на любом хостинге, даже без публичного адреса картинок
 async function sendBanner(chatId, caption) {
   const kv = one("SELECT v FROM kv WHERE k='banner_file_id'");
-  if (kv) return tg('sendPhoto', { chat_id: chatId, photo: kv.v, caption, parse_mode: 'HTML', reply_markup: appKeyboard() });
+  if (kv) {
+    try { return await tg('sendPhoto', { chat_id: chatId, photo: kv.v, caption, parse_mode: 'HTML', reply_markup: appKeyboard() }); }
+    catch (e) { run("DELETE FROM kv WHERE k='banner_file_id'"); }   // file_id протух (другой бот) — загрузим заново
+  }
   const img = await readFile(new URL('../webapp/images/banner.jpg', import.meta.url));
   const msg = await tgUpload('sendPhoto', { chat_id: chatId, caption, parse_mode: 'HTML', reply_markup: appKeyboard() ? JSON.stringify(appKeyboard()) : undefined }, 'photo', img, 'banner.jpg', 'image/jpeg');
   const fid = msg.photo && msg.photo[msg.photo.length - 1].file_id;
@@ -156,6 +159,10 @@ async function refreshPinnedButtons() {
 
 export async function startBot() {
   const me = await tg('getMe'); if (!cfg.botUsername) cfg.botUsername = me.username;
+  // сменили токен (другой бот): file_id баннера, аватарка и закрепы были у старого бота — сбрасываем
+  const prevBot = kvGet('bot_id');
+  if (prevBot && prevBot !== String(me.id)) { run("DELETE FROM kv WHERE k IN ('banner_file_id','avatar_v','avatar_hint','chan_hint','webapp_url') OR k LIKE 'pin:%'"); console.log(`новый бот @${me.username} — сбросил кэш старого бота`); }
+  kvSet('bot_id', me.id);
   setupProfile().catch(e => console.warn('profile', e.message));
   setupChannel(me).catch(e => console.warn('channel', e.message));
   await tg('setMyCommands', { commands: [{ command: 'start', description: 'Открыть игру' }, { command: 'support', description: 'Поддержка и вывод подарков' }] }).catch(() => {});
