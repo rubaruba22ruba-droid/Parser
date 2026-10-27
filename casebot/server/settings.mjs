@@ -3,11 +3,12 @@ import { cfg } from './config.mjs';
 import { one, run } from './db.mjs';
 
 const DEFAULTS = () => ({
-  caseRtp: Number(process.env.CASE_RTP || 0.94),   // средняя выдача кейсов (0.94 = 94%): больше — чаще дорогие и джекпоты
+  caseRtp: Number(process.env.CASE_RTP || 0.97),   // средняя выдача кейсов (0.97 = 97%): больше — чаще дорогие и джекпоты
   hitTarget: 0.6,                                   // доля открытий, где подарок дороже цены кейса (0.6 = 60%)
   bigWin: 0.1,                                      // из них крупные выигрыши (x1.5 цены и дороже) — 10% открытий
+  lossFloor: 0.5,                                   // проигрыш не дешевле 50% цены кейса (кейс не «сливает»)
   junkCap: 0.04,                                    // мусор (< 25% цены кейса) — не чаще 4% открытий
-  maxItem: 0.2,                                     // один подарок — не больше 20% открытий (разнообразие дропа)
+  maxItem: 0.25,                                    // один подарок — не больше 25% открытий (разнообразие дропа)
   upgradeFactor: cfg.upgradeFactor,                 // шанс апгрейда = ставка / цель × factor
   upgradeMaxChance: cfg.upgradeMaxChance,
   referralPercent: cfg.referralPercent,

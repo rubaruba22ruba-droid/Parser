@@ -1,7 +1,7 @@
 /* Демо-режим Drade Drop: тот же интерфейс, а «сервер» работает в браузере (баланс и инвентарь — в localStorage).
    Шансы и цены — те же, что на настоящем сервере (demo-data.json генерится из server/). */
 (function () {
-  const KEY = 'dd_demo_v3';
+  const KEY = 'dd_demo_v4';
   let st; try { st = JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { st = null; }
   if (!st) st = { balance: 5000, inv: [], next: 1, free: {} };
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { } };

@@ -1,6 +1,6 @@
 // Шансы кейсов. Модель «сочный дроп»:
 //   • доля открытий дороже цены кейса = hit (по умолчанию 60%);
-//   • проигрышный дроп: вес ∝ (v/p)^kDown, мусор (< 25% цены) — не больше junkCap;
+//   • проигрышный дроп не дешевле floor × цена (по умолчанию половина цены), вес ∝ (v/p)^kDown;
 //   • из них крупные (x1.5 и дороже) — доля tail; внутри «плюсовых» вес ∝ (v/p)^-kUp;
 //   • kDown подбирается так, чтобы средняя выдача = RTP × цена (больше RTP — проигрыш ближе к цене кейса);
 //   • один подарок — не больше maxItem открытий, чтобы не падало одно и то же.
@@ -41,7 +41,7 @@ function bisect(f, lo, hi, target) {
   return (lo + hi) / 2;
 }
 
-export function computeCase(def, giftById, { rtp = 0.94, hit = 0.6, tail = 0.1, kDown = 1.5, junkCap = 0.04, maxItem = 0.2, manual = null } = {}) {
+export function computeCase(def, giftById, { rtp = 0.97, hit = 0.6, tail = 0.1, floor = 0.5, kDown = 1.5, junkCap = 0.04, maxItem = 0.25, manual = null } = {}) {
   const gifts = def.items.map(id => giftById.get(id)).filter(Boolean);
   const p = def.price || def.refValue || 1;
   let items;
@@ -51,7 +51,11 @@ export function computeCase(def, giftById, { rtp = 0.94, hit = 0.6, tail = 0.1, 
   } else if (def.free) {
     items = def.free.map(([id, pr]) => ({ giftId: id, p: pr }));
   } else {
-    const up = gifts.filter(g => g.value >= p), down = gifts.filter(g => g.value < p);
+    // проигрыш не дешевле floor × цена (не «сливает»): подарки дешевле из платного кейса не выпадают;
+    // если таких нет совсем — оставляем самый дорогой из дешёвых
+    const up = gifts.filter(g => g.value >= p), below = gifts.filter(g => g.value < p);
+    let down = below.filter(g => g.value >= p * floor);
+    if (!down.length && below.length) { const top = Math.max(...below.map(g => g.value)); down = below.filter(g => g.value === top); }
     let a = !down.length ? 1 : !up.length ? 0 : hit, kD = kDown, cap = maxItem, kU = 3;
     const KU_LO = 0.05, KU_HI = 30, KD_LO = -4, KD_HI = 8;
     const make = (a, kU, kD) => build(up, down, p, a, kU, kD, junkCap, cap);
