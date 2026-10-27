@@ -93,7 +93,7 @@ export function pollDeposits(force = false) {
       if (mt && one('SELECT 1 FROM users WHERE id=?', Number(mt[1])) && ton >= S().minDepositTon) {
         const got = credit(Number(mt[1]), ton, hash, null); remember(t, ton, text, `зачислено ${got} ⭐ → ${mt[1]}`); continue;
       }
-      if (at < since) continue;                                     // старые переводы до запуска бота не трогаем
+      if (at < since) continue;                                     // переводы старше суток до первого запуска не трогаем
       kvSet('tx:' + hash, 1);
       remember(t, ton, text, 'не опознан — сообщил админу');
       // похожая по сумме заявка за последний час — подскажем, кому скорее всего
@@ -107,7 +107,7 @@ export function pollDeposits(force = false) {
 }
 export function startDepositWatcher(log = console) {
   if (!validAddress(cfg.tonAddress)) log.error('⚠️ TON_ADDRESS не проходит проверку контрольной суммы:', cfg.tonAddress);
-  if (!kvGet('ton_since')) kvSet('ton_since', Date.now());
+  if (!kvGet('ton_since')) kvSet('ton_since', Date.now() - 86400000);   // при первом запуске разбираем и переводы за последние сутки
   const tick = async () => {
     const hasPending = one("SELECT 1 FROM intents WHERE status='pending' AND created>?", Date.now() - 1800000);
     try { await pollDeposits(true); } catch (e) { log.error('ton poll:', e.message); }
