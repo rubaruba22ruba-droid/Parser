@@ -96,7 +96,8 @@ def main():
     grad = Image.new('RGB', (560, 130)); gd = ImageDraw.Draw(grad)
     for x in range(560): t = x / 560; gd.line([(x, 0), (x, 130)], fill=(255, int(210 - 120 * t), int(90 + 50 * t)))
     m = Image.new('L', (560, 130), 0); ImageDraw.Draw(m).text((0, 0), 'DROP', font=font(118), fill=255); ban.paste(grad, (70, 318), m)
-    bd.text((74, 470), 'NFT-подарки Telegram · бесплатные кейсы · апгрейдер', font=font(26), fill=(190, 196, 240))
+    for k, line in enumerate(['NFT-подарки Telegram', 'бесплатные кейсы · апгрейдер']):   # в две строки — не залезает на картинку
+        bd.text((74, 468 + k * 40), line, font=font(30), fill=(190, 196, 240))
     ban.save(os.path.join(ROOT, 'webapp/images/banner.jpg'), quality=88)
 
 if __name__ == '__main__':
