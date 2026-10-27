@@ -146,7 +146,7 @@ export const routes = {
   'ton/deposit-intent': (u, b) => {
     const amount = Number(b.amountTon); if (!Number.isFinite(amount) || amount < S().minDepositTon || amount > 500) throw new ApiError(`Сумма от ${S().minDepositTon} до 500 TON`);
     const promo = b.promoCode ? promoFor(b.promoCode, 'bonus') : null; if (b.promoCode && !promo) throw new ApiError('Промокод не найден или закончился');
-    return { success: true, ...createIntent(u.id, Math.round(amount * 1e9) / 1e9, promo?.code), bonusPercent: promo?.value };
+    return { success: true, ...createIntent(u.id, Math.round(amount * 1e9) / 1e9, promo?.code, b.fromAddress), bonusPercent: promo?.value };
   },
   'ton/check-payment': async (u, b) => {
     const it = one('SELECT * FROM intents WHERE id=? AND user_id=?', String(b.intentId), u.id); if (!it) throw new ApiError('Платёж не найден', 404);

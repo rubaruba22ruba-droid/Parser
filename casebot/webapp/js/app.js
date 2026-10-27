@@ -2754,7 +2754,8 @@ function setupEventListeners() {
         const res = await fetch('/api/ton/deposit-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': Telegram.WebApp.initData },
-          body: JSON.stringify({ amountTon: amountTon, promoCode: promoCode || undefined })
+          // адрес кошелька — чтобы зачислить, даже если кошелёк потеряет комментарий к переводу
+          body: JSON.stringify({ amountTon: amountTon, promoCode: promoCode || undefined, fromAddress: (state.account && state.account.address) || '' })
         });
         const data = await res.json();
         if (!res.ok || !data.success) {
@@ -2785,13 +2786,13 @@ function setupEventListeners() {
           if (cancelled === 'cancelled') {
             document.querySelector('.deposit-ton-block')?.classList.remove('hidden');
             tonConfirmBlock?.classList.add('hidden');
-            showAlert('Платёж отменён', 'info');
+            showAlert('Если перевод всё же ушёл — он зачислится сам за 1–2 минуты, бот пришлёт сообщение.', 'info', { title: 'Платёж отменён' });
             return;
           }
           if (cancelled === 'error') {
             document.querySelector('.deposit-ton-block')?.classList.remove('hidden');
             tonConfirmBlock?.classList.add('hidden');
-            showAlert('Ошибка отправки. Попробуйте ещё раз.', 'error');
+            showAlert('Если вы подтвердили перевод в кошельке — он зачислится сам за 1–2 минуты, бот пришлёт сообщение.', 'warning', { title: 'Кошелёк не ответил' });
             return;
           }
           const checkRes = await fetch('/api/ton/check-payment', {
@@ -2833,7 +2834,7 @@ function setupEventListeners() {
         try { tonConnectUI.closeModal(); } catch (_) { }
         document.querySelector('.deposit-ton-block')?.classList.remove('hidden');
         tonConfirmBlock?.classList.add('hidden');
-        showAlert('Платёж ещё не зачислен. Подождите и проверьте баланс через минуту.', 'warning');
+        showAlert('Перевод ещё не дошёл. Как только он появится в сети — баланс пополнится сам, бот пришлёт сообщение.', 'warning');
       } catch (err) {
         document.querySelector('.deposit-ton-block')?.classList.remove('hidden');
         tonConfirmBlock?.classList.add('hidden');

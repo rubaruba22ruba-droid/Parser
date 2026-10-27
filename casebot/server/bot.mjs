@@ -3,12 +3,54 @@ import { readFile } from 'node:fs/promises';
 import { cfg } from './config.mjs';
 import { settings as S } from './settings.mjs';
 import { one, run, q } from './db.mjs';
-import { tg, tgUpload } from './tg.mjs';
+import { tg, tgUpload, notifyAdmins } from './tg.mjs';
 import { addDeposit, getUser } from './wallet.mjs';
 import { promoFor, usePromo, findUser } from './admin.mjs';
+import { tonStatus, pollDeposits } from './ton.mjs';
 
 const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-const appKeyboard = () => cfg.webappUrl ? { inline_keyboard: [[{ text: '🎮 Играть', web_app: { url: cfg.webappUrl } }], [{ text: '💬 Поддержка', url: `https://t.me/${cfg.support.replace(/^@/, '')}` }]] } : undefined;
+const appKeyboard = () => cfg.webappUrl ? { inline_keyboard: [[{ text: '🎮 Играть', web_app: { url: cfg.webappUrl } }],
+  [...(cfg.dailyChannel ? [{ text: '📢 Канал', url: `https://t.me/${cfg.dailyChannel}` }] : []), { text: '💬 Поддержка', url: `https://t.me/${cfg.support.replace(/^@/, '')}` }]] } : undefined;
+const kvGet = k => one('SELECT v FROM kv WHERE k=?', k)?.v;
+const kvSet = (k, v) => run('INSERT INTO kv(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v', k, String(v));
+const AVATAR_VERSION = '1';   // поменять — и бот при старте заново поставит аватарку из webapp/images/avatar.jpg
+
+// Имя и аватарка бота — ставятся сами при запуске (один раз)
+async function setupProfile() {
+  const nm = await tg('getMyName').catch(() => null);
+  if (nm && nm.name !== cfg.brand) await tg('setMyName', { name: cfg.brand }).then(() => console.log(`имя бота → ${cfg.brand}`)).catch(e => console.warn('setMyName', e.message));
+  if (kvGet('avatar_v') === AVATAR_VERSION) return;
+  const img = await readFile(new URL('../webapp/images/avatar.jpg', import.meta.url));
+  try {
+    await tgUpload('setMyProfilePhoto', { photo: JSON.stringify({ type: 'static', photo: 'attach://avatar' }) }, 'avatar', img, 'avatar.jpg', 'image/jpeg');
+    kvSet('avatar_v', AVATAR_VERSION); console.log('аватарка бота поставлена');
+  } catch (e) {
+    console.warn('setMyProfilePhoto', e.message);
+    if (kvGet('avatar_hint') === AVATAR_VERSION) return;
+    kvSet('avatar_hint', AVATAR_VERSION);
+    for (const id of cfg.adminIds) await tgUpload('sendPhoto', { chat_id: id, caption: 'Telegram не дал боту сменить аватарку сам. Поставь её в @BotFather → /setuserpic → выбери бота → отправь эту картинку.' }, 'photo', img, 'avatar.jpg', 'image/jpeg').catch(() => {});
+  }
+}
+
+// Канал: бот должен быть админом (иначе не проверить подписку для Daily); пустую аватарку канала ставим сами
+async function setupChannel(me) {
+  if (!cfg.dailyChannel) return;
+  const chat = '@' + cfg.dailyChannel;
+  const m = await tg('getChatMember', { chat_id: chat, user_id: me.id }).catch(e => ({ status: 'error', error: e.message }));
+  if (m.status !== 'administrator') {
+    console.warn(`канал ${chat}: бот не админ (${m.error || m.status}) — подписку для Daily проверить нельзя`);
+    if (kvGet('chan_hint') !== chat) { kvSet('chan_hint', chat); notifyAdmins(`📢 Добавь бота @${me.username} админом в канал ${chat} — без этого не работает проверка подписки для бесплатного кейса Daily.`); }
+    return;
+  }
+  const info = await tg('getChat', { chat_id: chat }).catch(() => null);
+  if (info && !info.photo && m.can_change_info) {
+    const img = await readFile(new URL('../webapp/images/avatar.jpg', import.meta.url));
+    await tgUpload('setChatPhoto', { chat_id: chat }, 'photo', img, 'avatar.jpg', 'image/jpeg').then(() => console.log(`аватарка канала ${chat} поставлена`)).catch(e => console.warn('setChatPhoto', e.message));
+  }
+  if (info && !info.description && m.can_change_info)
+    await tg('setChatDescription', { chat_id: chat, description: `🎁 ${cfg.brand} — кейсы с NFT-подарками Telegram. Бесплатные кейсы каждый день.\nИграть: @${me.username}` }).catch(() => {});
+  console.log(`канал ${chat} подключён`);
+}
 
 function welcome(name) {
   return `👋 <b>Приветствую${name ? ', ' + esc(name) : ''}!</b>\n\n` +
@@ -73,6 +115,14 @@ async function adminCommand(m) {
     if (!t || !Number.isFinite(n)) return say('Использование: /give me|@username|id сумма\nПример: /give me 10000');
     run('UPDATE users SET balance=MAX(0,balance+?) WHERE id=?', n, t.id); return say(`✅ ${n > 0 ? '+' : ''}${n} ⭐ → ${t.id} @${esc(t.username || '—')}\nБаланс: ${getUser(t.id).balance} ⭐`);
   }
+  if (cmd === '/ton') {   // проверка пополнений TON: видно ли кошелёк, какие переводы пришли и куда зачислены
+    await pollDeposits(true).catch(() => {});
+    const ago = t => t ? `${Math.round((Date.now() - t) / 1000)} с назад` : 'ни разу';
+    const pend = one("SELECT COUNT(*) n FROM intents WHERE status='pending'").n;
+    return say(`💎 Кошелёк: <code>${cfg.tonAddress}</code>\nПоследняя проверка: ${ago(tonStatus.lastOk)}` +
+      (tonStatus.lastErr && tonStatus.lastErrAt > tonStatus.lastOk ? `\n⚠️ Ошибка: ${esc(tonStatus.lastErr)}` : '') + `\nЖдут оплаты: ${pend}\n\n` +
+      (tonStatus.recent.length ? tonStatus.recent.map(r => `• ${r.ton} TON «${esc(r.text || '—')}» — ${esc(r.result)}`).join('\n') : 'Новых входящих переводов с запуска бота не было'));
+  }
   if (cmd === '/ban') { run('UPDATE users SET banned=1 WHERE id=?', Number(a)); return say('Заблокирован'); }
 }
 
@@ -91,7 +141,7 @@ async function onUpdate(u) {
   if (!m.text) return;
   if (m.text.startsWith('/start')) return onStart(m);
   if (m.text.startsWith('/support')) return tg('sendMessage', { chat_id: m.chat.id, text: `💬 Поддержка и вывод подарков: ${cfg.support}\nДля вывода нужен депозит от ${S().withdrawMinTon} TON за последние ${S().withdrawWindowDays} дней.` });
-  if (cfg.adminIds.includes(m.from.id) && /^\/(stats|wd|done|reject|give|ban)\b/.test(m.text)) return adminCommand(m);
+  if (cfg.adminIds.includes(m.from.id) && /^\/(stats|wd|done|reject|give|ban|ton)\b/.test(m.text)) return adminCommand(m);
   if (m.chat.type === 'private') await tg('sendMessage', { chat_id: m.chat.id, text: 'Нажми «Играть», чтобы открыть кейсы 👇', reply_markup: appKeyboard() });
 }
 
@@ -106,6 +156,8 @@ async function refreshPinnedButtons() {
 
 export async function startBot() {
   const me = await tg('getMe'); if (!cfg.botUsername) cfg.botUsername = me.username;
+  setupProfile().catch(e => console.warn('profile', e.message));
+  setupChannel(me).catch(e => console.warn('channel', e.message));
   await tg('setMyCommands', { commands: [{ command: 'start', description: 'Открыть игру' }, { command: 'support', description: 'Поддержка и вывод подарков' }] }).catch(() => {});
   if (cfg.webappUrl) await tg('setChatMenuButton', { menu_button: { type: 'web_app', text: '🎮 Играть', web_app: { url: cfg.webappUrl } } }).catch(() => {});
   else console.warn('⚠ Не знаю https-адрес мини-аппа — кнопки «Играть» не будет. Впиши в .env строку WEBAPP_URL=https://твой-домен и перезапусти.');

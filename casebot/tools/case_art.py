@@ -76,6 +76,19 @@ def compose(theme, hero, sats, seed):
     base.putalpha(ImageChops.multiply(base.getchannel('A'), rounded_mask(S, 48)))
     return base
 
+def avatar(theme, hero):
+    """Аватарка бота и канала: без углов и рамки (Telegram режет в круг), Пепе крупно по центру."""
+    c1, c2, c3 = (hexrgb(c) for c in theme)
+    base = Image.new('RGBA', (S, S)); d = ImageDraw.Draw(base)
+    for y in range(S):
+        t = y / S; k = .78 - .38 * t; d.line([(0, y), (S, y)], fill=(int(c2[0] * k + 14), int(c2[1] * k + 14), int(c2[2] * k + 26), 255))
+    base.alpha_composite(radial(S, c1, 235, .7, (.5, .48)))
+    base.alpha_composite(rays(S, [c1, c3, (255, 255, 255), c3], seed=7))
+    base.alpha_composite(radial(S, c3, 150, .32, (.5, .5)))
+    base.alpha_composite(sparkles(S, 7))
+    place(base, hero, S * .5, S * .53, int(S * .74), 0, c1)
+    return base.convert('RGB')
+
 def main():
     data = json.load(open(os.path.join(ROOT, 'server/cases.json')))
     gifts = {g['id']: g for g in json.load(open(os.path.join(ROOT, 'server/gifts.json')))}
@@ -99,6 +112,7 @@ def main():
     for k, line in enumerate(['NFT-подарки Telegram', 'бесплатные кейсы · апгрейдер']):   # в две строки — не залезает на картинку
         bd.text((74, 468 + k * 40), line, font=font(30), fill=(190, 196, 240))
     ban.save(os.path.join(ROOT, 'webapp/images/banner.jpg'), quality=88)
+    avatar(['#a855f7', '#4c1d95', '#f0abfc'], load(hero[0])).resize((640, 640), Image.LANCZOS).save(os.path.join(ROOT, 'webapp/images/avatar.jpg'), quality=92)
 
 if __name__ == '__main__':
     main()

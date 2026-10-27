@@ -1,7 +1,10 @@
 /* Drade Drop — админ-панель (открывается из профиля в Mini App). */
 (function () {
   const tg = window.Telegram && Telegram.WebApp;
-  const initData = (tg && tg.initData) || window.__DEMO_INIT || '';
+  // подпись Telegram: из WebApp, а если страница открыта переходом из мини-аппа — из сохранённой там копии
+  let saved = ''; try { saved = sessionStorage.getItem('dd_init') || ''; } catch (e) { }
+  const initData = (tg && tg.initData) || saved || window.__DEMO_INIT || '';
+  if (tg) { try { tg.ready(); tg.expand(); tg.BackButton.show(); tg.BackButton.onClick(() => { location.href = './'; }); } catch (e) { } }
   const $ = id => document.getElementById(id), view = $('view');
   const fmt = n => Number(n || 0).toLocaleString('ru-RU');
   const pct = x => x == null ? '—' : (x * 100).toFixed(1) + '%';

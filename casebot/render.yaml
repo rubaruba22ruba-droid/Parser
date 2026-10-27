@@ -16,3 +16,5 @@ services:
         value: UQCvGGYFcqrPS3h_AXiVzVHvmUTKLJJ5DurV_VBhpMXcQtd3
       - key: SUPPORT
         value: "@entoni"
+      - key: DAILY_CHANNEL
+        value: dradeDrop

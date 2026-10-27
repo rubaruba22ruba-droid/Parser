@@ -143,4 +143,7 @@
 })();
 
 // Админ-панель — отдельная страница
-window.showAdminPanel = function () { location.href = 'admin.html'; };
+window.showAdminPanel = function () {
+  try { if (window.Telegram && Telegram.WebApp.initData) sessionStorage.setItem('dd_init', Telegram.WebApp.initData); } catch (e) { }
+  location.href = 'admin.html';
+};
