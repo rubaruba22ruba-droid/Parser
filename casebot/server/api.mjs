@@ -114,6 +114,7 @@ function upgrade(u, b) {
     const { items, stake } = takeStake(u, b);
     if (t.value <= stake || t.value > stake * 100) throw new ApiError('Цель должна быть дороже ставки');
     const z = upgradeZones(stake, t.value, GIFTS, S());
+    if (z.over) throw new ApiError(`Цель слишком близко к ставке: шанс больше ${Math.round(S().upgradeMaxChance * 100)}%. Выбери подарок дороже`);
     // тест золота: админ включил его себе — золото появляется и стрелка встаёт в него (не тратит честный nonce, в истории — admin-test)
     const test = z.d > 0 && isAdmin(u) && !!one("SELECT 1 FROM kv WHERE k=? AND v='1'", 'dtest:' + u.id);
     const r = test ? { x: z.d0 + z.d * Math.random(), y: 0, nonce: null, serverSeedHash: 'admin-test' } : nextRoll(u.id);
@@ -180,7 +181,7 @@ export const routes = {
     return { test: on };
   },
   // честная игра: текущий хэш сида, смена пары с раскрытием старого сида, параметры для правил
-  'fair/state': u => ({ ...publicState(u.id), caseRtp: S().caseRtp, upgradeFactor: S().upgradeFactor, cashbackRate: S().cashbackRate, diamondChance: S().diamondChance, diamondZone: S().diamondZone, diamondMin: S().diamondMin, diamondMax: S().diamondMax }),
+  'fair/state': u => ({ ...publicState(u.id), caseRtp: S().caseRtp, upgradeFactor: S().upgradeFactor, upgradeMaxChance: S().upgradeMaxChance, cashbackRate: S().cashbackRate, diamondChance: S().diamondChance, diamondZone: S().diamondZone, diamondMin: S().diamondMin, diamondMax: S().diamondMax }),
   'fair/rotate': (u, b) => rotate(u.id, b.clientSeed),
   'log-client-error': () => ({ ok: true }),
   'check-promo': () => ({ valid: false }),

@@ -59,6 +59,7 @@
         const add = g => { const id = st.next++; st.inv.unshift({ id, name: g.name, value: g.value, image: g.image, rarity: 'legendary', giftId: g.id }); return id; };
         const t = G.get(body.targetGiftId); if (!t) return fail('Выберите цель'); if (t.value <= stake) return fail('Цель должна быть дороже ставки');
         const z = Z(stake, t.value, D.gifts, D.upgrade), test = !!st.dtest && z.d > 0;
+        if (z.over) return fail(`Цель слишком близко к ставке: шанс больше ${Math.round(D.upgrade.maxChance * 100)}%. Выбери подарок дороже`);
         const x = test ? z.d0 + z.d * Math.random() : Math.random(), y = test ? 0 : Math.random(), res = Z.outcome(z, x, y), win = res === 'win', dia = res === 'diamond';
         const prize = win ? t : dia ? Z.pick(z.pool, (x - z.d0) / z.d) : null;
         st.inv = st.inv.filter(i => !ids.includes(i.id));
@@ -76,7 +77,7 @@
       }
       case 'upgrade/diamond-test': { st.dtest = !!body.on; save(); return ok({ test: st.dtest }); }
       case 'create-stars-invoice': { const n = parseInt(body.amount, 10); if (!(n > 0)) return fail('Введите сумму'); return ok({ success: true, invoice_url: 'demo:' + n }); }
-      case 'fair/state': return ok({ serverSeedHash: '9f2c1e7a54b38d06c1fa2e9b7d4413c08e5a6f71b2d930c4e8a17f5d36b2c091', clientSeed: 'demo-seed', nonce: st.next || 0, caseRtp: 0.499, upgradeFactor: D.upgrade.factor, cashbackRate: D.upgrade.cashbackRate, diamondChance: D.upgrade.diamondChance, diamondZone: D.upgrade.diamondZone, diamondMin: D.upgrade.diamondMin, diamondMax: D.upgrade.diamondMax });
+      case 'fair/state': return ok({ serverSeedHash: '9f2c1e7a54b38d06c1fa2e9b7d4413c08e5a6f71b2d930c4e8a17f5d36b2c091', clientSeed: 'demo-seed', nonce: st.next || 0, caseRtp: 0.499, upgradeFactor: D.upgrade.factor, upgradeMaxChance: D.upgrade.maxChance, cashbackRate: D.upgrade.cashbackRate, diamondChance: D.upgrade.diamondChance, diamondZone: D.upgrade.diamondZone, diamondMin: D.upgrade.diamondMin, diamondMax: D.upgrade.diamondMax });
       case 'fair/rotate': return ok({ revealed: { serverSeed: 'demo-server-seed', serverSeedHash: '9f2c1e7a54b38d06c1fa2e9b7d4413c08e5a6f71b2d930c4e8a17f5d36b2c091', clientSeed: 'demo-seed', nonce: st.next || 0 }, current: { serverSeedHash: '3b7d0c9e21f4a8650de1b2c37f9a4e58c06d1b2a7e3f94c5d8a0b61e72f3c4d9', clientSeed: body.clientSeed || 'demo-seed', nonce: 0 } });
       case 'ton/config': return ok({});
       case 'ton/deposit-intent': { const a = Number(body.amountTon); st.tonPending = { a, polls: 0 }; save();

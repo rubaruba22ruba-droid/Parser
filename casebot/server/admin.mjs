@@ -52,7 +52,7 @@ export const adminRoutes = {
     if (patch.diamondChance > 1 || patch.diamondZone > 0.3) throw new Error('Золото: шанс появления ≤ 1, зона ≤ 0.3 круга');
     const dMin = patch.diamondMin ?? settings().diamondMin, dMax = patch.diamondMax ?? settings().diamondMax;
     if (dMin < 1.05 || dMax < dMin || dMax > 50) throw new Error('Золото: множители от 1.05, «до» не меньше «от»');
-    if (patch.caseRtp > 3 || patch.upgradeFactor > 1.5 || patch.upgradeMaxChance > 1 || patch.hitTarget > 0.95 || (patch.bigWin ?? settings().bigWin) > (patch.hitTarget ?? settings().hitTarget) || patch.junkCap > 1 || patch.lossFloor > 0.95) throw new Error('Слишком большое значение');
+    if (patch.caseRtp > 3 || patch.upgradeFactor > 1 || patch.upgradeMaxChance > 1 || patch.hitTarget > 0.95 || (patch.bigWin ?? settings().bigWin) > (patch.hitTarget ?? settings().hitTarget) || patch.junkCap > 1 || patch.lossFloor > 0.95) throw new Error('Слишком большое значение');
     saveSettings(patch); rebuildCases(); return { ok: true, settings: settings(), cases: CASES.map(caseView) };
   },
   'admin/case/save': (u, b) => {

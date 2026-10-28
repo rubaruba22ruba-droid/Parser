@@ -11,16 +11,18 @@
   const byValue = (a, b) => a.value - b.value || (a.id < b.id ? -1 : 1);
 
   // ---------- зоны колеса и исход броска (копия server/diamond.mjs) ----------
+  // вся выдача (цель/золото + кешбек-ящик при сливе) = ставка × factor; over — цель слишком близко к ставке
   function zones(stake, target, gifts, s) {
-    const cN = stake / target * s.factor, maxC = s.maxChance;
+    const F = Number(s.factor), maxC = s.maxChance, mt = target / stake;
+    const k = clamp(Number(s.cashbackRate) || 0, 0, F * 0.9), cN0 = (F - k) / (mt - k);
     const d = clamp(Number(s.diamondZone ?? 0.05), 0, 0.3), q0 = clamp(Number(s.diamondChance ?? 0.055), 0, 1);
     const lo = target * (s.diamondMin || 1.5), hi = target * (s.diamondMax || 4);
     const pool = d > 0 && q0 > 0 ? gifts.filter(g => g.kind !== 'regular' && g.value >= lo && g.value <= hi).sort(byValue) : [];
-    const Z = (c, d, q, pool) => ({ c, d, q, w0: 0.5 - c / 2, d0: 0.5 - d / 2, pool });
-    if (!pool.length) return Z(Math.min(maxC, cN), 0, 0, []);
+    const Z = (c, d, q, pool) => ({ c, d, q, w0: 0.5 - c / 2, d0: 0.5 - d / 2, pool, over: cN0 > maxC + 1e-9 });
+    if (!pool.length) return Z(clamp(cN0, 0, maxC), 0, 0, []);
     const inv = pool.reduce((a, g) => a + 1 / g.value, 0), m = pool.length / inv / target;
-    const q = Math.min(q0, 0.5 * cN / (d * m));
-    let c = cN - q * d * (m - 1);
+    const q = Math.min(q0, 0.5 * cN0 / (d * m)), g = q * d * (m - 1), cN = cN0 - g * k / (mt - k);
+    let c = cN - g;
     if (c < d) c = (cN - q * d * m) / (1 - q);
     return Z(clamp(c, 0, maxC), d, q, pool.map(g => ({ ...g, p: 1 / g.value / inv })));
   }

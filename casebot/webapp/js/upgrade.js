@@ -5,7 +5,7 @@
   const STAR = '<svg class="ic-star" viewBox="0 0 14 15"><path d="M6.64 12.19 3.5 14.1a.69.69 0 0 1-1.03-.76l.48-1.9a2.7 2.7 0 0 1 1.29-1.58l3.42-1.64a.32.32 0 0 0-.2-.6l-3.8.65A2.7 2.7 0 0 1 1.5 7.7L.3 6.7a.69.69 0 0 1 .39-1.22l3.67-.29a.69.69 0 0 0 .58-.42L6.36 1.34a.69.69 0 0 1 1.28 0l1.42 3.42c.1.24.32.4.58.42l3.69.29a.69.69 0 0 1 .4 1.22l-2.82 2.4a.69.69 0 0 0-.22.69l.87 3.6a.69.69 0 0 1-1.03.75l-3.16-1.94a.69.69 0 0 0-.72 0z"/></svg>';
   const R = 112, C = 2 * Math.PI * R;
   const st = { inv: [], gifts: [], sel: [], target: null, tab: 'inv', spinning: false, angle: 180,
-    cfg: { factor: 0.499, maxChance: 0.75, maxItems: 6, cashbackRate: 0.08 } };
+    cfg: { factor: 0.97, maxChance: 0.8, maxItems: 6, cashbackRate: 0.08 } };
   const $ = id => document.getElementById(id);
   const fmt = n => Number(n || 0).toLocaleString('ru-RU');
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -16,6 +16,8 @@
   const NOZ = { c: 0, d: 0, q: 0, w0: 0.5, d0: 0.5, pool: [] };
   const zonesFor = (v, value) => v && value && window.DDZones ? DDZones(v, value, st.gifts, st.cfg) : NOZ;
   const zones = () => st.target ? zonesFor(stake(), st.target.value) : NOZ;
+  // цель годится: NFT дороже ставки, но не настолько близко, чтобы шанс был выше максимума (≈ ×1.2)
+  const canTarget = (x, v) => x.kind !== 'regular' && x.value > v && x.value <= v * 100 && !zonesFor(v, x.value).over;
   const pctTxt = x => (x * 100).toFixed(2) + '%';
   const riskLabel = c => c >= .6 ? 'безопасно' : c >= .3 ? 'нормально' : 'рискованно';
 
@@ -79,11 +81,11 @@
         <img src="${esc(i.item_image)}" alt="" loading="lazy"><span class="n">${esc(i.item_name)}</span><span class="v">${STAR} ${fmt(i.item_value)}</span><i class="chk"></i></button>`).join('');
     } else {
       const v = stake();
-      const list = st.gifts.filter(x => x.kind !== 'regular' && (!v || (x.value > v && x.value <= v * 100))).sort((a, b) => a.value - b.value);
+      const list = st.gifts.filter(x => v ? canTarget(x, v) : x.kind !== 'regular').sort((a, b) => a.value - b.value);
       g.innerHTML = list.length ? list.map(x => {
         const z = zonesFor(v, x.value);
         return `<button class="upg-item ${st.target && st.target.id === x.id ? 'on' : ''}" data-gift="${x.id}"><img src="${esc(x.image)}" alt="" loading="lazy"><span class="n">${esc(x.name)}</span><span class="v">${STAR} ${fmt(x.value)}</span>${v ? `<span class="c">${pctTxt(z.c)}</span>` : ''}</button>`;
-      }).join('') : '<div class="upg-none">Нет подарков дороже ставки</div>';
+      }).join('') : '<div class="upg-none">Нет подходящих целей: нужен подарок минимум в ×1.2 дороже ставки</div>';
     }
   }
   function clearResult() {
@@ -96,15 +98,15 @@
     if (b.dataset.id) {
       const id = Number(b.dataset.id), k = st.sel.indexOf(id);
       if (k >= 0) st.sel.splice(k, 1); else if (st.sel.length < st.cfg.maxItems) st.sel.push(id); else return showAlert(`Максимум ${st.cfg.maxItems} подарков в ставке`);
-      if (st.target && st.target.value <= stake()) st.target = null;
+      if (st.target && !(stake() && canTarget(st.target, stake()))) st.target = null;
     } else st.target = st.gifts.find(x => x.id === b.dataset.gift) || null;
     FX.haptic('light'); paint(); grid();
   }
   function mult(m) {
     clearResult();
     const v = stake(); if (!v) { st.tab = 'inv'; grid(); return showAlert('Сначала выбери подарки для ставки'); }
-    const want = v * m, cand = st.gifts.filter(x => x.kind !== 'regular' && x.value > v && x.value <= v * 100);
-    if (!cand.length) return showAlert('Нет подарков дороже ставки');
+    const want = v * m, cand = st.gifts.filter(x => canTarget(x, v));
+    if (!cand.length) return showAlert('Нет подходящих целей: нужен подарок минимум в ×1.2 дороже ставки');
     st.target = cand.reduce((a, b) => Math.abs(Math.log(b.value / want)) < Math.abs(Math.log(a.value / want)) ? b : a);
     document.querySelectorAll('#upgMults button[data-m]').forEach(b => b.classList.toggle('on', Number(b.dataset.m) === m));
     FX.haptic('medium'); paint(); st.tab = 'gifts'; grid();
@@ -121,18 +123,20 @@
     const k = kinds[Math.random() * kinds.length | 0];
     return { turns: k.turns, dur: k.dur * (.9 + Math.random() * .2), pow: k.pow };
   }
-  function spin(roll) {
+  // hook = { at: 0…1, fn } — вызвать один раз, когда прокрутка пройдёт эту долю времени (так золото появляется на ходу)
+  function spin(roll, hook) {
     return new Promise(res => {
       const p = profile(), needle = $('upgNeedle'), from = st.angle % 360, to = from + 360 * p.turns + ((roll * 360 - from) % 360 + 360) % 360, t0 = performance.now();
       const marks = document.querySelectorAll('#upgTicks .upg-tick-big');
-      let lastTick = Math.floor(from / 30), lastFine = Math.floor(from / 10), lit = null, lastA = from, lastT = t0;
+      let lastTick = Math.floor(from / 30), lastFine = Math.floor(from / 10), lit = null, lastA = from, lastT = t0, tickT = 0;
       const ease = t => 1 - Math.pow(1 - t, p.pow), wh = FX.whirr ? FX.whirr() : null;
       (function f(now) {
         const k = Math.min(1, (now - t0) / p.dur), a = from + (to - from) * ease(k);
         needle.style.transform = `rotate(${a.toFixed(2)}deg)`; st.angle = a;
         if (wh) wh.set(Math.min(1, (a - lastA) / Math.max(1, now - lastT) * 1000 / 1400));
         lastA = a; lastT = now;
-        const fk = Math.floor(a / 10); if (fk !== lastFine) { lastFine = fk; FX.tick(); }
+        const fk = Math.floor(a / 10); if (fk !== lastFine) { lastFine = fk; if (now - tickT > 55) { tickT = now; FX.tick(); } }   // на разгоне не трещит
+        if (hook && !hook.done && k >= hook.at) { hook.done = true; hook.fn(); }
         const tk = Math.floor(a / 30);
         if (tk !== lastTick) { lastTick = tk; if (lit) lit.classList.remove('lit'); lit = marks[((tk % 12) + 12) % 12]; if (lit) lit.classList.add('lit'); }
         if (k < 1) requestAnimationFrame(f); else { if (lit) lit.classList.remove('lit'); if (wh) wh.stop(); FX.stop(0); res(); }
@@ -156,11 +160,9 @@
   async function playUpgrade(d) {
     const wheel = $('upgWheel'), z = d.zones || zones(), target = st.target;
     drawWin(z.c); wheel.classList.add('spinning');
-    if (d.gold) {   // редкая золотая зона «?»: появляется со вспышкой перед прокруткой
-      drawGold(z, true); burst('gold'); FX.tone(1568, .5, 'sine', .1); FX.tone(2349, .4, 'sine', .06, .06); FX.haptic('medium');
-      await wait(fast ? 350 : 750);
-    }
-    FX.whoosh(); await spin(d.roll);
+    // редкая золотая зона «?» ловится уже на ходу: стрелка крутится, и через треть прокрутки внизу вспыхивает золото
+    const gold = d.gold ? { at: (fast ? .18 : .22) + Math.random() * .16, fn() { drawGold(z, true); burst('gold'); FX.tone(1568, .5, 'sine', .07); FX.tone(2349, .4, 'sine', .04, .06); FX.haptic('medium'); } } : null;
+    await spin(d.roll, gold);
     wheel.classList.remove('spinning');
     if (d.diamond) {
       wheel.classList.add('win', 'dia'); burst('dia'); $('upgLabel').textContent = 'золото!';

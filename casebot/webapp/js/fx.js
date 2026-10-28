@@ -86,7 +86,8 @@
   }
   function whirr() {
     const c = ac(); if (!c || muted) return null;
-    const t = c.currentTime, out = c.createGain(); out.gain.setValueAtTime(0.0001, t); out.gain.exponentialRampToValueAtTime(1, t + 0.12); out.connect(c.destination);
+    // мягкий вход: гул нарастает ~0.7 с, а не бьёт по ушам на старте (стрелка в начале быстрее всего)
+    const t = c.currentTime, out = c.createGain(); out.gain.setValueAtTime(0.0001, t); out.gain.exponentialRampToValueAtTime(0.6, t + 0.7); out.connect(c.destination);
     const src = c.createBufferSource(); src.buffer = nbuf(c); src.loop = true;
     const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.4; bp.frequency.value = 500;
     const ng = c.createGain(); ng.gain.value = 0; src.connect(bp).connect(ng).connect(out);
@@ -95,8 +96,8 @@
     const og = c.createGain(); og.gain.value = 0; osc.connect(lp).connect(og).connect(out);
     src.start(t); osc.start(t);
     return {
-      set(s) { const n = c.currentTime; bp.frequency.setTargetAtTime(380 + s * 2600, n, 0.05); ng.gain.setTargetAtTime(0.012 + s * 0.085, n, 0.05);
-        osc.frequency.setTargetAtTime(48 + s * 95, n, 0.05); og.gain.setTargetAtTime(0.01 + s * 0.05, n, 0.06); },
+      set(s) { const n = c.currentTime; bp.frequency.setTargetAtTime(380 + s * 2600, n, 0.05); ng.gain.setTargetAtTime(0.008 + s * 0.05, n, 0.05);
+        osc.frequency.setTargetAtTime(48 + s * 95, n, 0.05); og.gain.setTargetAtTime(0.006 + s * 0.03, n, 0.06); },
       stop() { const n = c.currentTime; out.gain.setTargetAtTime(0.0001, n, 0.08); src.stop(n + 0.6); osc.stop(n + 0.6); }
     };
   }

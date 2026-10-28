@@ -3,7 +3,7 @@ import { cfg } from './config.mjs';
 import { one, run } from './db.mjs';
 
 const DEFAULTS = () => ({
-  v: 2,                                             // версия настроек (2 — честная модель, RTP 49.9%)
+  v: 3,                                             // версия настроек (2 — честная модель, 3 — апгрейд как у всех: ×1.2 ≈ 80%)
   oddsModel: 'fair',                                // fair — шанс ∝ цена^-k (честно); juicy — «сочный дроп» (поля ниже)
   caseRtp: Number(process.env.CASE_RTP || 0.499),  // средняя выдача кейсов (0.499 = 49.9%)
   cashbackRate: 0.08,                               // кешбек-ящик после слива апгрейда: в среднем 8% ставки (≈ в 12 раз дешевле)
@@ -15,7 +15,7 @@ const DEFAULTS = () => ({
   lossFloor: 0.5,                                   // проигрыш не дешевле 50% цены кейса (кейс не «сливает»)
   junkCap: 0.04,                                    // мусор (< 25% цены кейса) — не чаще 4% открытий
   maxItem: 0.25,                                    // один подарок — не больше 25% открытий (разнообразие дропа)
-  upgradeFactor: cfg.upgradeFactor,                 // шанс апгрейда = ставка / цель × factor
+  upgradeFactor: cfg.upgradeFactor,                 // RTP апгрейда вместе с кешбеком: шанс = (factor − кешбек) / (цель/ставка − кешбек)
   upgradeMaxChance: cfg.upgradeMaxChance,
   referralPercent: cfg.referralPercent,
   refPromoBonus: cfg.refPromoBonus,
@@ -35,6 +35,10 @@ export function settings() {
   const saved = row ? JSON.parse(row.v) : {};
   if (row && (saved.v || 1) < 2) {   // переход на честную модель: RTP 49.9% в кейсах и апгрейде
     const d = DEFAULTS(); Object.assign(saved, { v: 2, oddsModel: d.oddsModel, caseRtp: d.caseRtp, upgradeFactor: d.upgradeFactor, upgradeMaxChance: d.upgradeMaxChance, cashbackRate: d.cashbackRate });
+    run("UPDATE kv SET v=? WHERE k='settings'", JSON.stringify(saved));
+  }
+  if (row && saved.v === 2) {   // апгрейд с шансами как у всех: ×1.2 ≈ 80% (кешбек внутри RTP апгрейда)
+    const d = DEFAULTS(); Object.assign(saved, { v: 3, upgradeFactor: d.upgradeFactor, upgradeMaxChance: d.upgradeMaxChance });
     run("UPDATE kv SET v=? WHERE k='settings'", JSON.stringify(saved));
   }
   cache = { ...DEFAULTS(), ...saved };
