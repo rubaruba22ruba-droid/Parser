@@ -99,6 +99,11 @@ body { background-image: none !important; }
 .case-price .nav_topup-stars-icon { width: 14px !important; height: 14px !important; filter: brightness(10); }
 .case-price .item_real_price { font-family: var(--fh) !important; font-weight: 700 !important; font-size: 13px !important; color: #fff !important; }
 .case-price--free { background: var(--green) !important; }
+/* название над ценой: длинные названия («Бойцовский клуб», «Wonderland») не обрезаются на узких телефонах */
+.case-info { flex-direction: column !important; align-items: stretch !important; gap: 8px; padding: 10px 2px 0 !important; }
+.case-name { display: block !important; height: auto !important; flex: none !important; text-align: center !important; line-height: 1.2 !important; }
+.card_prices { width: 100% !important; }
+.case-price { width: 100% !important; justify-content: center !important; padding: 8px 10px !important; }
 
 /* ---------- страница кейса ---------- */
 #caseTitle, #caseTitle .text-solid { font-size: 22px !important; color: var(--text) !important; }
