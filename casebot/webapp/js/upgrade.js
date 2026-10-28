@@ -8,7 +8,18 @@
   const hdr = () => ({ 'Content-Type': 'application/json', 'X-Telegram-Init-Data': (window.Telegram && Telegram.WebApp.initData) || '' });
   const selItems = () => st.inv.filter(i => st.sel.includes(i.id));
   const stake = () => selItems().reduce((s, i) => s + i.item_value, 0);
-  const chance = () => { const v = stake(); return v && st.target ? Math.min(st.cfg.maxChance, v / st.target.value * st.cfg.factor) : 0; };
+  const NOZ = { c: 0, d: 0, d0: 0, pool: [] };
+  // зоны колеса: зелёная [0,c) — цель, алмаз [d0, d0+d) внизу — NFT в 1.5–4× дороже цели (формула — js/diamond.js)
+  const zonesFor = (v, value) => v && value && window.DDZones ? DDZones(v, value, st.gifts, st.cfg) : NOZ;
+  const zones = () => st.target ? zonesFor(stake(), st.target.value) : NOZ;
+  const chance = () => zones().c;
+  function drawZones(z) {
+    const dA = $('upgDiaArc'), dG = $('upgDiaGlow'), badge = $('upgDiaBadge'), on = z.d > 0;
+    [dA, dG].forEach(e => { if (!e) return; e.style.display = on ? '' : 'none';
+      if (on) { e.setAttribute('stroke-dasharray', `${(C * z.d).toFixed(2)} ${C.toFixed(1)}`); e.setAttribute('stroke-dashoffset', (-C * z.d0).toFixed(2)); } });
+    if (badge) { badge.hidden = !on; if (on) { const a = (z.d0 + z.d / 2) * 2 * Math.PI; badge.style.left = (50 + 43.33 * Math.sin(a)).toFixed(2) + '%'; badge.style.top = (50 - 43.33 * Math.cos(a)).toFixed(2) + '%'; } }
+    const dp = $('upgDiaPct'); if (dp) dp.textContent = on ? `💎 алмаз ${(z.d * 100).toFixed(2)}%` : '';
+  }
 
   function ticks() {
     const g = $('upgTicks'); if (!g || g.childElementCount) return;
@@ -20,8 +31,9 @@
     }
   }
   function paint() {
-    const c = chance();
+    const z = zones(), c = z.c;
     $('upgArc').setAttribute('stroke-dasharray', `${(C * c).toFixed(1)} ${C.toFixed(1)}`);
+    drawZones(z);
     $('upgPct').textContent = (c * 100).toFixed(2) + '%';
     const items = selItems(), v = stake();
     $('upgFromBody').innerHTML = items.length
@@ -46,8 +58,8 @@
       const v = stake();
       const list = st.gifts.filter(x => x.kind !== 'regular' && (!v || (x.value > v && x.value <= v * 100))).sort((a, b) => a.value - b.value);
       g.innerHTML = list.length ? list.map(x => {
-        const ch = v ? Math.min(st.cfg.maxChance, v / x.value * st.cfg.factor) : 0;
-        return `<button class="upg-item ${st.target && st.target.id === x.id ? 'on' : ''}" data-gift="${x.id}"><img src="${x.image}" alt="" loading="lazy"><span class="n">${x.name}</span><span class="v">${STAR} ${fmt(x.value)}</span>${v ? `<span class="c">${(ch * 100).toFixed(1)}%</span>` : ''}</button>`;
+        const z = zonesFor(v, x.value);
+        return `<button class="upg-item ${st.target && st.target.id === x.id ? 'on' : ''}" data-gift="${x.id}"><img src="${x.image}" alt="" loading="lazy"><span class="n">${x.name}</span><span class="v">${STAR} ${fmt(x.value)}</span>${v ? `<span class="c">${(z.c * 100).toFixed(1)}%${z.d ? ' 💎' : ''}</span>` : ''}</button>`;
       }).join('') : '<div class="upg-none">Нет подарков дороже ставки</div>';
     }
   }
@@ -100,15 +112,25 @@
     try {
       const r = await fetch('/api/upgrade', { method: 'POST', headers: hdr(), body: JSON.stringify({ inventoryItemIds: st.sel, targetGiftId: st.target.id }) });
       const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Ошибка');
+      if (d.zones) { drawZones(d.zones); $('upgArc').setAttribute('stroke-dasharray', `${(C * d.zones.c).toFixed(1)} ${C.toFixed(1)}`); }   // зоны — как посчитал сервер
       FX.whoosh(); await spin(d.roll);
-      wheel.classList.remove('spinning'); wheel.classList.add(d.win ? 'win' : 'lose');
-      if (d.win) { FX.win('legendary'); FX.confetti('#ffc61a', 160, 0.3); $('upgToSlot').classList.add('won'); showToast(`${st.target.name} теперь в инвентаре`, 'success', { title: 'Залетело! 🔥' }); }
-      else { FX.lose(); $('upgFromSlot').classList.add('burn'); if (!d.cashback) showToast('Подарки сгорели. Попробуй ещё', 'error', { title: 'Не зашло 😅' }); }
-      await new Promise(r2 => setTimeout(r2, fast ? 600 : 1500));
-      if (!d.win && d.cashback) await cashbackCrate(d.cashback);
+      wheel.classList.remove('spinning');
+      if (d.diamond && window.DDDiamond) {
+        // алмаз: колесо кристаллизуется → сцена с барабаном NFT
+        await DDDiamond.hit(wheel, fast);
+        await DDDiamond.scene(d.diamond, st.target, fast);
+        DDDiamond.unhit(wheel);
+        showToast(`${d.diamond.prize.name} теперь в инвентаре`, 'success', { title: 'Алмаз! 💎' });
+      } else {
+        wheel.classList.add(d.win ? 'win' : 'lose');
+        if (d.win) { FX.win('legendary'); FX.confetti('#ffc61a', 160, 0.3); $('upgToSlot').classList.add('won'); showToast(`${st.target.name} теперь в инвентаре`, 'success', { title: 'Залетело! 🔥' }); }
+        else { FX.lose(); $('upgFromSlot').classList.add('burn'); if (!d.cashback) showToast('Подарки сгорели. Попробуй ещё', 'error', { title: 'Не зашло 😅' }); }
+        await new Promise(r2 => setTimeout(r2, fast ? 600 : 1500));
+        if (!d.win && d.cashback) await cashbackCrate(d.cashback);
+      }
       $('upgToSlot').classList.remove('won'); $('upgFromSlot').classList.remove('burn'); wheel.classList.remove('win', 'lose');
       st.sel = []; st.target = null; await loadInv();
-    } catch (e) { showAlert('⚠️ ' + e.message); wheel.classList.remove('spinning'); }
+    } catch (e) { showAlert('⚠️ ' + e.message); wheel.classList.remove('spinning'); if (window.DDDiamond) DDDiamond.unhit(wheel); }
     st.spinning = false; paint(); grid();
   }
 
@@ -173,6 +195,20 @@
     })();
   }
 
+  // «тест алмаза» — только админу: его апгрейды встают в алмаз, чтобы посмотреть анимацию
+  function testUI() {
+    const b = $('upgDiaTest'); if (!b) return; b.hidden = !st.cfg.canTest;
+    b.classList.toggle('on', !!st.cfg.test); b.textContent = `💎 Тест алмаза: ${st.cfg.test ? 'вкл' : 'выкл'}`;
+  }
+  async function toggleTest() {
+    try {
+      const r = await fetch('/api/upgrade/diamond-test', { method: 'POST', headers: hdr(), body: JSON.stringify({ on: !st.cfg.test }) });
+      const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Ошибка');
+      st.cfg.test = d.test; testUI(); FX.haptic('medium');
+      showToast(d.test ? 'Твои апгрейды встают в алмаз (цель — с алмазной зоной)' : 'Обычные честные броски', 'success', { title: d.test ? 'Тест алмаза включён' : 'Тест выключен' });
+    } catch (e) { showAlert('⚠️ ' + e.message); }
+  }
+
   async function loadInv() {
     const uid = window.Telegram && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user && Telegram.WebApp.initDataUnsafe.user.id; if (!uid) return;
     const r = await fetch(`/api/inventory/${uid}`, { headers: hdr() }); if (r.ok) st.inv = await r.json();
@@ -190,11 +226,13 @@
       $('upgFast').addEventListener('click', () => { setFast(!fast); FX.haptic('light'); }); setFast(fast);
       $('upgFromSlot').addEventListener('click', () => { st.tab = 'inv'; grid(); });
       $('upgToSlot').addEventListener('click', () => { st.tab = 'gifts'; grid(); });
+      $('upgDiaTest').addEventListener('click', toggleTest);
     }
     try {
       const [g, c] = await Promise.all([fetch('/api/gifts', { headers: hdr() }).then(r => r.json()), fetch('/api/upgrade/config', { headers: hdr() }).then(r => r.json())]);
       st.gifts = g; st.cfg = Object.assign(st.cfg, c);
     } catch (e) { }
+    testUI();
     await loadInv(); paint(); grid();
   }
 

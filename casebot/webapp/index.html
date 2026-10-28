@@ -49,6 +49,7 @@
   <link rel="preload" href="fonts/unbounded-cyrillic-900-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/onest-cyrillic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/drade.css?v=5">
+  <link rel="stylesheet" href="css/diamond.css?v=1">
   <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/tgs-player.js"></script>
   <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
 </head>
@@ -801,18 +802,29 @@
         <defs>
           <linearGradient id="upgWin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4ade80"/><stop offset="1" stop-color="#16a34a"/></linearGradient>
           <linearGradient id="upgTrack" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a2f4a"/><stop offset="1" stop-color="#1a1d30"/></linearGradient>
+          <linearGradient id="upgDia" gradientUnits="userSpaceOnUse" x1="60" y1="0" x2="180" y2="0" spreadMethod="reflect">
+            <stop offset="0" stop-color="#7df4ff"/><stop offset=".35" stop-color="#ffffff"/><stop offset=".6" stop-color="#5fd8ff"/><stop offset="1" stop-color="#a98bff"/>
+            <animate attributeName="x1" values="60;140;60" dur="2.4s" repeatCount="indefinite"/><animate attributeName="x2" values="180;260;180" dur="2.4s" repeatCount="indefinite"/>
+          </linearGradient>
+          <linearGradient id="upgIce" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#173a57"/><stop offset=".5" stop-color="#4fc9f0"/><stop offset="1" stop-color="#6b4fe0"/></linearGradient>
+          <filter id="upgGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.4"/></filter>
         </defs>
         <circle cx="120" cy="120" r="104" fill="none" stroke="url(#upgTrack)" stroke-width="18"/>
         <circle id="upgArc" cx="120" cy="120" r="104" fill="none" stroke="url(#upgWin)" stroke-width="18" stroke-linecap="butt"
           stroke-dasharray="0 654" transform="rotate(-90 120 120)"/>
+        <circle id="upgDiaGlow" cx="120" cy="120" r="104" fill="none" stroke="#8ff2ff" stroke-width="26" stroke-dasharray="0 654" transform="rotate(-90 120 120)" filter="url(#upgGlow)"/>
+        <circle id="upgDiaArc" cx="120" cy="120" r="104" fill="none" stroke="url(#upgDia)" stroke-width="18" stroke-dasharray="0 654" transform="rotate(-90 120 120)"/>
         <g id="upgTicks"></g>
       </svg>
+      <div class="upg-dia" id="upgDiaBadge" hidden><i class="upg-dia-ring"></i><img src="images/gifts/diamond-100.webp" alt="Алмаз"><b class="upg-dia-glint"></b></div>
       <div class="upg-needle" id="upgNeedle"><span></span></div>
       <div class="upg-center">
         <div class="upg-pct" id="upgPct">0%</div>
         <div class="upg-label" id="upgLabel">шанс апгрейда</div>
+        <div class="upg-dia-pct" id="upgDiaPct"></div>
       </div>
     </div>
+    <button class="upg-dtest" id="upgDiaTest" type="button" hidden>💎 Тест алмаза: выкл</button>
 
     <div class="upg-pair">
       <div class="upg-slot" id="upgFromSlot">
@@ -1006,9 +1018,10 @@
   </div>
 
   <script src="/config.js"></script>
-  <script src="js/fx.js?v=3"></script>
+  <script src="js/fx.js?v=4"></script>
   <script src="js/app.js?v=5"></script>
-  <script src="js/upgrade.js?v=5"></script>
+  <script src="js/diamond.js?v=1"></script>
+  <script src="js/upgrade.js?v=6"></script>
   <script src="js/tonpay.js?v=1"></script>
   <script src="js/fair.js?v=1"></script>
 </body>

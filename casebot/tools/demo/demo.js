@@ -31,7 +31,7 @@
       case 'get-balance': return ok({ balance: st.balance });
       case 'referral-count': return ok({ count: 0, spent: 0, available: 0 });
       case 'gifts': return ok(D.gifts);
-      case 'upgrade/config': return ok(D.upgrade);
+      case 'upgrade/config': return ok({ ...D.upgrade, canTest: true, test: !!st.dtest });   // в демо «тест алмаза» доступен всем
       case 'daily-case/status': {
         const t = st.free[body.caseId || 'case1'] || 0, opened = Date.now() - t < 86400000;
         return ok({ canOpen: !opened, freeCaseOpenedToday: opened, nextResetAt: new Date(t + 86400000).toISOString(), sharesDone: true, subscribed: true, shareCount: 3, needTasks: false });
@@ -56,21 +56,28 @@
         const ids = body.inventoryItemIds || [], items = st.inv.filter(i => ids.includes(i.id)), t = G.get(body.targetGiftId);
         if (!items.length || !t) return fail('Выберите подарки и цель');
         const stake = items.reduce((s, i) => s + i.value, 0); if (t.value <= stake) return fail('Цель должна быть дороже ставки');
-        const chance = Math.min(D.upgrade.maxChance, stake / t.value * D.upgrade.factor), r = Math.random(), win = r < chance;
+        const z = window.DDZones(stake, t.value, D.gifts, D.upgrade), test = !!st.dtest && z.d > 0;
+        const r = test ? z.d0 + z.d * Math.random() : Math.random(), win = r < z.c, dia = !win && z.d > 0 && r >= z.d0 && r < z.d0 + z.d;
+        let prize = win ? t : null;
+        if (dia) { let a = 0; const u = (r - z.d0) / z.d; prize = z.pool.find(g => (a += g.p) > u) || z.pool[z.pool.length - 1]; }
         st.inv = st.inv.filter(i => !ids.includes(i.id));
-        if (win) st.inv.unshift({ id: st.next++, name: t.name, value: t.value, image: t.image, rarity: 'legendary', giftId: t.id });
+        let itemId = null;
+        if (prize) { itemId = st.next++; st.inv.unshift({ id: itemId, name: prize.name, value: prize.value, image: prize.image, rarity: 'legendary', giftId: prize.id }); }
         let cashback = null;
-        if (!win) {   // как на сервере: в среднем 8% ставки, обычно звёзды, иногда NFT
+        if (!prize) {   // как на сервере: в среднем 8% ставки, обычно звёзды, иногда NFT
           const x = Math.random(), k = x < 0.85 ? 0.02 + x / 0.85 * 0.06 : x < 0.98 ? 0.08 + (x - 0.85) / 0.13 * 0.22 : 0.3 + (x - 0.98) / 0.02 * 0.7;
           const value = Math.max(1, Math.round(stake * k * ((D.upgrade.cashbackRate || 0.08) / 0.0802)));
           const g = value >= 300 ? D.gifts.filter(g => g.kind === 'nft' && g.value <= value * 1.25 && g.value >= value * 0.6).sort((a, b) => Math.abs(a.value - value) - Math.abs(b.value - value))[0] : null;
           if (g) { st.inv.unshift({ id: st.next++, name: g.name, value: g.value, image: g.image, rarity: 'legendary', giftId: g.id }); cashback = { type: 'gift', value: g.value, name: g.name, image: g.image }; }
           else { st.balance += value; cashback = { type: 'stars', value }; }
         }
-        save(); return ok({ win, chance, roll: r, stake, cashback });
+        const pub = g => ({ id: g.id, name: g.name, value: g.value, image: g.image });
+        save(); return ok({ win, chance: z.c, roll: r, stake, cashback, zones: { c: z.c, d: z.d, d0: z.d0 },
+          diamond: dia ? { prize: { ...pub(prize), itemId, mult: prize.value / t.value }, pool: z.pool.map(pub), test } : null });
       }
+      case 'upgrade/diamond-test': { st.dtest = !!body.on; save(); return ok({ test: st.dtest }); }
       case 'create-stars-invoice': { const n = parseInt(body.amount, 10); if (!(n > 0)) return fail('Введите сумму'); return ok({ success: true, invoice_url: 'demo:' + n }); }
-      case 'fair/state': return ok({ serverSeedHash: '9f2c1e7a54b38d06c1fa2e9b7d4413c08e5a6f71b2d930c4e8a17f5d36b2c091', clientSeed: 'demo-seed', nonce: st.next || 0, caseRtp: 0.499, upgradeFactor: D.upgrade.factor, cashbackRate: D.upgrade.cashbackRate });
+      case 'fair/state': return ok({ serverSeedHash: '9f2c1e7a54b38d06c1fa2e9b7d4413c08e5a6f71b2d930c4e8a17f5d36b2c091', clientSeed: 'demo-seed', nonce: st.next || 0, caseRtp: 0.499, upgradeFactor: D.upgrade.factor, cashbackRate: D.upgrade.cashbackRate, diamondShare: D.upgrade.diamondShare, diamondMin: D.upgrade.diamondMin, diamondMax: D.upgrade.diamondMax });
       case 'fair/rotate': return ok({ revealed: { serverSeed: 'demo-server-seed', serverSeedHash: '9f2c1e7a54b38d06c1fa2e9b7d4413c08e5a6f71b2d930c4e8a17f5d36b2c091', clientSeed: 'demo-seed', nonce: st.next || 0 }, current: { serverSeedHash: '3b7d0c9e21f4a8650de1b2c37f9a4e58c06d1b2a7e3f94c5d8a0b61e72f3c4d9', clientSeed: body.clientSeed || 'demo-seed', nonce: 0 } });
       case 'ton/config': return ok({});
       case 'ton/deposit-intent': { const a = Number(body.amountTon); st.tonPending = { a, polls: 0 }; save();

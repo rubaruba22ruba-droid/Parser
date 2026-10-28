@@ -7,6 +7,7 @@ import { createIntent, pollDeposits, walletBalance } from './ton.mjs';
 import { tg, botLink, notifyAdmins } from './tg.mjs';
 import { isAdmin, promoFor, usePromo } from './admin.mjs';
 import { nextRoll, publicState, rotate } from './fair.mjs';
+import { upgradeZones, pickDiamond } from './diamond.mjs';
 
 export class ApiError extends Error { constructor(msg, status = 400, code) { super(msg); this.status = status; this.code = code; } }
 const DAY = 86400000, today = () => new Date().toISOString().slice(0, 10);
@@ -104,14 +105,20 @@ function upgrade(u, b) {
     if (items.some(x => !x)) throw new ApiError('Предмет не найден');
     const stake = items.reduce((s, x) => s + x.value, 0);
     if (t.value <= stake || t.value > stake * 100) throw new ApiError('Цель должна быть дороже ставки');
-    const chance = Math.min(S().upgradeMaxChance, stake / t.value * S().upgradeFactor);
-    const r = nextRoll(u.id), roll = r.x, win = roll < chance;
-    for (const x of items) run("UPDATE inventory SET state=? WHERE id=?", win ? 'upgraded' : 'upgrade_lost', x.id);
+    const z = upgradeZones(stake, t.value, GIFTS, S());
+    // тест алмаза: админ включил его себе — бросок ставится в алмаз (не тратит честный nonce, в истории помечен admin-test)
+    const test = z.d > 0 && isAdmin(u) && !!one("SELECT 1 FROM kv WHERE k=? AND v='1'", 'dtest:' + u.id);
+    const r = test ? { x: z.d0 + z.d * Math.random(), nonce: null, serverSeedHash: 'admin-test' } : nextRoll(u.id), roll = r.x;
+    const win = roll < z.c, dia = !win && z.d > 0 && roll >= z.d0 && roll < z.d0 + z.d;
+    const prize = win ? t : dia ? pickDiamond(z.pool, (roll - z.d0) / z.d) : null;
+    for (const x of items) run("UPDATE inventory SET state=? WHERE id=?", prize ? 'upgraded' : 'upgrade_lost', x.id);
     let item = null;
-    if (win) item = Number(run('INSERT INTO inventory(user_id,gift_id,name,value,image,rarity,case_id,created) VALUES(?,?,?,?,?,?,?,?)', u.id, t.id, t.name, t.value, t.image, 'legendary', 'upgrade', Date.now()).lastInsertRowid);
-    run('INSERT INTO opens(user_id,case_id,price,gift_id,value,created,nonce,seed_hash,roll) VALUES(?,?,?,?,?,?,?,?,?)', u.id, 'upgrade', stake, win ? t.id : '', win ? t.value : 0, Date.now(), r.nonce, r.serverSeedHash, roll);
-    const cb = win ? null : cashback(u, stake);
-    return { win, chance, roll, stake, itemId: item, fair: { nonce: r.nonce }, cashback: cb };
+    if (prize) item = Number(run('INSERT INTO inventory(user_id,gift_id,name,value,image,rarity,case_id,created) VALUES(?,?,?,?,?,?,?,?)', u.id, prize.id, prize.name, prize.value, prize.image, 'legendary', dia ? 'diamond' : 'upgrade', Date.now()).lastInsertRowid);
+    run('INSERT INTO opens(user_id,case_id,price,gift_id,value,created,nonce,seed_hash,roll) VALUES(?,?,?,?,?,?,?,?,?)', u.id, dia ? 'diamond' : 'upgrade', stake, prize ? prize.id : '', prize ? prize.value : 0, Date.now(), r.nonce, r.serverSeedHash, roll);
+    const cb = prize ? null : cashback(u, stake);
+    const pub = g => ({ id: g.id, name: g.name, value: g.value, image: g.image });
+    return { win, chance: z.c, roll, stake, itemId: item, fair: { nonce: r.nonce }, cashback: cb,
+      zones: { c: z.c, d: z.d, d0: z.d0 }, diamond: dia ? { prize: { ...pub(prize), itemId: item, mult: prize.value / t.value }, pool: z.pool.map(pub), test } : null };
   });
 }
 
@@ -155,9 +162,18 @@ export const routes = {
   'get-balance': u => ({ balance: u.balance }),
   'referral-count': u => referralStats(u.id),
   'gifts': () => GIFTS.map(g => ({ id: g.id, name: g.name, value: g.value, image: g.image, kind: g.kind })),
-  'upgrade/config': () => ({ factor: S().upgradeFactor, maxChance: S().upgradeMaxChance, maxItems: cfg.upgradeMaxItems, cashbackRate: S().cashbackRate }),
+  'upgrade/config': u => ({ factor: S().upgradeFactor, maxChance: S().upgradeMaxChance, maxItems: cfg.upgradeMaxItems, cashbackRate: S().cashbackRate,
+    diamondShare: S().diamondShare, diamondMin: S().diamondMin, diamondMax: S().diamondMax,
+    canTest: isAdmin(u), test: isAdmin(u) && !!one("SELECT 1 FROM kv WHERE k=? AND v='1'", 'dtest:' + u.id) }),
+  // админ включает себе «тест алмаза»: его апгрейды встают в алмаз, чтобы посмотреть анимацию. Другим игрокам не влияет.
+  'upgrade/diamond-test': (u, b) => {
+    if (!isAdmin(u)) throw new ApiError('Только для админа', 403);
+    const on = b.on === true || b.on === 1 || b.on === '1' || b.on === 'true';
+    run("INSERT INTO kv(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", 'dtest:' + u.id, on ? '1' : '0');
+    return { test: on };
+  },
   // честная игра: текущий хэш сида, смена пары с раскрытием старого сида, параметры для правил
-  'fair/state': u => ({ ...publicState(u.id), caseRtp: S().caseRtp, upgradeFactor: S().upgradeFactor, cashbackRate: S().cashbackRate }),
+  'fair/state': u => ({ ...publicState(u.id), caseRtp: S().caseRtp, upgradeFactor: S().upgradeFactor, cashbackRate: S().cashbackRate, diamondShare: S().diamondShare, diamondMin: S().diamondMin, diamondMax: S().diamondMax }),
   'fair/rotate': (u, b) => rotate(u.id, b.clientSeed),
   'log-client-error': () => ({ ok: true }),
   'check-promo': () => ({ valid: false }),

@@ -28,10 +28,10 @@
 
   // ---- конфетти на canvas ----
   let cv = null, cx2 = null, parts = [], raf = 0;
-  function confetti(color, n, originY) {
+  function confetti(color, n, originY, palette) {
     if (!cv) { cv = document.createElement('canvas'); cv.className = 'dd-confetti'; document.body.appendChild(cv); cx2 = cv.getContext('2d'); }
     const dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; cx2.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const cols = [color, '#ffffff', '#facc15', '#a78bfa', '#22d3ee'];
+    const cols = palette || [color, '#ffffff', '#facc15', '#a78bfa', '#22d3ee'];
     for (let i = 0; i < (n || 120); i++) {
       const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2, v = 7 + Math.random() * 9;
       parts.push({ x: innerWidth / 2, y: innerHeight * (originY || 0.42), vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 3 + Math.random() * 5, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4, c: cols[i % cols.length], life: 0, shape: i % 3 });
@@ -74,5 +74,5 @@
   }
 
   function setMuted(m) { muted = m; try { localStorage.setItem('dd_muted', m ? '1' : '0'); } catch (e) { } }
-  window.FX = { tick, stop, tone, win, lose, whoosh, haptic, confetti, slotFrame, slotReset, decorateWin, RARITY, setMuted, isMuted: () => muted };
+  window.FX = { tick, stop, tone, win, lose, whoosh, haptic, confetti, slotFrame, slotReset, decorateWin, RARITY, setMuted, isMuted: () => muted, ctx: ac };
 })();
