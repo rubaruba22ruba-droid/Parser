@@ -18,9 +18,10 @@ CREATE TABLE IF NOT EXISTS daily_shares(user_id INTEGER, day TEXT, n INTEGER NOT
 CREATE TABLE IF NOT EXISTS ref_promos(code TEXT PRIMARY KEY, user_id INTEGER UNIQUE, uses INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT);
 CREATE TABLE IF NOT EXISTS promos(code TEXT PRIMARY KEY COLLATE NOCASE, type TEXT, value REAL, uses_left INTEGER, used INTEGER NOT NULL DEFAULT 0, created INTEGER);
+CREATE TABLE IF NOT EXISTS fair(user_id INTEGER PRIMARY KEY, server_seed TEXT, client_seed TEXT, nonce INTEGER NOT NULL DEFAULT 0, created INTEGER);
 CREATE TABLE IF NOT EXISTS promo_uses(code TEXT COLLATE NOCASE, user_id INTEGER, created INTEGER, PRIMARY KEY(code, user_id));
 `);
-for (const sql of ['ALTER TABLE intents ADD COLUMN promo TEXT', 'ALTER TABLE intents ADD COLUMN from_addr TEXT']) { try { db.exec(sql); } catch { /* колонка уже есть */ } }
+for (const sql of ['ALTER TABLE intents ADD COLUMN promo TEXT', 'ALTER TABLE intents ADD COLUMN from_addr TEXT', 'ALTER TABLE opens ADD COLUMN nonce INTEGER', 'ALTER TABLE opens ADD COLUMN seed_hash TEXT', 'ALTER TABLE opens ADD COLUMN roll REAL']) { try { db.exec(sql); } catch { /* колонка уже есть */ } }
 export const q = (sql, ...a) => db.prepare(sql).all(...a);
 export const one = (sql, ...a) => db.prepare(sql).get(...a);
 export const run = (sql, ...a) => db.prepare(sql).run(...a);

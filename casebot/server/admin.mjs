@@ -15,7 +15,7 @@ export function findUser(target, me) {
   return one('SELECT * FROM users WHERE username=? COLLATE NOCASE', t.replace(/^@/, ''));
 }
 const DAY = 86400000;
-const NUM_KEYS = ['caseRtp', 'hitTarget', 'bigWin', 'lossFloor', 'junkCap', 'maxItem', 'upgradeFactor', 'upgradeMaxChance', 'referralPercent', 'refPromoBonus', 'withdrawMinTon', 'withdrawWindowDays', 'starsPerTon', 'minDepositTon', 'dailyShares', 'freeCooldownHours'];
+const NUM_KEYS = ['caseRtp', 'hitTarget', 'bigWin', 'lossFloor', 'junkCap', 'maxItem', 'upgradeFactor', 'upgradeMaxChance', 'cashbackRate', 'referralPercent', 'refPromoBonus', 'withdrawFreeMax', 'withdrawMinTon', 'withdrawWindowDays', 'starsPerTon', 'minDepositTon', 'dailyShares', 'freeCooldownHours'];
 
 function caseView(c) {
   return { id: c.id, name: c.name, price: c.price, free: c.free, disabled: !!c.disabled, rtp: c.rtp, hit: c.hit, manual: !!(settings().cases[c.id] || {}).manual,
@@ -47,6 +47,8 @@ export const adminRoutes = {
   'admin/settings/save': (u, b) => {
     const patch = {};
     for (const k of NUM_KEYS) if (b[k] !== undefined && b[k] !== '') { const v = Number(b[k]); if (!Number.isFinite(v) || v < 0) throw new Error(`Неверное значение ${k}`); patch[k] = v; }
+    if (['fair', 'juicy'].includes(b.oddsModel)) patch.oddsModel = b.oddsModel;
+    if (patch.cashbackRate > 1) throw new Error('Кешбек — доля ставки, не больше 1');
     if (patch.caseRtp > 3 || patch.upgradeFactor > 1.5 || patch.upgradeMaxChance > 1 || patch.hitTarget > 0.95 || (patch.bigWin ?? settings().bigWin) > (patch.hitTarget ?? settings().hitTarget) || patch.junkCap > 1 || patch.lossFloor > 0.95) throw new Error('Слишком большое значение');
     saveSettings(patch); rebuildCases(); return { ok: true, settings: settings(), cases: CASES.map(caseView) };
   },

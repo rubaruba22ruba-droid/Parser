@@ -14,4 +14,4 @@ export async function tgUpload(method, fields, fileField, buf, filename, type, t
   const j = await r.json(); if (!j.ok) throw new Error(`${method}: ${j.description}`); return j.result;
 }
 export const botLink = () => `https://t.me/${cfg.botUsername}`;
-export async function notifyAdmins(text) { for (const id of cfg.adminIds) { try { await tg('sendMessage', { chat_id: id, text, parse_mode: 'HTML' }); } catch (e) { console.error('notify', id, e.message); } } }
+export async function notifyAdmins(text, reply_markup) { for (const id of cfg.adminIds) { try { await tg('sendMessage', { chat_id: id, text, parse_mode: 'HTML', ...(reply_markup ? { reply_markup } : {}) }); } catch (e) { console.error('notify', id, e.message); } } }

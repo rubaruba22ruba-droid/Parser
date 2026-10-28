@@ -1,8 +1,9 @@
 """
-Обложки кейсов: тёмная карточка, цветные лучи, реальные 3D-подарки (герой + спутники) с тенью и свечением.
+Баннер приветствия бота и аватарка; обложки кейсов рисует tools/case_burst.py (вызывается отсюда).
 Запуск после build.mjs:  python3 tools/case_art.py      (нужен только Pillow)
 """
-import json, math, os, random
+import json, math, os, random, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PIL import Image, ImageDraw, ImageFilter, ImageChops
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
@@ -93,15 +94,13 @@ def main():
     data = json.load(open(os.path.join(ROOT, 'server/cases.json')))
     gifts = {g['id']: g for g in json.load(open(os.path.join(ROOT, 'server/gifts.json')))}
     os.makedirs(os.path.join(ROOT, 'webapp/images/cases'), exist_ok=True)
-    for i, c in enumerate(data['cases']):
-        load = lambda gid: Image.open(os.path.join(ROOT, 'webapp', gifts[gid]['image'])).convert('RGBA')
-        art = compose(c['theme'], load(c['art'][0]), [load(g) for g in c['art'][1:5]], seed=i + 3)
-        art.save(os.path.join(ROOT, 'webapp', c['image']), quality=90, method=6); print('case art', c['id'], c['name'])
+    import case_burst; case_burst.main()      # обложки кейсов — «взрыв» настоящих 3D-подарков со шлейфами (tools/case_burst.py)
+    load = lambda gid: Image.open(os.path.join(ROOT, 'webapp', gifts[gid]['image'])).convert('RGBA')
     # баннер для приветствия бота 1280x640
     hero = data['cases'][-1]['art']
-    b = compose(['#a855f7', '#4c1d95', '#f0abfc'], load(hero[0]), [load(g) for g in hero[1:5]], seed=99).resize((640, 640), Image.LANCZOS)
+    b = compose(['#ff9900', '#3a1a00', '#ffd27a'], load(hero[0]), [load(g) for g in hero[1:5]], seed=99).resize((640, 640), Image.LANCZOS)
     ban = Image.new('RGB', (1280, 640), (14, 15, 28)); bd = ImageDraw.Draw(ban)
-    for x in range(1280): t = x / 1280; bd.line([(x, 0), (x, 640)], fill=(int(14 + 60 * t), int(15 + 10 * t), int(28 + 90 * t)))
+    for x in range(1280): t = x / 1280; bd.line([(x, 0), (x, 640)], fill=(int(12 + 70 * t), int(12 + 30 * t), int(13 + 2 * t)))
     ban.paste(b, (640, 0), b); bd = ImageDraw.Draw(ban)
     from PIL import ImageFont
     font = lambda sz: ImageFont.truetype('/usr/share/fonts/opentype/inter/Inter-Black.otf', sz)
@@ -110,9 +109,9 @@ def main():
     for x in range(560): t = x / 560; gd.line([(x, 0), (x, 130)], fill=(255, int(210 - 120 * t), int(90 + 50 * t)))
     m = Image.new('L', (560, 130), 0); ImageDraw.Draw(m).text((0, 0), 'DROP', font=font(118), fill=255); ban.paste(grad, (70, 318), m)
     for k, line in enumerate(['NFT-подарки Telegram', 'бесплатные кейсы · апгрейдер']):   # в две строки — не залезает на картинку
-        bd.text((74, 468 + k * 40), line, font=font(30), fill=(190, 196, 240))
+        bd.text((74, 468 + k * 40), line, font=font(30), fill=(255, 214, 150))
     ban.save(os.path.join(ROOT, 'webapp/images/banner.jpg'), quality=88)
-    avatar(['#a855f7', '#4c1d95', '#f0abfc'], load(hero[0])).resize((640, 640), Image.LANCZOS).save(os.path.join(ROOT, 'webapp/images/avatar.jpg'), quality=92)
+    avatar(['#ff9900', '#3a1a00', '#ffd27a'], load(hero[0])).resize((640, 640), Image.LANCZOS).save(os.path.join(ROOT, 'webapp/images/avatar.jpg'), quality=92)
 
 if __name__ == '__main__':
     main()

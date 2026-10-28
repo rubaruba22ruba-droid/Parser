@@ -1,4 +1,4 @@
-// Шансы кейсов. Модель «сочный дроп»:
+// Шансы кейсов. По умолчанию — честная модель (fairItems ниже). Альтернатива — «сочный дроп»:
 //   • доля открытий дороже цены кейса = hit (по умолчанию 60%);
 //   • проигрышный дроп не дешевле floor × цена (по умолчанию половина цены), вес ∝ (v/p)^kDown;
 //   • из них крупные (x1.5 и дороже) — доля tail; внутри «плюсовых» вес ∝ (v/p)^-kUp;
@@ -41,7 +41,17 @@ function bisect(f, lo, hi, target) {
   return (lo + hi) / 2;
 }
 
-export function computeCase(def, giftById, { rtp = 0.97, hit = 0.6, tail = 0.1, floor = 0.5, kDown = 1.5, junkCap = 0.04, maxItem = 0.25, manual = null } = {}) {
+// Честная модель: шанс подарка ∝ (цена)^-k — дорогое редко, дешёвое часто, без подгонки «60% в плюс».
+// k подбирается так, чтобы средняя выдача = RTP × цена кейса (по умолчанию 49.9%).
+function fairItems(gifts, p, rtp) {
+  const weights = k => { const w = gifts.map(g => Math.pow(g.value / p, -k)), t = w.reduce((a, b) => a + b, 0); return w.map(x => x / t); };
+  const ev = k => weights(k).reduce((s, w, i) => s + w * gifts[i].value, 0) / p;
+  const LO = -3, HI = 30;
+  const k = ev(HI) > rtp ? HI : ev(LO) < rtp ? LO : bisect(ev, LO, HI, rtp);
+  return weights(k).map((w, i) => ({ giftId: gifts[i].id, p: w }));
+}
+
+export function computeCase(def, giftById, { model = 'fair', rtp = 0.499, hit = 0.6, tail = 0.1, floor = 0.5, kDown = 1.5, junkCap = 0.04, maxItem = 0.25, manual = null } = {}) {
   const gifts = def.items.map(id => giftById.get(id)).filter(Boolean);
   const p = def.price || def.refValue || 1;
   let items;
@@ -50,6 +60,8 @@ export function computeCase(def, giftById, { rtp = 0.97, hit = 0.6, tail = 0.1, 
     items = gifts.map(g => ({ giftId: g.id, p: (Number(manual[g.id]) || 0) / tot }));
   } else if (def.free) {
     items = def.free.map(([id, pr]) => ({ giftId: id, p: pr }));
+  } else if (model === 'fair') {
+    items = fairItems(gifts, p, rtp);
   } else {
     // проигрыш не дешевле floor × цена (не «сливает»): подарки дешевле из платного кейса не выпадают;
     // если таких нет совсем — оставляем самый дорогой из дешёвых

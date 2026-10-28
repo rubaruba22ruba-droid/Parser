@@ -1,7 +1,7 @@
 /* Демо-режим Drade Drop: тот же интерфейс, а «сервер» работает в браузере (баланс и инвентарь — в localStorage).
    Шансы и цены — те же, что на настоящем сервере (demo-data.json генерится из server/). */
 (function () {
-  const KEY = 'dd_demo_v4';
+  const KEY = 'dd_demo_v5';
   let st; try { st = JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { st = null; }
   if (!st) st = { balance: 5000, inv: [], next: 1, free: {} };
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { } };
@@ -59,9 +59,19 @@
         const chance = Math.min(D.upgrade.maxChance, stake / t.value * D.upgrade.factor), r = Math.random(), win = r < chance;
         st.inv = st.inv.filter(i => !ids.includes(i.id));
         if (win) st.inv.unshift({ id: st.next++, name: t.name, value: t.value, image: t.image, rarity: 'legendary', giftId: t.id });
-        save(); return ok({ win, chance, roll: r, stake });
+        let cashback = null;
+        if (!win) {   // как на сервере: в среднем 8% ставки, обычно звёзды, иногда NFT
+          const x = Math.random(), k = x < 0.85 ? 0.02 + x / 0.85 * 0.06 : x < 0.98 ? 0.08 + (x - 0.85) / 0.13 * 0.22 : 0.3 + (x - 0.98) / 0.02 * 0.7;
+          const value = Math.max(1, Math.round(stake * k * ((D.upgrade.cashbackRate || 0.08) / 0.0802)));
+          const g = value >= 300 ? D.gifts.filter(g => g.kind === 'nft' && g.value <= value * 1.25 && g.value >= value * 0.6).sort((a, b) => Math.abs(a.value - value) - Math.abs(b.value - value))[0] : null;
+          if (g) { st.inv.unshift({ id: st.next++, name: g.name, value: g.value, image: g.image, rarity: 'legendary', giftId: g.id }); cashback = { type: 'gift', value: g.value, name: g.name, image: g.image }; }
+          else { st.balance += value; cashback = { type: 'stars', value }; }
+        }
+        save(); return ok({ win, chance, roll: r, stake, cashback });
       }
       case 'create-stars-invoice': { const n = parseInt(body.amount, 10); if (!(n > 0)) return fail('Введите сумму'); return ok({ success: true, invoice_url: 'demo:' + n }); }
+      case 'fair/state': return ok({ serverSeedHash: '9f2c1e7a54b38d06c1fa2e9b7d4413c08e5a6f71b2d930c4e8a17f5d36b2c091', clientSeed: 'demo-seed', nonce: st.next || 0, caseRtp: 0.499, upgradeFactor: D.upgrade.factor, cashbackRate: D.upgrade.cashbackRate });
+      case 'fair/rotate': return ok({ revealed: { serverSeed: 'demo-server-seed', serverSeedHash: '9f2c1e7a54b38d06c1fa2e9b7d4413c08e5a6f71b2d930c4e8a17f5d36b2c091', clientSeed: 'demo-seed', nonce: st.next || 0 }, current: { serverSeedHash: '3b7d0c9e21f4a8650de1b2c37f9a4e58c06d1b2a7e3f94c5d8a0b61e72f3c4d9', clientSeed: body.clientSeed || 'demo-seed', nonce: 0 } });
       case 'ton/config': return ok({});
       case 'ton/deposit-intent': { const a = Number(body.amountTon); st.tonPending = { a, polls: 0 }; save();
         return ok({ success: true, intentId: 'demo', walletAddress: 'UQCvGGYFcqrPS3h_AXiVzVHvmUTKLJJ5DurV_VBhpMXcQtd3', amountNano: String(Math.round(a * 1e9)), comment: 'cg' + Math.random().toString(16).slice(2, 14) }); }

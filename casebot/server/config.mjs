@@ -36,8 +36,8 @@ export const cfg = {
   dailyShares: Number(env.DAILY_SHARES || 3),
   referralPercent: Number(env.REFERRAL_PERCENT || 10),
   // апгрейд: шанс = ставка / цель × factor (не больше maxChance)
-  upgradeFactor: Number(env.UPGRADE_FACTOR || 0.95),   // апгрейды заходят часто
-  upgradeMaxChance: Number(env.UPGRADE_MAX_CHANCE || 0.92),
+  upgradeFactor: Number(env.UPGRADE_FACTOR || 0.499),  // честный RTP 49.9%: шанс = ставка / цель × 0.499
+  upgradeMaxChance: Number(env.UPGRADE_MAX_CHANCE || 0.75),
   upgradeMaxItems: 6,
   refPromoBonus: Number(env.REF_PROMO_BONUS || 10),
   publicUrl: detected.replace(/\/$/, ''),

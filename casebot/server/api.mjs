@@ -1,4 +1,3 @@
-import { randomInt } from 'node:crypto';
 import { cfg } from './config.mjs';
 import { settings as S } from './settings.mjs';
 import { q, one, run, tx } from './db.mjs';
@@ -7,6 +6,7 @@ import { getUser, depositedTon, depositedStars, referralStats } from './wallet.m
 import { createIntent, pollDeposits, walletBalance } from './ton.mjs';
 import { tg, botLink, notifyAdmins } from './tg.mjs';
 import { isAdmin, promoFor, usePromo } from './admin.mjs';
+import { nextRoll, publicState, rotate } from './fair.mjs';
 
 export class ApiError extends Error { constructor(msg, status = 400, code) { super(msg); this.status = status; this.code = code; } }
 const DAY = 86400000, today = () => new Date().toISOString().slice(0, 10);
@@ -15,8 +15,9 @@ const balanceOf = id => getUser(id).balance;
 const invRow = r => ({ id: r.id, item_name: r.name, item_value: r.value, item_image: r.image, rarity: r.rarity, gift_id: r.gift_id, case_id: r.case_id });
 
 // ---------- кейсы ----------
-function roll(c) { // криптостойкий выбор по весам
-  const x = randomInt(0, 1e9) / 1e9; let a = 0;
+// выбор подарка по броску x ∈ [0,1): идём по списку кейса (как он показан — от дорогого к дешёвому), копим шансы
+function pick(c, x) {
+  let a = 0;
   for (const it of c.items) { a += it.p; if (x < a) return it; }
   return c.items[c.items.length - 1];
 }
@@ -63,12 +64,13 @@ async function openCase(u, b) {
       run('INSERT INTO free_opens(user_id,case_id,opened_at) VALUES(?,?,?) ON CONFLICT(user_id,case_id) DO UPDATE SET opened_at=excluded.opened_at', u.id, c.id, Date.now());
     }
     for (let i = 0; i < count; i++) {
-      const it = roll(c), g = GIFT_BY_ID.get(it.giftId); let dbId = null;
+      const r = demo ? { x: Math.random() } : nextRoll(u.id);           // демо не тратит броски честной игры
+      const it = pick(c, r.x), g = GIFT_BY_ID.get(it.giftId); let dbId = null;
       if (!demo) {
         dbId = Number(run('INSERT INTO inventory(user_id,gift_id,name,value,image,rarity,case_id,created) VALUES(?,?,?,?,?,?,?,?)', u.id, g.id, g.name, g.value, g.image, it.rarity, c.id, Date.now()).lastInsertRowid);
-        run('INSERT INTO opens(user_id,case_id,price,gift_id,value,created) VALUES(?,?,?,?,?,?)', u.id, c.id, c.price, g.id, g.value, Date.now());
+        run('INSERT INTO opens(user_id,case_id,price,gift_id,value,created,nonce,seed_hash,roll) VALUES(?,?,?,?,?,?,?,?,?)', u.id, c.id, c.price, g.id, g.value, Date.now(), r.nonce, r.serverSeedHash, r.x);
       }
-      gifts.push({ name: g.name, image: g.image, value: g.value, rarity: it.rarity, dbId });
+      gifts.push({ name: g.name, image: g.image, value: g.value, rarity: it.rarity, dbId, fair: r.nonce ? { nonce: r.nonce, roll: r.x } : null });
     }
     return { gifts, newBalance: getUser(u.id).balance, isDemo: demo, prizeTokens: [] };
   });
@@ -79,14 +81,15 @@ async function openCase(u, b) {
 function initWithdraw(u, b) {
   const it = one("SELECT * FROM inventory WHERE id=? AND user_id=? AND state='owned'", Number(b.itemId), u.id); if (!it) throw new ApiError('Предмет не найден');
   const dep = depositedTon(u.id);
-  if (dep + 1e-9 < S().withdrawMinTon)
+  if (it.value > S().withdrawFreeMax && dep + 1e-9 < S().withdrawMinTon)   // до withdrawFreeMax ⭐ — без условия депозита
     throw new ApiError(`Для вывода нужно пополнить баланс минимум на ${S().withdrawMinTon} TON за последние ${S().withdrawWindowDays} дней (сейчас ${dep.toFixed(2)} TON). Вывод — через поддержку ${cfg.support}`);
   const id = tx(() => {
     // только если подарок всё ещё в инвентаре (не продан и не поставлен в апгрейд параллельным запросом)
     if (!run("UPDATE inventory SET state='withdraw' WHERE id=? AND state='owned'", it.id).changes) throw new ApiError('Предмет не найден или уже продан');
     return Number(run('INSERT INTO withdrawals(user_id,inv_id,created,updated) VALUES(?,?,?,?)', u.id, it.id, Date.now(), Date.now()).lastInsertRowid); });
-  notifyAdmins(`📤 <b>Заявка на вывод #${id}</b>\n${it.name} (${it.value} ⭐)\nПользователь: ${u.id} @${u.username || '—'}\n/done ${id} — выдан, /reject ${id} — вернуть в инвентарь`).catch(() => {});
-  return { success: true, withdrawalId: id, message: 'Запрос на вывод создан' };
+  notifyAdmins(`📤 <b>Заявка на вывод #${id}</b>\n🎁 ${it.name} — ${it.value} ⭐\n👤 ${u.name || ''} @${u.username || '—'} · ID <code>${u.id}</code>\n\nОтправь подарок вручную и нажми «Выдал».`,
+    { inline_keyboard: [[{ text: '✅ Выдал', callback_data: `wd:done:${id}` }, { text: '❌ Отклонить', callback_data: `wd:rej:${id}` }]] }).catch(() => {});
+  return { success: true, withdrawalId: id, message: `Заявка #${id} отправлена — поддержка ${cfg.support} отправит подарок вручную` };
 }
 
 // ---------- апгрейд (как на CaseBattle) ----------
@@ -102,13 +105,36 @@ function upgrade(u, b) {
     const stake = items.reduce((s, x) => s + x.value, 0);
     if (t.value <= stake || t.value > stake * 100) throw new ApiError('Цель должна быть дороже ставки');
     const chance = Math.min(S().upgradeMaxChance, stake / t.value * S().upgradeFactor);
-    const roll = randomInt(0, 1e9) / 1e9, win = roll < chance;
+    const r = nextRoll(u.id), roll = r.x, win = roll < chance;
     for (const x of items) run("UPDATE inventory SET state=? WHERE id=?", win ? 'upgraded' : 'upgrade_lost', x.id);
     let item = null;
     if (win) item = Number(run('INSERT INTO inventory(user_id,gift_id,name,value,image,rarity,case_id,created) VALUES(?,?,?,?,?,?,?,?)', u.id, t.id, t.name, t.value, t.image, 'legendary', 'upgrade', Date.now()).lastInsertRowid);
-    run('INSERT INTO opens(user_id,case_id,price,gift_id,value,created) VALUES(?,?,?,?,?,?)', u.id, 'upgrade', stake, win ? t.id : '', win ? t.value : 0, Date.now());
-    return { win, chance, roll, stake, itemId: item };
+    run('INSERT INTO opens(user_id,case_id,price,gift_id,value,created,nonce,seed_hash,roll) VALUES(?,?,?,?,?,?,?,?,?)', u.id, 'upgrade', stake, win ? t.id : '', win ? t.value : 0, Date.now(), r.nonce, r.serverSeedHash, roll);
+    const cb = win ? null : cashback(u, stake);
+    return { win, chance, roll, stake, itemId: item, fair: { nonce: r.nonce }, cashback: cb };
   });
+}
+
+// ---------- кешбек-ящик после слива апгрейда ----------
+// В среднем cashbackRate ставки (8% ≈ в 12 раз дешевле): обычно 2–8% звёздами, иногда до 30%, редко — до 100% (подарок).
+// Сумма от 300 ⭐ — NFT-подарок близкой цены, если такой есть; иначе звёзды. Бросок — тот же честный HMAC.
+function cashback(u, stake) {
+  if (!(S().cashbackRate > 0)) return null;
+  const r = nextRoll(u.id), x = r.x, scale = S().cashbackRate / 0.0802;
+  const k = x < 0.85 ? 0.02 + x / 0.85 * 0.06 : x < 0.98 ? 0.08 + (x - 0.85) / 0.13 * 0.22 : 0.3 + (x - 0.98) / 0.02 * 0.7;
+  const value = Math.max(1, Math.round(stake * k * scale));
+  let gift = null;
+  if (value >= 300) gift = GIFTS.filter(g => g.kind === 'nft' && g.value <= value * 1.25 && g.value >= value * 0.6).sort((a, b) => Math.abs(a.value - value) - Math.abs(b.value - value))[0] || null;
+  let out;
+  if (gift) {
+    const id = Number(run('INSERT INTO inventory(user_id,gift_id,name,value,image,rarity,case_id,created) VALUES(?,?,?,?,?,?,?,?)', u.id, gift.id, gift.name, gift.value, gift.image, 'legendary', 'cashback', Date.now()).lastInsertRowid);
+    out = { type: 'gift', value: gift.value, name: gift.name, image: gift.image, itemId: id };
+  } else {
+    run('UPDATE users SET balance=balance+? WHERE id=?', value, u.id);
+    out = { type: 'stars', value };
+  }
+  run('INSERT INTO opens(user_id,case_id,price,gift_id,value,created,nonce,seed_hash,roll) VALUES(?,?,?,?,?,?,?,?,?)', u.id, 'cashback', 0, gift ? gift.id : 'stars', out.value, Date.now(), r.nonce, r.serverSeedHash, x);
+  return { ...out, nonce: r.nonce, newBalance: getUser(u.id).balance };
 }
 
 // ---------- промо / рефералы ----------
@@ -129,7 +155,10 @@ export const routes = {
   'get-balance': u => ({ balance: u.balance }),
   'referral-count': u => referralStats(u.id),
   'gifts': () => GIFTS.map(g => ({ id: g.id, name: g.name, value: g.value, image: g.image, kind: g.kind })),
-  'upgrade/config': () => ({ factor: S().upgradeFactor, maxChance: S().upgradeMaxChance, maxItems: cfg.upgradeMaxItems }),
+  'upgrade/config': () => ({ factor: S().upgradeFactor, maxChance: S().upgradeMaxChance, maxItems: cfg.upgradeMaxItems, cashbackRate: S().cashbackRate }),
+  // честная игра: текущий хэш сида, смена пары с раскрытием старого сида, параметры для правил
+  'fair/state': u => ({ ...publicState(u.id), caseRtp: S().caseRtp, upgradeFactor: S().upgradeFactor, cashbackRate: S().cashbackRate }),
+  'fair/rotate': (u, b) => rotate(u.id, b.clientSeed),
   'log-client-error': () => ({ ok: true }),
   'check-promo': () => ({ valid: false }),
   'confirm-prize': () => ({ success: false, error: 'not used' }),

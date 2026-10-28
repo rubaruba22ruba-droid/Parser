@@ -321,9 +321,10 @@
       <div class="category_chips_scroll">
         <div class="category_chips">
           <div class="category_chip active">Все</div>
-          <div class="category_chip">Фарм кейсы</div>
-          <div class="category_chip">Обычные</div>
-          <div class="category_chip">ALL IN Кейсы</div>
+          <div class="category_chip" data-group="farm">Разогрев</div>
+          <div class="category_chip" data-group="hot">Горяченькое</div>
+          <div class="category_chip" data-group="theme">Тематические</div>
+          <div class="category_chip" data-group="allin">ALL IN</div>
         </div>
       </div>
     </div>
@@ -456,6 +457,9 @@
           <div class="dd-prof-ref-txt"><b>Пригласи друзей</b><span>Бонус с их пополнений</span></div>
           <button class="dd-prof-btn dd-prof-btn-sm" id="profileInviteBtn">Пригласить</button>
         </div>
+
+        <button class="dd-prof-card dd-prof-rules" type="button" onclick="showFairPage()"><span class="dd-prof-ref-ic">📜</span>
+          <span class="dd-prof-ref-txt"><b>Правила и честная игра</b><span>RTP, проверка бросков, конфиденциальность</span></span><span class="dd-prof-go">›</span></button>
 
         <button class="dd-prof-promo" id="profileRefPromoCard" style="display:none;"
           onclick="document.getElementById('refActivatePromoModal').style.display='flex'">Ввести реферальный промокод</button>
@@ -789,7 +793,7 @@
   <section id="upgrade-section" class="hidden upg">
     <div class="upg-head">
       <h2 class="dd-title">Апгрейд</h2>
-      <p>Поставь подарки — забери дороже. Шанс честно на колесе.</p>
+      <p>Поставь подарки — забери дороже. Шанс честно на колесе · <a href="#" onclick="showFairPage(); return false;">как проверить</a></p>
     </div>
 
     <div class="upg-wheel" id="upgWheel">
@@ -828,7 +832,10 @@
       <button data-m="1.5">x1.5</button><button data-m="2">x2</button><button data-m="3">x3</button>
       <button data-m="5">x5</button><button data-m="10">x10</button><button data-m="20">x20</button>
     </div>
-    <button class="upg-go" id="upgGo" disabled>Улучшить</button>
+    <div class="upg-go-row">
+      <button class="upg-go" id="upgGo" disabled>Улучшить</button>
+      <button class="upg-fast" id="upgFast" type="button" aria-pressed="false" title="Быстрая крутка">⚡<span>Быстро</span></button>
+    </div>
 
     <div class="upg-tabs">
       <button class="upg-tab active" data-tab="inv">Мои подарки</button>
@@ -1003,6 +1010,7 @@
   <script src="js/app.js?v=5"></script>
   <script src="js/upgrade.js?v=5"></script>
   <script src="js/tonpay.js?v=1"></script>
+  <script src="js/fair.js?v=1"></script>
 </body>
 
 </html>

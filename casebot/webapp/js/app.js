@@ -436,31 +436,22 @@ function renderCases() {
   ].filter(Boolean);
 
   let cardIndex = 0;
-  // раскладка по id (а не по индексам сжатого массива — иначе кейсы съезжают между разделами)
-  const GROUPS = [
-    ['Бесплатные Кейсы', ['case1', 'case2']],
-    ['Фарм Кейсы', ['case20', 'case4', 'case5', 'case6', 'case7']],
-    ['Обычные Кейсы', ['case3', 'case8', 'case9', 'case10', 'case11']],
-    ['ALL IN Кейсы', ['case12', 'case13', 'case14', 'case15', 'case16', 'case17']],
-  ];
-  GROUPS.forEach(([title, ids]) => {
-    const list = ids.map(id => casesData[id]).filter(Boolean);
+  // раздел кейса приходит с сервера (group); порядок кейсов — как в каталоге
+  const all = Object.values(casesData);
+  CASE_GROUPS.forEach(([key, title]) => {
+    const list = all.filter(c => (c.group || (c.price ? 'hot' : 'free')) === key);
     if (!list.length) return;
-    addSectionTitle(title);
+    addSectionTitle(title, key);
     list.forEach(c => renderCaseCard(c, cardIndex++));
   });
 }
+const CASE_GROUPS = [['free', 'Халява 🎁'], ['farm', 'Для разогрева'], ['hot', 'Горяченькое 🔥'], ['theme', 'Тематические'], ['allin', 'ALL IN — без тормозов']];
 
-function addSectionTitle(title) {
+function addSectionTitle(title, key) {
   const titleDiv = document.createElement('div');
   titleDiv.className = 'cases_block_title';
   titleDiv.textContent = title;
-
-  if (title === 'Бесплатные Кейсы') titleDiv.id = 'free-cases';
-  else if (title === 'Фарм Кейсы') titleDiv.id = 'farm-cases';
-  else if (title === 'Обычные Кейсы') titleDiv.id = 'regular-cases';
-  else if (title === 'ALL IN Кейсы') titleDiv.id = 'allin-cases';
-
+  titleDiv.id = key + '-cases';
   caseSelection.appendChild(titleDiv);
 }
 
@@ -506,6 +497,7 @@ function renderCaseCard(c, cardIndex) {
 
   card.innerHTML = `
       <div class="card_image">
+          ${c.group === 'theme' ? '<span class="dd-badge">✦ НОВОЕ</span>' : ''}
           <img src="${imagePath}" alt="${c.name}" title="${c.name}" loading="${loadingAttr}">
       </div>
       <div class="case-info">
@@ -1164,8 +1156,9 @@ async function startAnimation(promoCode = null) {
     window.animationColumnsData = columnsData;
 
 
-    isAnimationRunning = true;
     if (openCount === 1) slotTrack.style.transform = 'translate3d(0,0,0)';
+    await caseIntro();
+    isAnimationRunning = true;
     document.querySelector('.case_opening_process')?.classList.remove('dd-done');
     if (window.FX) { FX.slotReset(slotTrack); FX.whoosh(); }
     animationStartTime = null;
@@ -1221,9 +1214,32 @@ function animateSlotMachine(timestamp) {
   else finishAnimation();
 }
 
+// Перед прокруткой: кейс трясётся и лопается вспышкой, под ним уже готовая лента
+function caseIntro() {
+  const proc = document.querySelector('.case_opening_process');
+  if (!proc || !currentCase || !currentCase.image) return Promise.resolve();
+  return new Promise(res => {
+    const ov = document.createElement('div'); ov.className = 'dd-intro';
+    ov.innerHTML = `<img src="${currentCase.image}" alt="">`;
+    proc.appendChild(ov);
+    if (window.FX) { FX.haptic('medium'); FX.tone && FX.tone(140, .25, 'triangle', .12, 0, 90); }
+    setTimeout(() => { ov.classList.add('pop'); if (window.FX) { FX.whoosh(); FX.haptic('heavy'); } }, 430);
+    setTimeout(() => { ov.remove(); res(); }, 760);
+  });
+}
+
+// После остановки: цветная волна от выигрыша (x1)
+function winRing(item) {
+  const proc = document.querySelector('.case_opening_process'); if (!proc) return;
+  const colors = { uncommon: '#8e8e96', common: '#3d8bff', rare: '#18c6e8', epic: '#a35bff', purple: '#ff4fa8', mythic: '#ff4d4d', legendary: '#ffc61a' };
+  const r = document.createElement('i'); r.className = 'dd-ring'; r.style.setProperty('--ring', colors[(item && item.rarity) || 'common'] || '#ff9900');
+  proc.appendChild(r); setTimeout(() => r.remove(), 900);
+}
+
 function finishAnimation() {
   if (window.FX) FX.slotReset(slotTrack);
   document.querySelector('.case_opening_process')?.classList.add('dd-done');
+  if (openCount === 1 && wonItems && wonItems[0]) winRing(wonItems[0]);
   isAnimationRunning = false;
   isCaseBeingOpened = false;
   hideOpeningState();
@@ -1580,7 +1596,7 @@ function showOpeningState() {
   openingDiv.id = 'openingState';
   openingDiv.innerHTML = `
     <div class="opening-loader">
-      <span class="opening-text">Открытие</span>
+      <span class="opening-text">Крутим…</span>
       <div class="opening-spinner"></div>
     </div>
   `;
@@ -2404,11 +2420,7 @@ function setupEventListeners() {
       document.querySelectorAll('.category_chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
 
-      let targetId = '';
-      if (chip.textContent.includes('Все')) targetId = '';
-      else if (chip.textContent.includes('Фарм')) targetId = 'farm-cases';
-      else if (chip.textContent.includes('Обычные')) targetId = 'regular-cases';
-      else if (chip.textContent.includes('ALL IN')) targetId = 'allin-cases';
+      const targetId = chip.dataset.group ? chip.dataset.group + '-cases' : '';
 
       if (!targetId) {
         currentCategory = "all";

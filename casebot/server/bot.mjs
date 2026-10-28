@@ -13,7 +13,7 @@ const appKeyboard = () => cfg.webappUrl ? { inline_keyboard: [[{ text: '🎮 И�
   [{ text: '💬 Поддержка', url: `https://t.me/${cfg.support.replace(/^@/, '')}` }]] } : undefined;
 const kvGet = k => one('SELECT v FROM kv WHERE k=?', k)?.v;
 const kvSet = (k, v) => run('INSERT INTO kv(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v', k, String(v));
-const AVATAR_VERSION = '1';   // поменять — и бот при старте заново поставит аватарку из webapp/images/avatar.jpg
+const AVATAR_VERSION = '2';   // поменять — и бот при старте заново поставит аватарку из webapp/images/avatar.jpg
 
 // Имя и аватарка бота — ставятся сами при запуске (один раз)
 async function setupProfile() {
@@ -106,13 +106,7 @@ async function adminCommand(m) {
     const rows = q("SELECT w.id, w.user_id, i.name, i.value, u.username FROM withdrawals w JOIN inventory i ON i.id=w.inv_id JOIN users u ON u.id=w.user_id WHERE w.state='pending' ORDER BY w.id");
     return say(rows.length ? rows.map(r => `#${r.id} · ${esc(r.name)} (${r.value} ⭐) · ${r.user_id} @${esc(r.username || '—')}`).join('\n') + '\n\n/done &lt;id&gt; — выдан · /reject &lt;id&gt; — вернуть' : 'Заявок нет');
   }
-  if (cmd === '/done' || cmd === '/reject') {
-    const w = one("SELECT * FROM withdrawals WHERE id=? AND state='pending'", Number(a)); if (!w) return say('Заявка не найдена');
-    run('UPDATE withdrawals SET state=?, updated=? WHERE id=?', cmd === '/done' ? 'done' : 'rejected', Date.now(), w.id);
-    run('UPDATE inventory SET state=? WHERE id=?', cmd === '/done' ? 'withdrawn' : 'owned', w.inv_id);
-    tg('sendMessage', { chat_id: w.user_id, text: cmd === '/done' ? '✅ Ваш подарок выдан. Спасибо за игру!' : '❌ Заявка на вывод отклонена, подарок вернулся в инвентарь.' }).catch(() => {});
-    return say(`Заявка #${w.id}: ${cmd === '/done' ? 'выдан' : 'отклонена'}`);
-  }
+  if (cmd === '/done' || cmd === '/reject') { const r = settleWithdrawal(Number(a), cmd === '/done'); return say(r ? `Заявка #${r.id}: ${cmd === '/done' ? 'выдан' : 'отклонена'}` : 'Заявка не найдена'); }
   if (cmd === '/give') {   // /give me 10000 · /give @username 500 · /give 123456 -100
     const t = findUser(a, m.from.id), n = parseInt(b, 10);
     if (!t || !Number.isFinite(n)) return say('Использование: /give me|@username|id сумма\nПример: /give me 10000');
@@ -129,7 +123,27 @@ async function adminCommand(m) {
   if (cmd === '/ban') { run('UPDATE users SET banned=1 WHERE id=?', Number(a)); return say('Заблокирован'); }
 }
 
+// заявка на вывод: выдан (подарок списан) или отклонена (подарок вернулся в инвентарь)
+function settleWithdrawal(id, done) {
+  const w = one("SELECT * FROM withdrawals WHERE id=? AND state='pending'", id); if (!w) return null;
+  run('UPDATE withdrawals SET state=?, updated=? WHERE id=?', done ? 'done' : 'rejected', Date.now(), w.id);
+  run('UPDATE inventory SET state=? WHERE id=?', done ? 'withdrawn' : 'owned', w.inv_id);
+  tg('sendMessage', { chat_id: w.user_id, text: done ? '✅ Ваш подарок выдан. Спасибо за игру!' : '❌ Заявка на вывод отклонена, подарок вернулся в инвентарь.' }).catch(() => {});
+  return w;
+}
+
+// кнопки «Выдал» / «Отклонить» под заявкой у админа
+async function onCallback(cq) {
+  const m = /^wd:(done|rej):(\d+)$/.exec(cq.data || '');
+  if (!m || !cfg.adminIds.includes(cq.from.id)) return tg('answerCallbackQuery', { callback_query_id: cq.id }).catch(() => {});
+  const w = settleWithdrawal(Number(m[2]), m[1] === 'done');
+  await tg('answerCallbackQuery', { callback_query_id: cq.id, text: w ? (m[1] === 'done' ? 'Отмечено: выдан' : 'Отклонено, подарок вернулся игроку') : 'Заявка уже закрыта' }).catch(() => {});
+  if (w && cq.message) await tg('editMessageText', { chat_id: cq.message.chat.id, message_id: cq.message.message_id, parse_mode: 'HTML',
+    text: `${esc(cq.message.text || '')}\n\n${m[1] === 'done' ? '✅ Выдан' : '❌ Отклонён'} — ${esc(cq.from.first_name || 'админ')}` }).catch(() => {});
+}
+
 async function onUpdate(u) {
+  if (u.callback_query) return onCallback(u.callback_query);
   if (u.pre_checkout_query) return tg('answerPreCheckoutQuery', { pre_checkout_query_id: u.pre_checkout_query.id, ok: true });
   const m = u.message; if (!m) return;
   if (m.successful_payment) {
@@ -180,7 +194,7 @@ export async function startBot() {
   let offset = 0;
   for (;;) {
     try {
-      const ups = await tg('getUpdates', { offset, timeout: 30, allowed_updates: ['message', 'pre_checkout_query'] }, 45000);
+      const ups = await tg('getUpdates', { offset, timeout: 30, allowed_updates: ['message', 'pre_checkout_query', 'callback_query'] }, 45000);
       for (const u of ups) { offset = u.update_id + 1; onUpdate(u).catch(e => console.error('update', e.message)); }
     } catch (e) { console.error('poll', e.message); await new Promise(r => setTimeout(r, 3000)); }
   }

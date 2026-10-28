@@ -13,7 +13,7 @@ export function rebuildCases() {
   CASES = DEFS.map(d => {
     const o = s.cases[d.id] || {};
     return computeCase({ ...d, price: o.price ?? d.price, disabled: !!o.disabled }, GIFT_BY_ID,
-      { rtp: o.rtp ?? s.caseRtp, hit: o.hit ?? s.hitTarget, tail: s.bigWin, floor: s.lossFloor ?? 0.5, junkCap: s.junkCap, maxItem: s.maxItem, manual: o.manual });
+      { model: s.oddsModel, rtp: o.rtp ?? s.caseRtp, hit: o.hit ?? s.hitTarget, tail: s.bigWin, floor: s.lossFloor ?? 0.5, junkCap: s.junkCap, maxItem: s.maxItem, manual: o.manual });
   });
   CASE_BY_ID = new Map(CASES.map(c => [c.id, c]));
   return CASES;
@@ -27,7 +27,7 @@ export function casesForClient() {
   const out = {};
   for (const c of CASES) {
     if (c.disabled) continue;
-    out[c.id] = { id: c.id, name: c.name, image: c.image, price: c.price,
+    out[c.id] = { id: c.id, name: c.name, image: c.image, price: c.price, group: c.group,
       items: c.items.map(i => { const g = GIFT_BY_ID.get(i.giftId); return { name: g.name, image: g.image, value: g.value, rarity: i.rarity, chance: fmtP(i.p) }; }) };
   }
   return out;

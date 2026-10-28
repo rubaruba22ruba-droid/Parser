@@ -5,16 +5,15 @@
    "id": "case1",
    "name": "Daily",
    "price": 0,
+   "group": "free",
    "image": "images/cases/case1.webp",
    "theme": [
-    "#ff4d8d",
-    "#831843",
-    "#ff9ec4"
+    "#ffb000",
+    "#7c2d00",
+    "#ffe29a"
    ],
    "art": [
     "snow-globes",
-    "heart-15",
-    "heart-15",
     "heart-15",
     "heart-15"
    ],
@@ -37,16 +36,15 @@
    "id": "case2",
    "name": "Free",
    "price": 0,
+   "group": "free",
    "image": "images/cases/case2.webp",
    "theme": [
-    "#38bdf8",
-    "#1e3a8a",
-    "#a5f3fc"
+    "#ffd21f",
+    "#713f12",
+    "#fff3b0"
    ],
    "art": [
     "xmas-stockings",
-    "heart-15",
-    "heart-15",
     "heart-15",
     "heart-15"
    ],
@@ -69,11 +67,12 @@
    "id": "case4",
    "name": "Hearts",
    "price": 49,
+   "group": "farm",
    "image": "images/cases/case4.webp",
    "theme": [
-    "#f43f5e",
-    "#881337",
-    "#fda4af"
+    "#ff5c8a",
+    "#6b0f2a",
+    "#ffc2d4"
    ],
    "art": [
     "big-years",
@@ -96,12 +95,13 @@
   {
    "id": "case5",
    "name": "Sweet",
-   "price": 449,
+   "price": 199,
+   "group": "farm",
    "image": "images/cases/case5.webp",
    "theme": [
-    "#fb923c",
-    "#7c2d12",
-    "#fed7aa"
+    "#ff9f43",
+    "#6b2d00",
+    "#ffd9a8"
    ],
    "art": [
     "love-candles",
@@ -111,6 +111,8 @@
     "whip-cupcakes"
    ],
    "items": [
+    "heart-15",
+    "gift-25",
     "cake-50",
     "trophy-100",
     "homemade-cakes",
@@ -129,10 +131,11 @@
    "id": "case6",
    "name": "Party",
    "price": 399,
+   "group": "farm",
    "image": "images/cases/case6.webp",
    "theme": [
     "#22d3ee",
-    "#164e63",
+    "#083344",
     "#a5f3fc"
    ],
    "art": [
@@ -143,12 +146,13 @@
     "joyful-bundles"
    ],
    "items": [
+    "gift-25",
+    "cake-50",
     "trophy-100",
     "diamond-100",
     "pet-snakes",
     "santa-hats",
     "spiced-wines",
-    "hypno-lollipops",
     "instant-ramens",
     "pool-floats",
     "tama-gadgets",
@@ -167,10 +171,11 @@
    "id": "case3",
    "name": "Wonderland",
    "price": 790,
+   "group": "hot",
    "image": "images/cases/case3.webp",
    "theme": [
     "#a78bfa",
-    "#3b0764",
+    "#2e1065",
     "#e9d5ff"
    ],
    "art": [
@@ -181,12 +186,14 @@
     "flying-brooms"
    ],
    "items": [
+    "cake-50",
+    "trophy-100",
     "diamond-100",
+    "spy-agarics",
+    "hypno-lollipops",
     "big-years",
     "mousse-cakes",
     "spring-baskets",
-    "spy-agarics",
-    "hypno-lollipops",
     "eternal-candles",
     "hex-pots",
     "jolly-chimps",
@@ -206,10 +213,11 @@
    "id": "case8",
    "name": "Love",
    "price": 1490,
+   "group": "hot",
    "image": "images/cases/case8.webp",
    "theme": [
     "#fb7185",
-    "#9f1239",
+    "#6b0f1f",
     "#fecdd3"
    ],
    "art": [
@@ -220,6 +228,7 @@
     "eternal-roses"
    ],
    "items": [
+    "trophy-100",
     "diamond-100",
     "big-years",
     "lush-bouquets",
@@ -244,20 +253,23 @@
    "id": "case9",
    "name": "Magic",
    "price": 2490,
+   "group": "hot",
    "image": "images/cases/case9.webp",
    "theme": [
     "#c026d3",
-    "#4a044e",
+    "#3b0442",
     "#f5d0fe"
    ],
    "art": [
-    "scared-cats",
+    "genie-lamps",
     "magic-potions",
-    "sharp-tongues",
     "kissed-frogs",
+    "crystal-balls",
     "voodoo-dolls"
    ],
    "items": [
+    "hypno-lollipops",
+    "evil-eyes",
     "hex-pots",
     "witch-hats",
     "skull-flowers",
@@ -280,14 +292,151 @@
    ]
   },
   {
+   "id": "case15",
+   "name": "Зима",
+   "price": 990,
+   "group": "theme",
+   "image": "images/cases/case15.webp",
+   "theme": [
+    "#7dd3fc",
+    "#082f49",
+    "#e0f2fe"
+   ],
+   "art": [
+    "snow-globes",
+    "toy-bears",
+    "santa-hats",
+    "jingle-bells",
+    "snow-mittens"
+   ],
+   "items": [
+    "trophy-100",
+    "diamond-100",
+    "santa-hats",
+    "spiced-wines",
+    "xmas-stockings",
+    "ginger-cookies",
+    "snow-globes",
+    "eternal-candles",
+    "snow-mittens",
+    "sleigh-bells",
+    "jingle-bells",
+    "eternal-roses",
+    "diamond-rings",
+    "toy-bears"
+   ]
+  },
+  {
+   "id": "case16",
+   "name": "Хэллоуин",
+   "price": 1990,
+   "group": "theme",
+   "image": "images/cases/case16.webp",
+   "theme": [
+    "#ff8a00",
+    "#3a1200",
+    "#ffd29a"
+   ],
+   "art": [
+    "mad-pumpkins",
+    "scared-cats",
+    "witch-hats",
+    "magic-potions",
+    "skull-flowers"
+   ],
+   "items": [
+    "spy-agarics",
+    "evil-eyes",
+    "hex-pots",
+    "witch-hats",
+    "skull-flowers",
+    "flying-brooms",
+    "crystal-balls",
+    "trapped-hearts",
+    "mad-pumpkins",
+    "electric-skulls",
+    "voodoo-dolls",
+    "magic-potions",
+    "scared-cats"
+   ]
+  },
+  {
+   "id": "case18",
+   "name": "Бойцовский клуб",
+   "price": 2990,
+   "group": "theme",
+   "image": "images/cases/case18.webp",
+   "theme": [
+    "#ef4444",
+    "#3b0606",
+    "#fecaca"
+   ],
+   "art": [
+    "khabib-s-papakhas",
+    "ufc-strikes",
+    "mighty-arms",
+    "heroic-helmets",
+    "victory-medals"
+   ],
+   "items": [
+    "instant-ramens",
+    "timeless-books",
+    "fresh-socks",
+    "victory-medals",
+    "input-keys",
+    "ionic-dryers",
+    "ufc-strikes",
+    "khabib-s-papakhas",
+    "neko-helmets",
+    "mighty-arms",
+    "heroic-helmets"
+   ]
+  },
+  {
+   "id": "case17",
+   "name": "Гангста",
+   "price": 4990,
+   "group": "theme",
+   "image": "images/cases/case17.webp",
+   "theme": [
+    "#a3e635",
+    "#14240a",
+    "#ecfccb"
+   ],
+   "art": [
+    "low-riders",
+    "durov-s-glasses",
+    "westside-signs",
+    "swiss-watches",
+    "snoop-cigars"
+   ],
+   "items": [
+    "fresh-socks",
+    "top-hats",
+    "snoop-cigars",
+    "bling-binkies",
+    "rare-birds",
+    "diamond-rings",
+    "signet-rings",
+    "vintage-cigars",
+    "sharp-tongues",
+    "low-riders",
+    "gem-signets",
+    "swiss-watches",
+    "westside-signs",
+    "durov-s-glasses"
+   ]
+  },
+  {
    "id": "case12",
    "name": "Royal",
    "price": 7990,
+   "group": "allin",
    "image": "images/cases/case12.webp",
    "theme": [
-    "#facc15",
-    "#713f12",
-    "#fef08a"
+    "#ffc61a",
+    "#3d2a00",
+    "#fff1b8"
    ],
    "art": [
     "heroic-helmets",
@@ -325,10 +474,11 @@
    "id": "case13",
    "name": "Durov",
    "price": 24990,
+   "group": "allin",
    "image": "images/cases/case13.webp",
    "theme": [
     "#60a5fa",
-    "#1e3a8a",
+    "#0b1d40",
     "#bfdbfe"
    ],
    "art": [
@@ -365,10 +515,11 @@
    "id": "case14",
    "name": "Plush Pepe",
    "price": 129990,
+   "group": "allin",
    "image": "images/cases/case14.webp",
    "theme": [
     "#34d399",
-    "#064e3b",
+    "#022c22",
     "#a7f3d0"
    ],
    "art": [

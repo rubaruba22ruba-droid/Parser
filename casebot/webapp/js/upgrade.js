@@ -71,9 +71,13 @@
 
   // Стрелка делает 5+ оборотов и встаёт ровно на roll (0..1 по кругу от верхней точки).
   // Звук — как у ленты кейса: щелчок на каждой крупной отметке (через 30°), к концу всё реже, в конце — «тук».
+  // быстрая крутка: 2 оборота за 1.4 с вместо 5 оборотов за 6 с (выбор запоминается)
+  let fast = false; try { fast = localStorage.getItem('dd_fast') === '1'; } catch (e) { }
+  function setFast(v) { fast = v; try { localStorage.setItem('dd_fast', v ? '1' : '0'); } catch (e) { } const b = $('upgFast'); if (b) { b.classList.toggle('on', v); b.setAttribute('aria-pressed', v); } }
   function spin(roll) {
     return new Promise(res => {
-      const needle = $('upgNeedle'), from = st.angle % 360, to = from + 360 * 5 + ((roll * 360 - from) % 360 + 360) % 360, dur = 6000, t0 = performance.now();
+      const turns = fast ? 2 : 5, dur = fast ? 1400 : 6000;
+      const needle = $('upgNeedle'), from = st.angle % 360, to = from + 360 * turns + ((roll * 360 - from) % 360 + 360) % 360, t0 = performance.now();
       const marks = document.querySelectorAll('#upgTicks .upg-tick-big');
       let lastTick = Math.floor(from / 30), lit = null;
       const ease = t => 1 - Math.pow(1 - t, 3.5);
@@ -98,13 +102,75 @@
       const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Ошибка');
       FX.whoosh(); await spin(d.roll);
       wheel.classList.remove('spinning'); wheel.classList.add(d.win ? 'win' : 'lose');
-      if (d.win) { FX.win('legendary'); FX.confetti('#4ade80', 160, 0.3); $('upgToSlot').classList.add('won'); showToast(`${st.target.name} теперь в инвентаре`, 'success', { title: 'Апгрейд удался!' }); }
-      else { FX.lose(); $('upgFromSlot').classList.add('burn'); showToast('Подарки сгорели. Попробуй ещё', 'error', { title: 'Не повезло' }); }
-      await new Promise(r2 => setTimeout(r2, 1700));
+      if (d.win) { FX.win('legendary'); FX.confetti('#ffc61a', 160, 0.3); $('upgToSlot').classList.add('won'); showToast(`${st.target.name} теперь в инвентаре`, 'success', { title: 'Залетело! 🔥' }); }
+      else { FX.lose(); $('upgFromSlot').classList.add('burn'); if (!d.cashback) showToast('Подарки сгорели. Попробуй ещё', 'error', { title: 'Не зашло 😅' }); }
+      await new Promise(r2 => setTimeout(r2, fast ? 600 : 1500));
+      if (!d.win && d.cashback) await cashbackCrate(d.cashback);
       $('upgToSlot').classList.remove('won'); $('upgFromSlot').classList.remove('burn'); wheel.classList.remove('win', 'lose');
       st.sel = []; st.target = null; await loadInv();
     } catch (e) { showAlert('⚠️ ' + e.message); wheel.classList.remove('spinning'); }
     st.spinning = false; paint(); grid();
+  }
+
+  // ---------- кешбек-кейс после слива: падает коробка, пыль, тряска, вспышка, приз ----------
+  function cashbackCrate(cb) {
+    return new Promise(done => {
+      const ov = document.createElement('div'); ov.className = 'dd-cb';
+      const prize = cb.type === 'gift'
+        ? `<img class="dd-cb-gift" src="${cb.image}" alt=""><div class="dd-cb-name">${cb.name}</div><div class="dd-cb-val">${STAR} ${fmt(cb.value)} · в инвентаре</div>`
+        : `<div class="dd-cb-stars">+${fmt(cb.value)} <span>⭐</span></div><div class="dd-cb-val">на баланс</div>`;
+      ov.innerHTML = `<div class="dd-cb-stage">
+          <div class="dd-cb-title">Кешбек-кейс</div><div class="dd-cb-hint">слил — держи утешительный дроп</div>
+          <div class="dd-cb-floor"></div><canvas class="dd-cb-dust"></canvas>
+          <div class="dd-cb-rays"></div>
+          <img class="dd-cb-box" src="images/gifts/gift-25.webp" alt="">
+          <div class="dd-cb-prize">${prize}</div>
+          <button class="dd-cb-ok" type="button">Забрать</button></div>`;
+      document.body.appendChild(ov);
+      const stage = ov.querySelector('.dd-cb-stage'), box = ov.querySelector('.dd-cb-box'), cv = ov.querySelector('.dd-cb-dust');
+      const T = fast ? .55 : 1;   // в быстром режиме всё быстрее
+      requestAnimationFrame(() => ov.classList.add('on'));
+      // 1) падение с гравитацией и приземление со сплющиванием
+      const fall = box.animate([{ transform: 'translateY(-115vh) rotate(-14deg)' }, { transform: 'translateY(0) rotate(4deg)' }],
+        { duration: 620 * T, easing: 'cubic-bezier(.55,0,1,.45)', fill: 'forwards' });
+      fall.onfinish = () => {
+        box.animate([{ transform: 'translateY(0) rotate(4deg) scale(1.18,.78)' }, { transform: 'translateY(-26px) rotate(-2deg) scale(.94,1.08)' }, { transform: 'translateY(0) rotate(0) scale(1)' }],
+          { duration: 520 * T, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'forwards' });
+        stage.animate([{ transform: 'translate(0,0)' }, { transform: 'translate(-7px,5px)' }, { transform: 'translate(6px,-4px)' }, { transform: 'translate(-3px,2px)' }, { transform: 'translate(0,0)' }], { duration: 320 });
+        dust(cv); FX.tone && FX.tone(70, .35, 'sine', .3, 0, 40); FX.haptic('heavy');
+        // 2) тряска с тиками
+        setTimeout(() => {
+          box.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-9deg) scale(1.04)' }, { transform: 'rotate(8deg) scale(1.06)' }, { transform: 'rotate(-7deg) scale(1.08)' }, { transform: 'rotate(6deg) scale(1.1)' }, { transform: 'rotate(0) scale(1.12)' }],
+            { duration: 720 * T, easing: 'ease-in-out', fill: 'forwards' });
+          [0, 180, 360, 540].forEach(t => setTimeout(() => { FX.tick(); FX.haptic('light'); }, t * T));
+        }, 560 * T);
+        // 3) вспышка: коробка лопается, приз выезжает
+        setTimeout(() => {
+          box.animate([{ transform: 'scale(1.12)', opacity: 1, filter: 'brightness(1)' }, { transform: 'scale(1.7)', opacity: 0, filter: 'brightness(2.6)' }], { duration: 360, easing: 'ease-in', fill: 'forwards' });
+          ov.classList.add('open'); FX.whoosh();
+          if (cb.type === 'gift') { FX.win('legendary'); FX.confetti('#ffc61a', 170, .45); } else { FX.win(cb.value >= 100 ? 'mythic' : 'rare'); FX.confetti('#ff9900', 70, .45); }
+        }, (560 + 760) * T);
+      };
+      let closed = false;
+      const close = () => { if (closed) return; closed = true; ov.classList.remove('on'); setTimeout(() => { ov.remove(); done(); }, 260);
+        try { if (typeof loadBalance === 'function') loadBalance().then(() => updateBalance && updateBalance()); } catch (e) { } };
+      ov.querySelector('.dd-cb-ok').addEventListener('click', close);
+    });
+  }
+  // облако пыли при приземлении
+  function dust(cv) {
+    const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1); cv.width = r.width * dpr; cv.height = r.height * dpr;
+    const g = cv.getContext('2d'); g.scale(dpr, dpr);
+    const cx = r.width / 2, cy = r.height * .74, P = [];
+    for (let i = 0; i < 34; i++) { const s = (Math.random() < .5 ? -1 : 1); P.push({ x: cx + s * Math.random() * 30, y: cy - Math.random() * 10, vx: s * (1.5 + Math.random() * 4.5), vy: -(.3 + Math.random() * 1.6), r: 10 + Math.random() * 16, a: .55 + Math.random() * .3 }); }
+    let t = 0;
+    (function f() {
+      g.clearRect(0, 0, r.width, r.height); t++;
+      for (const p of P) { p.x += p.vx; p.y += p.vy; p.vx *= .95; p.vy *= .96; p.r += .55; p.a *= .968;
+        const gr = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r); gr.addColorStop(0, `rgba(215,205,190,${p.a})`); gr.addColorStop(1, 'rgba(215,205,190,0)');
+        g.fillStyle = gr; g.beginPath(); g.arc(p.x, p.y, p.r, 0, 7); g.fill(); }
+      if (t < 110) requestAnimationFrame(f); else g.clearRect(0, 0, r.width, r.height);
+    })();
   }
 
   async function loadInv() {
@@ -121,6 +187,7 @@
       document.querySelectorAll('.upg-tab').forEach(b => b.addEventListener('click', () => { st.tab = b.dataset.tab; grid(); }));
       document.querySelectorAll('#upgMults button').forEach(b => b.addEventListener('click', () => mult(Number(b.dataset.m))));
       $('upgGo').addEventListener('click', go);
+      $('upgFast').addEventListener('click', () => { setFast(!fast); FX.haptic('light'); }); setFast(fast);
       $('upgFromSlot').addEventListener('click', () => { st.tab = 'inv'; grid(); });
       $('upgToSlot').addEventListener('click', () => { st.tab = 'gifts'; grid(); });
     }
