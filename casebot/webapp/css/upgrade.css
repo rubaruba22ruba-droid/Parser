@@ -1,0 +1,194 @@
+/* Drade Drop — апгрейдер: большое колесо сверху (зоны внизу, эмблема за процентами), под ним кнопки и карточки.
+   Редкая золотая зона «?» в середине зоны цели; барабан NFT внутри карточки цели. */
+
+.upg { padding-top: 70px !important; }
+.upg-head { display: flex; align-items: baseline; justify-content: space-between; margin: 0 4px 2px !important; text-align: left !important; }
+.upg-head .dd-title { font: 800 24px/1 var(--fh) !important; text-transform: uppercase; letter-spacing: .6px !important; color: #fff !important; }
+.upg-fair { font: 700 13px/1 var(--fh); color: var(--acc2); text-decoration: none; }
+
+/* ---------- колесо ---------- */
+.upg-wheel { position: relative; width: min(90vw, 380px) !important; aspect-ratio: 1; margin: 2px auto 12px !important; }
+.upg-wheel::before, .upg-wheel::after { content: none !important; }
+.upg-wheel-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.upg-rim { fill: #121214; stroke: #29292e; stroke-width: 2; }
+.upg-tick { stroke: rgba(255, 255, 255, .16); stroke-width: 1.4; } .upg-tick-big { stroke: rgba(255, 255, 255, .42); stroke-width: 2.2; }
+.upg-tick-big.lit { stroke: #ffb21a !important; stroke-width: 3.2 !important; }
+.upg-num { fill: #8d8d93; font: 800 11px var(--fh); text-anchor: middle; }
+.upg-track { fill: none; stroke: #1b1b1f; stroke-width: 34; }
+.upg-edge { fill: none; stroke: #2a2a2f; stroke-width: 1.5; }
+.upg-band, .upg-band-glow { fill: none; stroke-width: 34; transition: stroke-dasharray .6s var(--ease), stroke-dashoffset .6s var(--ease); }
+.upg-band { stroke: url(#upgWin); }
+.upg-band-glow { stroke: #ff8a00; opacity: .55; }
+.upg-emb { transition: opacity .3s; }
+
+/* центр: проценты поверх эмблемы */
+.upg-center { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; pointer-events: none; }
+.upg-pct { font: 800 italic clamp(30px, 10.5vw, 44px)/1 var(--fh) !important; color: #fff !important; letter-spacing: -.5px; background: none !important;
+  -webkit-text-fill-color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, .55), 0 0 22px rgba(0, 0, 0, .85), 0 0 2px #000; transition: color .3s; }
+.upg-label { font: 800 11px/1 var(--fh) !important; letter-spacing: 2px !important; text-transform: uppercase; color: #ffb21a !important; text-shadow: 0 1px 6px rgba(0, 0, 0, .9); }
+.upg-wheel.win .upg-band { stroke: url(#upgWinOk); } .upg-wheel.win .upg-band-glow { stroke: #2be37f; opacity: .7; }
+.upg-wheel.win .upg-pct { -webkit-text-fill-color: #5cffa5; } .upg-wheel.win .upg-label { color: #5cffa5 !important; }
+.upg-wheel.lose .upg-band { animation: upgLose .5s ease-in-out 2; } .upg-wheel.lose .upg-pct { -webkit-text-fill-color: #ff6b6b; } .upg-wheel.lose .upg-label { color: #ff6b6b !important; }
+.upg-wheel.lose { animation: ddShake .5s var(--ease); }
+.upg-wheel.dia .upg-label { color: #ffd84d !important; } .upg-wheel.dia .upg-pct { -webkit-text-fill-color: #fff1b8; }
+@keyframes upgLose { 50% { stroke: #ff3b3b; } }
+@keyframes upgPulse { from { opacity: .55; } to { opacity: 1; } }
+
+/* стрелка — шеврон снаружи кольца; в покое внизу */
+.upg-needle { position: absolute; inset: 0; z-index: 4; pointer-events: none; will-change: transform; }
+.upg-needle svg { position: absolute; left: 50%; top: -1.5%; width: 12%; transform: translateX(-50%);
+  filter: drop-shadow(0 0 7px rgba(255, 150, 0, .9)) drop-shadow(0 3px 3px rgba(0, 0, 0, .7)); }
+.upg-needle span { display: none; }
+
+/* золотая зона «?» — сегмент кольца (оверлей поверх вспышки) */
+.upg-gold { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; overflow: visible; }
+.upg-gold[hidden] { display: none; }
+.upg-gold-g { transform-box: fill-box; transform-origin: 50% 50%; }
+.upg-gold.pop .upg-gold-g { animation: ugIn .75s cubic-bezier(.34, 1.56, .64, 1) both; }
+#ugQ { font: 800 25px var(--fh); }
+#ugGlow { animation: ugBreath 1.4s ease-in-out infinite alternate; }
+@keyframes ugIn { 0% { transform: scale(.2) translateY(14px); opacity: 0; } 60% { opacity: 1; } 100% { transform: none; opacity: 1; } }
+@keyframes ugBreath { from { opacity: .45; } to { opacity: .9; } }
+.upg-wheel.dia .upg-gold-g { animation: ugHit .9s cubic-bezier(.34, 1.56, .64, 1) both; }
+@keyframes ugHit { 0% { transform: scale(1); } 40% { transform: scale(1.25); } 100% { transform: scale(1.1); } }
+.upg-wheel.dia .upg-needle svg { transform: translateX(-50%) scale(1.35); transition: transform .4s cubic-bezier(.34, 1.56, .64, 1); }
+
+/* вспышка: мягкое свечение + лучи разной толщины; .hold — горит, пока на колесе есть золото */
+.upg-burst { position: absolute; left: 50%; top: 86.5%; width: 120%; aspect-ratio: 1; transform: translate(-50%, -50%) scale(.25); opacity: 0; z-index: 3; pointer-events: none; --c: 255, 196, 60;
+  background: radial-gradient(circle, rgba(255, 252, 230, 1) 0, rgba(255, 226, 120, .95) 3.5%, rgba(var(--c), .6) 10%, rgba(var(--c), .22) 22%, rgba(var(--c), .07) 34%, transparent 46%); }
+.upg-burst i { position: absolute; inset: 0; border-radius: 50%; filter: blur(1.2px);
+  background: conic-gradient(from 0deg, transparent 0.0deg, rgba(255, 240, 180, 0.50) 1.1deg, transparent 2.2deg, transparent 12.8deg, rgba(var(--c), 0.85) 13.4deg, transparent 14.0deg, transparent 22.5deg, rgba(var(--c), 0.85) 23.1deg, transparent 23.7deg, transparent 30.0deg, rgba(var(--c), 0.75) 31.5deg, transparent 33.0deg, transparent 40.7deg, rgba(var(--c), 0.40) 42.2deg, transparent 43.7deg, transparent 56.3deg, rgba(255, 240, 180, 0.85) 56.9deg, transparent 57.5deg, transparent 63.8deg, rgba(var(--c), 0.40) 64.6deg, transparent 65.4deg, transparent 73.5deg, rgba(var(--c), 0.85) 74.3deg, transparent 75.1deg, transparent 85.1deg, rgba(var(--c), 0.40) 85.9deg, transparent 86.7deg, transparent 95.3deg, rgba(var(--c), 0.85) 95.9deg, transparent 96.5deg, transparent 106.8deg, rgba(255, 240, 180, 0.85) 108.3deg, transparent 109.8deg, transparent 121.2deg, rgba(255, 240, 180, 0.85) 122.7deg, transparent 124.2deg, transparent 132.8deg, rgba(var(--c), 0.50) 133.6deg, transparent 134.4deg, transparent 141.0deg, rgba(255, 240, 180, 0.85) 142.1deg, transparent 143.2deg, transparent 155.3deg, rgba(var(--c), 0.60) 156.8deg, transparent 158.3deg, transparent 165.1deg, rgba(255, 240, 180, 0.50) 166.6deg, transparent 168.1deg, transparent 175.2deg, rgba(var(--c), 0.75) 176.7deg, transparent 178.2deg, transparent 190.9deg, rgba(255, 240, 180, 0.85) 191.5deg, transparent 192.1deg, transparent 200.5deg, rgba(255, 240, 180, 0.85) 201.6deg, transparent 202.7deg, transparent 212.7deg, rgba(var(--c), 0.40) 214.2deg, transparent 215.7deg, transparent 228.4deg, rgba(var(--c), 0.40) 229.9deg, transparent 231.4deg, transparent 242.5deg, rgba(255, 240, 180, 0.85) 243.6deg, transparent 244.7deg, transparent 252.7deg, rgba(var(--c), 0.60) 254.2deg, transparent 255.7deg, transparent 268.2deg, rgba(var(--c), 0.50) 269.3deg, transparent 270.4deg, transparent 279.9deg, rgba(var(--c), 0.60) 280.7deg, transparent 281.5deg, transparent 292.7deg, rgba(255, 240, 180, 0.75) 294.2deg, transparent 295.7deg, transparent 302.2deg, rgba(255, 240, 180, 0.75) 303.7deg, transparent 305.2deg, transparent 317.4deg, rgba(255, 240, 180, 0.85) 318.9deg, transparent 320.4deg, transparent 331.4deg, rgba(var(--c), 0.75) 332.5deg, transparent 333.6deg, transparent 340.6deg, rgba(var(--c), 0.50) 341.4deg, transparent 342.2deg, transparent 352.8deg, rgba(var(--c), 0.75) 353.4deg, transparent 354.0deg, transparent 360deg);
+  -webkit-mask: radial-gradient(circle, #000 4%, rgba(0, 0, 0, .55) 18%, transparent 46%); mask: radial-gradient(circle, #000 4%, rgba(0, 0, 0, .55) 18%, transparent 46%); }
+.upg-burst.hold { opacity: .78; transform: translate(-50%, -50%) scale(.62); transition: opacity .5s, transform .6s cubic-bezier(.2, .8, .2, 1); }
+.upg-burst.hold i { animation: ugRays 7s linear infinite; }
+.upg-burst.go { animation: upgBurst 1.3s cubic-bezier(.2, .8, .2, 1) forwards; }
+.upg-burst.go i { animation: ugRays 5s linear infinite; }
+.upg-burst.hold.go { animation: upgBurstHold 1.4s cubic-bezier(.2, .8, .2, 1) forwards; }
+.upg-burst.dia.go { animation: upgBurstBig 2.6s cubic-bezier(.2, .8, .2, 1) forwards; }
+.upg-burst.win { --c: 255, 210, 80; } .upg-burst.dia { --c: 255, 196, 50; }
+@keyframes ugRays { to { transform: rotate(360deg); } }
+@keyframes upgBurst { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.2); } 16% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1); } }
+@keyframes upgBurstHold { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.2); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(.95); } 100% { opacity: .78; transform: translate(-50%, -50%) scale(.62); } }
+@keyframes upgBurstBig { 0% { opacity: .78; transform: translate(-50%, -50%) scale(.62); } 18% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); } 70% { opacity: .95; transform: translate(-50%, -50%) scale(1.05); } 100% { opacity: .6; transform: translate(-50%, -50%) scale(.9); } }
+
+/* ---------- кнопки: быстро, звук, апгрейд ---------- */
+.upg-go-row { display: grid !important; grid-template-columns: 48px 48px 1fr !important; gap: 8px !important; margin: 0 0 12px; }
+.upg-ic { width: 48px !important; height: 52px; margin: 0 !important; padding: 0 !important; display: grid; place-items: center; border-radius: 16px !important; cursor: pointer;
+  background: #19191c !important; border: 1.5px solid #2c2c31 !important; color: #8d8d93; transition: transform .2s var(--spring), color .2s, border-color .2s, box-shadow .2s; }
+.upg-ic svg { width: 22px; height: 22px; fill: currentColor; } .upg-ic svg .w { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.upg-ic.on { color: var(--acc2); border-color: rgba(255, 198, 26, .7) !important; box-shadow: 0 0 18px rgba(255, 198, 26, .22); }
+#upgSound { color: #e8e8ea; } #upgSound.off { color: #6d6d73; } #upgSound.off .w { display: none; }
+.upg-ic:active { transform: scale(.92); }
+.upg-go { height: 52px; padding: 0 !important; margin: 0 !important; font: 800 17px/1 var(--fh) !important; text-transform: uppercase; letter-spacing: .8px;
+  display: flex !important; align-items: center; justify-content: center; gap: 8px; }
+.upg-go small { font: 800 italic 14px/1 var(--fh); opacity: .75; text-transform: none; letter-spacing: 0; }
+.upg-go:disabled { background: #1c1c1f !important; color: #6d6d73 !important; box-shadow: none !important; }
+
+/* ---------- карточки ставки и цели ---------- */
+.upg-pair { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8px !important; margin: 0 0 10px !important; }
+.upg-slot { position: relative; height: clamp(176px, 46vw, 214px); min-height: 0 !important; padding: 10px 10px 9px !important; border-radius: 20px !important; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer;
+  background: radial-gradient(90% 65% at 50% 58%, rgba(255, 153, 0, .13), transparent 72%), linear-gradient(180deg, #1d1d21, #141416) !important;
+  border: 1px solid #2c2c31 !important; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), inset 0 -3px 0 rgba(255, 153, 0, .5); }
+.upg-slot-target { background: radial-gradient(90% 65% at 50% 58%, rgba(255, 198, 26, .2), transparent 72%), linear-gradient(180deg, #201e19, #141416) !important; }
+.upg-slot-cap { align-self: flex-start; font: 800 10.5px/1 var(--fh) !important; letter-spacing: 1.4px; text-transform: uppercase; color: #8d8d93; }
+.upg-slot-body { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
+.upg-empty { color: #6d6d73; font: 600 13px/1.35 var(--fh); text-align: center; }
+.upg-target-img { width: auto !important; height: 72% !important; max-width: 86%; aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 10px 16px rgba(0, 0, 0, .6)); animation: ddPop .5s var(--spring) both; }
+.upg-target-name { font: 700 12.5px/1.15 var(--fh) !important; margin-top: 4px; text-align: center; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.upg-stack img { max-width: 104px !important; } .upg-n2 img, .upg-n3 img, .upg-n4 img { max-width: 52px !important; }
+.upg-slot-val { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 6px; font: 800 italic 14px/1 var(--fh) !important; color: #fff; min-height: 16px; white-space: nowrap; }
+.upg-slot-val .ic-star { width: 13px; height: 13px; fill: #ffca5a; vertical-align: -1px; }
+.upg-x { font: 800 italic 12px/1 var(--fh) !important; color: var(--acc2) !important; }
+.upg-slot.won { border-color: #2be37f !important; box-shadow: 0 0 0 1px #2be37f, 0 0 28px rgba(43, 227, 127, .35) !important; }
+.upg-slot.burn { opacity: .3; transform: scale(.95); }
+/* ---------- барабан NFT в карточке цели (золото «?») ---------- */
+.upg-reel { position: absolute; inset: 0; z-index: 6; overflow: hidden; border-radius: inherit; background: #0c0c0f; }
+.upg-reel[hidden] { display: none; }
+.ur-track { position: absolute; left: 0; right: 0; top: 0; will-change: transform; }
+.ur-tile { position: relative; display: grid; place-items: center; overflow: hidden;
+  background: radial-gradient(closest-side, rgba(var(--g), .8), rgba(var(--g), .28) 52%, transparent 100%) center / 92% 86% no-repeat, #0c0c0f; }
+.ur-tile::before { content: ''; position: absolute; inset: -30%; background: repeating-conic-gradient(from 0deg, rgba(var(--g), .2) 0deg 5deg, transparent 5deg 16deg);
+  -webkit-mask: radial-gradient(circle, #000 6%, transparent 52%); mask: radial-gradient(circle, #000 6%, transparent 52%); }
+.ur-tile img { position: relative; width: 66%; aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .65)); }
+.ur-scale { position: absolute; top: 0; bottom: 0; width: 12px; z-index: 2; opacity: .55;
+  background: repeating-linear-gradient(180deg, transparent 0 9px, rgba(255, 255, 255, .55) 9px 10.5px); -webkit-mask: linear-gradient(transparent, #000 30%, #000 70%, transparent); mask: linear-gradient(transparent, #000 30%, #000 70%, transparent); }
+.ur-scale.l { left: 6px; } .ur-scale.r { right: 6px; }
+.ur-mark { position: absolute; top: 50%; z-index: 3; width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent; transform: translateY(-50%); opacity: .85;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, .8)); }
+.ur-mark.l { left: 0; border-left: 10px solid #fff; } .ur-mark.r { right: 0; border-right: 10px solid #fff; }
+.ur-res { position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0; transition: opacity .35s .15s; }
+.upg-reel.done .ur-res { opacity: 1; }
+.upg-reel.done .ur-scale, .upg-reel.done .ur-mark { opacity: 0; transition: opacity .3s; }
+.ur-val { position: absolute; right: 9px; top: 9px; font: 800 italic 13px/1 var(--fh); color: #fff; text-shadow: 0 1px 4px rgba(0, 0, 0, .8); }
+.ur-val .ic-star { width: 12px; height: 12px; fill: #ffca5a; vertical-align: -1px; }
+.ur-chip { position: absolute; left: 8px; top: 28px; font: 800 italic 11px/1 var(--fh); text-transform: uppercase; letter-spacing: .3px; padding: 5px 7px; border-radius: 7px;
+  color: #fff; background: rgba(255, 79, 168, .85); box-shadow: 0 0 14px rgba(255, 79, 168, .55); }
+.upg-reel.gold .ur-chip { background: linear-gradient(90deg, #ff9900, #ffd84d); color: #2a1400; box-shadow: 0 0 16px rgba(255, 190, 40, .7); }
+.ur-name { position: absolute; left: 9px; right: 9px; bottom: 9px; font: 800 13px/1.15 var(--fh); color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, .9); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* выигрышная плитка: лучи крутятся, NFT подпрыгивает */
+.ur-tile.win::after { content: ''; position: absolute; inset: -40%; z-index: 0; animation: dmSpin 9s linear infinite;
+  background: repeating-conic-gradient(from 0deg, rgba(var(--g), .5) 0deg 4deg, transparent 4deg 13deg), radial-gradient(circle, rgba(255, 255, 255, .6), rgba(var(--g), .35) 18%, transparent 46%);
+  -webkit-mask: radial-gradient(circle, #000 10%, transparent 56%); mask: radial-gradient(circle, #000 10%, transparent 56%); }
+.ur-tile.win img { z-index: 1; animation: urPop .8s cubic-bezier(.34, 1.56, .64, 1) both; filter: drop-shadow(0 0 18px rgba(var(--g), .9)) drop-shadow(0 10px 14px rgba(0, 0, 0, .6)); }
+.upg-reel.gold.done { box-shadow: inset 0 0 0 2px rgba(255, 205, 60, .95), inset 0 -40px 60px rgba(255, 170, 30, .35), 0 0 30px rgba(255, 190, 40, .45); }
+@keyframes urPop { 0% { transform: scale(1); } 45% { transform: scale(1.3) rotate(-5deg); } 100% { transform: scale(1.12); } }
+@keyframes dmSpin { to { transform: rotate(360deg); } }
+
+/* ---------- множители ---------- */
+.upg-mults { display: grid !important; grid-template-columns: repeat(6, 1fr) !important; gap: 6px !important; margin: 0 0 10px !important; }
+.upg-mults button { font: 800 italic 13.5px/1 var(--fh) !important; }
+
+.upg-dtest { display: block; width: auto !important; margin: 0 auto 10px !important; padding: 7px 13px !important; border-radius: 999px !important; cursor: pointer;
+  font: 700 12px/1 var(--fh) !important; color: #a7e6f5 !important; background: rgba(95, 216, 255, .07) !important; border: 1px dashed rgba(125, 244, 255, .45) !important; box-shadow: none !important; }
+.upg-dtest.on { color: #04121a !important; background: linear-gradient(90deg, #7df4ff, #e9fdff) !important; border: 1px solid #bff6ff !important; box-shadow: 0 0 18px rgba(95, 216, 255, .45) !important; }
+.upg-dtest[hidden] { display: none; }
+
+.upg-tab { font: 800 14px/1 var(--fh) !important; }
+.dd-fx { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 2700; }
+
+/* ---------- кешбек-кейс в 3D + лента «Бонус за смелость» ---------- */
+.dd-crate { position: fixed; inset: 0; z-index: 2500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px;
+  background: rgba(6, 6, 7, 0); transition: background .3s, opacity .3s; }
+.dd-crate.on { background: rgba(6, 6, 7, .9); }
+.dd-crate.bye { opacity: 0; }
+.dd-crate-win { position: relative; width: min(94vw, 480px); height: min(50vh, 460px); border-radius: 24px; overflow: hidden; background: #140c10;
+  border: 1px solid #2c2c31; box-shadow: 0 30px 80px rgba(0, 0, 0, .6), 0 0 40px rgba(255, 120, 30, .12); opacity: 0; transform: scale(.92) translateY(14px);
+  transition: opacity .35s, transform .55s cubic-bezier(.34, 1.56, .64, 1); }
+.dd-crate.on .dd-crate-win { opacity: 1; transform: none; }
+.dd-crate-win canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.dd-crate-top { position: absolute; left: 16px; right: 16px; top: 14px; display: grid; gap: 5px; pointer-events: none; }
+.dd-crate-top b { font: 800 19px/1 var(--fh) !important; color: #fff; text-transform: uppercase; letter-spacing: .5px; text-shadow: 0 2px 12px rgba(0, 0, 0, .7); }
+.dd-crate-top span { font: 700 12px/1.2 var(--fh) !important; color: rgba(255, 255, 255, .8); text-shadow: 0 1px 6px rgba(0, 0, 0, .8); }
+.dd-bonus { width: min(94vw, 480px); border-radius: 20px; background: #141416; border: 1px solid #2c2c31; padding: 12px 0 12px; opacity: 0; transform: translateY(16px); transition: opacity .35s, transform .5s cubic-bezier(.34, 1.56, .64, 1); }
+.dd-bonus.on { opacity: 1; transform: none; }
+.dd-bonus-h { display: flex; align-items: center; gap: 9px; padding: 0 14px 10px; }
+.dd-bonus-h svg { width: 22px; height: 22px; flex: none; fill: none; stroke: #ff9900; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dd-bonus-h b { display: block; font: 800 14px/1.1 var(--fh); text-transform: uppercase; letter-spacing: .5px; color: #fff; }
+.dd-bonus-h span { display: block; font: 600 11.5px/1.2 var(--fh); color: #8d8d93; margin-top: 2px; }
+.dd-bonus-win { position: relative; height: 112px; overflow: hidden; -webkit-mask: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); mask: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); }
+.dd-bonus-track { position: absolute; top: 0; bottom: 0; left: 0; display: flex; gap: 6px; will-change: transform; }
+.dd-bonus-item { position: relative; flex: none; width: 92px; height: 112px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 7px;
+  background: radial-gradient(70% 55% at 50% 40%, rgba(var(--g), .75), rgba(var(--g), .2) 60%, transparent 100%), linear-gradient(180deg, rgba(var(--g), .32), #17171b 85%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07), inset 0 -3px 0 rgba(var(--g), .9); }
+.dd-bonus-item img { position: absolute; left: 50%; top: 44%; width: 62px; height: 62px; transform: translate(-50%, -50%); object-fit: contain; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .6)); }
+.dd-bonus-item b { position: relative; font: 800 italic 12px/1 var(--fh); color: #fff; text-shadow: 0 1px 4px rgba(0, 0, 0, .8); }
+.dd-bonus-item b .ic-star { width: 11px; height: 11px; fill: #ffca5a; vertical-align: -1px; }
+.dd-bonus-item.win { box-shadow: inset 0 0 0 2px #fff, 0 0 22px rgba(var(--g), .9); }
+.dd-bonus-item.win img { animation: bnPop .8s cubic-bezier(.34, 1.56, .64, 1) both; }
+@keyframes bnPop { 0% { transform: translate(-50%, -50%) scale(1); } 45% { transform: translate(-50%, -50%) scale(1.35) rotate(-6deg); } 100% { transform: translate(-50%, -50%) scale(1.15); } }
+.dd-bonus-ptr { position: absolute; left: 50%; top: -2px; z-index: 2; width: 0; height: 0; border-left: 9px solid transparent; border-right: 9px solid transparent; border-top: 12px solid #ff3b2f;
+  transform: translateX(-50%); filter: drop-shadow(0 0 6px rgba(255, 60, 40, .9)); }
+.dd-bonus-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; z-index: 2; transform: translateX(-50%); background: linear-gradient(#ff3b2f, rgba(255, 59, 47, 0)); }
+.dd-crate-res { width: min(94vw, 480px); text-align: center; min-height: 46px; opacity: 0; transform: translateY(10px); }
+.dd-crate.done .dd-crate-res { opacity: 1; transform: none; transition: opacity .4s, transform .6s cubic-bezier(.34, 1.56, .64, 1); }
+.dd-crate-name { font: 800 20px/1.1 var(--fh) !important; color: #fff; }
+.dd-crate-val { margin-top: 6px; font: 800 italic 14px/1 var(--fh) !important; color: var(--acc2); }
+.dd-crate-val .ic-star { width: 13px; height: 13px; fill: #ffca5a; vertical-align: -1px; }
+.dd-crate-ok { width: min(94vw, 480px) !important; margin: 0 !important; padding: 16px !important; border-radius: 18px !important; border: 0 !important; cursor: pointer;
+  background: var(--acc) !important; color: var(--on-acc) !important; font: 800 16px/1 var(--fh) !important; text-transform: uppercase; letter-spacing: .6px;
+  box-shadow: 0 10px 30px var(--acc-glow) !important; opacity: 0; transform: translateY(14px); pointer-events: none; }
+.dd-crate.done .dd-crate-ok { opacity: 1; transform: none; pointer-events: auto; transition: opacity .3s .25s, transform .5s .25s cubic-bezier(.34, 1.56, .64, 1); }
+@media (max-height: 640px) { .dd-crate-win { height: 40vh; } .dd-bonus-win { height: 96px; } .dd-bonus-item { width: 80px; height: 96px; } .dd-bonus-item img { width: 52px; height: 52px; } }
+
+.ic-star { width: 13px; height: 13px; fill: #ffca5a; vertical-align: -1px; }

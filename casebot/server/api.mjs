@@ -7,7 +7,7 @@ import { createIntent, pollDeposits, walletBalance } from './ton.mjs';
 import { tg, botLink, notifyAdmins } from './tg.mjs';
 import { isAdmin, promoFor, usePromo } from './admin.mjs';
 import { nextRoll, publicState, rotate } from './fair.mjs';
-import { upgradeZones, pickDiamond } from './diamond.mjs';
+import { upgradeZones, pickPool, outcome } from './diamond.mjs';
 
 export class ApiError extends Error { constructor(msg, status = 400, code) { super(msg); this.status = status; this.code = code; } }
 const DAY = 86400000, today = () => new Date().toISOString().slice(0, 10);
@@ -93,32 +93,39 @@ function initWithdraw(u, b) {
   return { success: true, withdrawalId: id, message: `Заявка #${id} отправлена — поддержка ${cfg.support} отправит подарок вручную` };
 }
 
-// ---------- апгрейд (как на CaseBattle) ----------
-// Ставка — 1..6 подарков. Шанс = ставка/цель × factor. roll ∈ [0,1): выигрыш, если roll < chance;
-// клиент ставит стрелку колеса ровно на roll·360°, поэтому что видно на колесе — то и выпало.
-function upgrade(u, b) {
+// ---------- апгрейд ----------
+// Ставка — 1..6 подарков. Колесо: зона цели по центру низа, иногда (≈5.5% прокруток) в её середине открывается
+// золото «?» — NFT в 1.5–4× дороже цели. Бросок x — куда встанет стрелка (x·360° от верха), y — появилось ли золото.
+// Клиент ставит стрелку ровно на x, поэтому что видно на колесе — то и выпало. Логика зон — server/diamond.mjs.
+const pub = g => ({ id: g.id, name: g.name, value: g.value, image: g.image });
+function takeStake(u, b) {
   const ids = [...new Set([].concat(b.inventoryItemIds ?? b.inventoryItemId ?? []).map(Number))].filter(Number.isFinite);
   if (!ids.length || ids.length > cfg.upgradeMaxItems) throw new ApiError(`Выберите от 1 до ${cfg.upgradeMaxItems} подарков`);
+  const items = ids.map(id => one("SELECT * FROM inventory WHERE id=? AND user_id=? AND state='owned'", id, u.id));
+  if (items.some(x => !x)) throw new ApiError('Предмет не найден');
+  return { items, stake: items.reduce((s, x) => s + x.value, 0) };
+}
+const addItem = (u, g, kind) => Number(run('INSERT INTO inventory(user_id,gift_id,name,value,image,rarity,case_id,created) VALUES(?,?,?,?,?,?,?,?)', u.id, g.id, g.name, g.value, g.image, 'legendary', kind, Date.now()).lastInsertRowid);
+const logOpen = (u, kind, stake, g, r, x) => run('INSERT INTO opens(user_id,case_id,price,gift_id,value,created,nonce,seed_hash,roll) VALUES(?,?,?,?,?,?,?,?,?)', u.id, kind, stake, g ? g.id : '', g ? g.value : 0, Date.now(), r.nonce, r.serverSeedHash, x);
+
+function upgrade(u, b) {
   const t = GIFT_BY_ID.get(String(b.targetGiftId)); if (!t || t.kind === 'regular') throw new ApiError('Подарок не найден');
   return tx(() => {
-    const items = ids.map(id => one("SELECT * FROM inventory WHERE id=? AND user_id=? AND state='owned'", id, u.id));
-    if (items.some(x => !x)) throw new ApiError('Предмет не найден');
-    const stake = items.reduce((s, x) => s + x.value, 0);
+    const { items, stake } = takeStake(u, b);
     if (t.value <= stake || t.value > stake * 100) throw new ApiError('Цель должна быть дороже ставки');
     const z = upgradeZones(stake, t.value, GIFTS, S());
-    // тест алмаза: админ включил его себе — бросок ставится в алмаз (не тратит честный nonce, в истории помечен admin-test)
+    // тест золота: админ включил его себе — золото появляется и стрелка встаёт в него (не тратит честный nonce, в истории — admin-test)
     const test = z.d > 0 && isAdmin(u) && !!one("SELECT 1 FROM kv WHERE k=? AND v='1'", 'dtest:' + u.id);
-    const r = test ? { x: z.d0 + z.d * Math.random(), nonce: null, serverSeedHash: 'admin-test' } : nextRoll(u.id), roll = r.x;
-    const win = roll < z.c, dia = !win && z.d > 0 && roll >= z.d0 && roll < z.d0 + z.d;
-    const prize = win ? t : dia ? pickDiamond(z.pool, (roll - z.d0) / z.d) : null;
+    const r = test ? { x: z.d0 + z.d * Math.random(), y: 0, nonce: null, serverSeedHash: 'admin-test' } : nextRoll(u.id);
+    const res = outcome(z, r.x, r.y), win = res === 'win', dia = res === 'diamond', gold = z.d > 0 && r.y < z.q;
+    const prize = win ? t : dia ? pickPool(z.pool, (r.x - z.d0) / z.d) : null;
     for (const x of items) run("UPDATE inventory SET state=? WHERE id=?", prize ? 'upgraded' : 'upgrade_lost', x.id);
-    let item = null;
-    if (prize) item = Number(run('INSERT INTO inventory(user_id,gift_id,name,value,image,rarity,case_id,created) VALUES(?,?,?,?,?,?,?,?)', u.id, prize.id, prize.name, prize.value, prize.image, 'legendary', dia ? 'diamond' : 'upgrade', Date.now()).lastInsertRowid);
-    run('INSERT INTO opens(user_id,case_id,price,gift_id,value,created,nonce,seed_hash,roll) VALUES(?,?,?,?,?,?,?,?,?)', u.id, dia ? 'diamond' : 'upgrade', stake, prize ? prize.id : '', prize ? prize.value : 0, Date.now(), r.nonce, r.serverSeedHash, roll);
+    const item = prize ? addItem(u, prize, dia ? 'diamond' : 'upgrade') : null;
+    logOpen(u, dia ? 'diamond' : 'upgrade', stake, prize, r, r.x);
     const cb = prize ? null : cashback(u, stake);
-    const pub = g => ({ id: g.id, name: g.name, value: g.value, image: g.image });
-    return { win, chance: z.c, roll, stake, itemId: item, fair: { nonce: r.nonce }, cashback: cb,
-      zones: { c: z.c, d: z.d, d0: z.d0 }, diamond: dia ? { prize: { ...pub(prize), itemId: item, mult: prize.value / t.value }, pool: z.pool.map(pub), test } : null };
+    return { win, gold, chance: z.c, roll: r.x, stake, itemId: item, fair: { nonce: r.nonce }, cashback: cb,
+      zones: { c: z.c, d: z.d, q: z.q, w0: z.w0, d0: z.d0 },
+      diamond: dia ? { prize: { ...pub(prize), itemId: item, mult: prize.value / t.value }, pool: z.pool.map(pub), test } : null };
   });
 }
 
@@ -163,7 +170,7 @@ export const routes = {
   'referral-count': u => referralStats(u.id),
   'gifts': () => GIFTS.map(g => ({ id: g.id, name: g.name, value: g.value, image: g.image, kind: g.kind })),
   'upgrade/config': u => ({ factor: S().upgradeFactor, maxChance: S().upgradeMaxChance, maxItems: cfg.upgradeMaxItems, cashbackRate: S().cashbackRate,
-    diamondShare: S().diamondShare, diamondMin: S().diamondMin, diamondMax: S().diamondMax,
+    diamondChance: S().diamondChance, diamondZone: S().diamondZone, diamondMin: S().diamondMin, diamondMax: S().diamondMax,
     canTest: isAdmin(u), test: isAdmin(u) && !!one("SELECT 1 FROM kv WHERE k=? AND v='1'", 'dtest:' + u.id) }),
   // админ включает себе «тест алмаза»: его апгрейды встают в алмаз, чтобы посмотреть анимацию. Другим игрокам не влияет.
   'upgrade/diamond-test': (u, b) => {
@@ -173,7 +180,7 @@ export const routes = {
     return { test: on };
   },
   // честная игра: текущий хэш сида, смена пары с раскрытием старого сида, параметры для правил
-  'fair/state': u => ({ ...publicState(u.id), caseRtp: S().caseRtp, upgradeFactor: S().upgradeFactor, cashbackRate: S().cashbackRate, diamondShare: S().diamondShare, diamondMin: S().diamondMin, diamondMax: S().diamondMax }),
+  'fair/state': u => ({ ...publicState(u.id), caseRtp: S().caseRtp, upgradeFactor: S().upgradeFactor, cashbackRate: S().cashbackRate, diamondChance: S().diamondChance, diamondZone: S().diamondZone, diamondMin: S().diamondMin, diamondMax: S().diamondMax }),
   'fair/rotate': (u, b) => rotate(u.id, b.clientSeed),
   'log-client-error': () => ({ ok: true }),
   'check-promo': () => ({ valid: false }),

@@ -12,7 +12,7 @@ const s = settings();
 writeFileSync(OUT + '/demo-data.json', JSON.stringify({
   client: casesForClient(), gifts: GIFTS.map(g => ({ id: g.id, name: g.name, value: g.value, image: g.image, kind: g.kind })),
   cases: Object.fromEntries(CASES.map(c => [c.id, { id: c.id, price: c.price, items: c.items.map(i => ({ giftId: i.giftId, p: i.p, rarity: i.rarity })) }])),
-  upgrade: { factor: s.upgradeFactor, maxChance: s.upgradeMaxChance, maxItems: 6, cashbackRate: s.cashbackRate, diamondShare: s.diamondShare, diamondMin: s.diamondMin, diamondMax: s.diamondMax }, withdrawMinTon: s.withdrawMinTon, withdrawWindowDays: s.withdrawWindowDays,
+  upgrade: { factor: s.upgradeFactor, maxChance: s.upgradeMaxChance, maxItems: 6, cashbackRate: s.cashbackRate, diamondChance: s.diamondChance, diamondZone: s.diamondZone, diamondMin: s.diamondMin, diamondMax: s.diamondMax }, withdrawMinTon: s.withdrawMinTon, withdrawWindowDays: s.withdrawWindowDays,
 }));
 let html = readFileSync(ROOT + 'webapp/index.html', 'utf8');
 const head = html.slice(html.indexOf('<head>') + 6, html.indexOf('</head>')), body = html.slice(html.indexOf('<body>') + 6, html.lastIndexOf('</body>'));

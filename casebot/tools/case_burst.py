@@ -4,7 +4,7 @@
 генерируются лишь свет, шлейфы, лучи и искры. Рисуем в 1024 и уменьшаем до 512.
 Запуск после build.mjs:  python3 tools/case_burst.py
 """
-import colorsys, json, math, os, random
+import colorsys, json, math, os, random, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageChops
 
@@ -132,7 +132,9 @@ def main():
     data = json.load(open(os.path.join(ROOT, 'server/cases.json')))
     gifts = {g['id']: g for g in json.load(open(os.path.join(ROOT, 'server/gifts.json')))}
     os.makedirs(os.path.join(ROOT, 'webapp/images/cases'), exist_ok=True)
+    only = set(sys.argv[1:])   # python3 tools/case_burst.py case19 case20 — перерисовать только эти
     for i, case in enumerate(data['cases']):
+        if only and case['id'] not in only: continue
         render(case, gifts, seed=i).save(os.path.join(ROOT, 'webapp', case['image']), quality=90, method=6)
         print('burst', case['id'], case['name'])
 

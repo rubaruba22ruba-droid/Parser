@@ -1,51 +1,74 @@
-/* Drade Drop — Апгрейдер в стиле CaseBattle: ставишь подарки → выбираешь цель → стрелка на колесе решает. */
+/* Drade Drop — Апгрейдер. Ставишь подарки → выбираешь цель → стрелка решает; всё везение внизу колеса.
+   Иногда (≈5.5% прокруток) в середине зоны цели открывается золотая зона «?» — NFT в 1.5–4× дороже цели
+   (барабан в карточке цели). Слил — падает кешбек-кейс, открывается и крутит «Бонус за смелость». */
 (function () {
-  const STAR = '<svg viewBox="0 0 14 15" width="13" height="13" fill="#FFCA5A" style="vertical-align:-1px"><path d="M6.64 12.19 3.5 14.1a.69.69 0 0 1-1.03-.76l.48-1.9a2.7 2.7 0 0 1 1.29-1.58l3.42-1.64a.32.32 0 0 0-.2-.6l-3.8.65A2.7 2.7 0 0 1 1.5 7.7L.3 6.7a.69.69 0 0 1 .39-1.22l3.67-.29a.69.69 0 0 0 .58-.42L6.36 1.34a.69.69 0 0 1 1.28 0l1.42 3.42c.1.24.32.4.58.42l3.69.29a.69.69 0 0 1 .4 1.22l-2.82 2.4a.69.69 0 0 0-.22.69l.87 3.6a.69.69 0 0 1-1.03.75l-3.16-1.94a.69.69 0 0 0-.72 0z"/></svg>';
-  const C = 2 * Math.PI * 104;
-  const st = { inv: [], gifts: [], sel: [], target: null, tab: 'inv', spinning: false, angle: 0, cfg: { factor: 0.9, maxChance: 0.75, maxItems: 6 } };
+  const STAR = '<svg class="ic-star" viewBox="0 0 14 15"><path d="M6.64 12.19 3.5 14.1a.69.69 0 0 1-1.03-.76l.48-1.9a2.7 2.7 0 0 1 1.29-1.58l3.42-1.64a.32.32 0 0 0-.2-.6l-3.8.65A2.7 2.7 0 0 1 1.5 7.7L.3 6.7a.69.69 0 0 1 .39-1.22l3.67-.29a.69.69 0 0 0 .58-.42L6.36 1.34a.69.69 0 0 1 1.28 0l1.42 3.42c.1.24.32.4.58.42l3.69.29a.69.69 0 0 1 .4 1.22l-2.82 2.4a.69.69 0 0 0-.22.69l.87 3.6a.69.69 0 0 1-1.03.75l-3.16-1.94a.69.69 0 0 0-.72 0z"/></svg>';
+  const R = 112, C = 2 * Math.PI * R;
+  const st = { inv: [], gifts: [], sel: [], target: null, tab: 'inv', spinning: false, angle: 180,
+    cfg: { factor: 0.499, maxChance: 0.75, maxItems: 6, cashbackRate: 0.08 } };
   const $ = id => document.getElementById(id);
   const fmt = n => Number(n || 0).toLocaleString('ru-RU');
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const hdr = () => ({ 'Content-Type': 'application/json', 'X-Telegram-Init-Data': (window.Telegram && Telegram.WebApp.initData) || '' });
+  const wait = ms => new Promise(r => setTimeout(r, ms));
   const selItems = () => st.inv.filter(i => st.sel.includes(i.id));
   const stake = () => selItems().reduce((s, i) => s + i.item_value, 0);
-  const NOZ = { c: 0, d: 0, d0: 0, pool: [] };
-  // зоны колеса: зелёная [0,c) — цель, алмаз [d0, d0+d) внизу — NFT в 1.5–4× дороже цели (формула — js/diamond.js)
+  const NOZ = { c: 0, d: 0, q: 0, w0: 0.5, d0: 0.5, pool: [] };
   const zonesFor = (v, value) => v && value && window.DDZones ? DDZones(v, value, st.gifts, st.cfg) : NOZ;
   const zones = () => st.target ? zonesFor(stake(), st.target.value) : NOZ;
-  const chance = () => zones().c;
-  function drawZones(z) {
-    const dA = $('upgDiaArc'), dG = $('upgDiaGlow'), badge = $('upgDiaBadge'), on = z.d > 0;
-    [dA, dG].forEach(e => { if (!e) return; e.style.display = on ? '' : 'none';
-      if (on) { e.setAttribute('stroke-dasharray', `${(C * z.d).toFixed(2)} ${C.toFixed(1)}`); e.setAttribute('stroke-dashoffset', (-C * z.d0).toFixed(2)); } });
-    if (badge) { badge.hidden = !on; if (on) { const a = (z.d0 + z.d / 2) * 2 * Math.PI; badge.style.left = (50 + 43.33 * Math.sin(a)).toFixed(2) + '%'; badge.style.top = (50 - 43.33 * Math.cos(a)).toFixed(2) + '%'; } }
-    const dp = $('upgDiaPct'); if (dp) dp.textContent = on ? `💎 алмаз ${(z.d * 100).toFixed(2)}%` : '';
-  }
+  const pctTxt = x => (x * 100).toFixed(2) + '%';
+  const riskLabel = c => c >= .6 ? 'безопасно' : c >= .3 ? 'нормально' : 'рискованно';
 
+  // ---------- колесо ----------
+  function arc(el, len, from) { if (!el) return; el.setAttribute('stroke-dasharray', `${(C * len).toFixed(2)} ${(C + 1).toFixed(1)}`); el.setAttribute('stroke-dashoffset', (-C * from).toFixed(2)); }
+  function drawWin(c) { const w0 = .5 - c / 2; arc($('upgArc'), c, w0); arc($('upgArcGlow'), c, w0); }
+  // золотая зона — сегмент кольца [d0, d0+d) (по центру низа): тёмная заливка, золотая кромка, «?» и вспышка за ней
+  const pt = (r, a) => `${(150 + r * Math.sin(a)).toFixed(2)} ${(150 - r * Math.cos(a)).toFixed(2)}`;
+  function sector(a0, a1, ri, ro) { const big = a1 - a0 > Math.PI ? 1 : 0; return `M${pt(ro, a0)} A${ro} ${ro} 0 ${big} 1 ${pt(ro, a1)} L${pt(ri, a1)} A${ri} ${ri} 0 ${big} 0 ${pt(ri, a0)} Z`; }
+  function drawGold(z, on) {
+    const g = $('upgGold'), b = $('upgBurst'); if (!g) return;
+    g.toggleAttribute('hidden', !on); $('upgWheel').classList.toggle('gold', !!on);   // у SVG нет свойства .hidden — только атрибут
+    if (!on) { if (b) b.classList.remove('hold'); return; }
+    const a0 = z.d0 * 2 * Math.PI, a1 = (z.d0 + z.d) * 2 * Math.PI, am = (a0 + a1) / 2;
+    $('ugSeg').setAttribute('d', sector(a0, a1, 94, 130)); $('ugGlow').setAttribute('d', sector(a0 - .03, a1 + .03, 90, 134));
+    $('ugEdge').setAttribute('d', `M${pt(95.5, a0 + .02)} A95.5 95.5 0 0 1 ${pt(95.5, a1 - .02)}`);
+    const q = $('ugQ'), c = pt(112, am).split(' '); q.setAttribute('x', c[0]); q.setAttribute('y', c[1]);
+    g.classList.remove('pop'); void g.getBoundingClientRect(); g.classList.add('pop');
+    if (b) b.classList.add('hold');
+  }
   function ticks() {
     const g = $('upgTicks'); if (!g || g.childElementCount) return;
     for (let i = 0; i < 72; i++) {
-      const a = i * 5 * Math.PI / 180, r1 = i % 6 ? 88 : 84, r2 = 92;
+      if (i === 0 || i === 18 || i === 54) continue;   // там подписи 100 / 50 / 50
+      const a = i * 5 * Math.PI / 180, big = i % 6 === 0, r1 = big ? 131 : 134, r2 = 139;
       const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      l.setAttribute('x1', 120 + r1 * Math.sin(a)); l.setAttribute('y1', 120 - r1 * Math.cos(a)); l.setAttribute('x2', 120 + r2 * Math.sin(a)); l.setAttribute('y2', 120 - r2 * Math.cos(a));
-      l.setAttribute('class', i % 6 ? 'upg-tick' : 'upg-tick upg-tick-big'); g.appendChild(l);
+      l.setAttribute('x1', 150 + r1 * Math.sin(a)); l.setAttribute('y1', 150 - r1 * Math.cos(a)); l.setAttribute('x2', 150 + r2 * Math.sin(a)); l.setAttribute('y2', 150 - r2 * Math.cos(a));
+      l.setAttribute('class', big ? 'upg-tick upg-tick-big' : 'upg-tick'); g.appendChild(l);
     }
   }
+  // вспышка света у низа колеса (появление «?», попадание)
+  function burst(kind) {
+    const b = $('upgBurst'); if (!b) return; const hold = b.classList.contains('hold');
+    b.className = 'upg-burst ' + kind + (hold ? ' hold' : ''); void b.offsetWidth; b.classList.add('go');
+  }
+
+  // ---------- отрисовка ----------
   function paint() {
-    const z = zones(), c = z.c;
-    $('upgArc').setAttribute('stroke-dasharray', `${(C * c).toFixed(1)} ${C.toFixed(1)}`);
-    drawZones(z);
-    $('upgPct').textContent = (c * 100).toFixed(2) + '%';
-    const items = selItems(), v = stake();
-    $('upgFromBody').innerHTML = items.length
-      ? `<div class="upg-stack upg-n${Math.min(items.length, 4)}">${items.slice(0, 4).map(i => `<img src="${i.item_image}" alt="">`).join('')}</div>${items.length > 4 ? `<div class="upg-more">+${items.length - 4}</div>` : ''}`
-      : '<div class="upg-empty">Выбери подарки<br>из инвентаря ↓</div>';
-    $('upgFromVal').innerHTML = v ? `${STAR} ${fmt(v)}` : '';
-    const t = st.target;
-    $('upgToBody').innerHTML = t ? `<img class="upg-target-img" src="${t.image}" alt=""><div class="upg-target-name">${t.name}</div>` : '<div class="upg-empty">Выбери<br>подарок ↓</div>';
-    $('upgToVal').innerHTML = t ? `${STAR} ${fmt(t.value)}${v ? ` <span class="upg-x">x${(t.value / v).toFixed(2)}</span>` : ''}` : '';
+    const v = stake(), t = st.target, items = selItems(), wheel = $('upgWheel');
+    const z = zones();
+    if (!st.hold) {   // после прокрутки колесо и карточка цели держат результат до следующего действия
+      drawWin(z.c); drawGold(z, false);
+      $('upgPct').textContent = pctTxt(z.c);
+      $('upgLabel').textContent = !v ? 'выбери ставку' : !t ? 'выбери цель' : riskLabel(z.c);
+      $('upgToBody').innerHTML = t ? `<img class="upg-target-img" src="${esc(t.image)}" alt=""><div class="upg-target-name">${esc(t.name)}</div>` : '<div class="upg-empty">Выбери цель ↓</div>';
+      $('upgToVal').innerHTML = t ? `<span>${STAR} ${fmt(t.value)}</span>${v ? `<span class="upg-x">x${(t.value / v).toFixed(2)}</span>` : ''}` : '';
+    }
     $('upgGo').disabled = !(v && t) || st.spinning;
-    $('upgGo').textContent = st.spinning ? 'Крутим…' : (v && t ? `Улучшить · ${(c * 100).toFixed(1)}%` : 'Улучшить');
-    $('upgWheel').style.setProperty('--chance', c);
+    $('upgGo').innerHTML = st.spinning ? 'Крутим…' : (v && t ? `Апгрейд <small>${pctTxt(z.c)}</small>` : 'Апгрейд');
+    $('upgFromBody').innerHTML = items.length
+      ? `<div class="upg-stack upg-n${Math.min(items.length, 4)}">${items.slice(0, 4).map(i => `<img src="${esc(i.item_image)}" alt="">`).join('')}</div>${items.length > 4 ? `<div class="upg-more">+${items.length - 4}</div>` : ''}`
+      : '<div class="upg-empty">Выбери подарки ↓</div>';
+    $('upgFromVal').innerHTML = v ? `<span>${STAR} ${fmt(v)}</span>${items.length > 1 ? `<span class="upg-x">${items.length} шт.</span>` : ''}` : '';
   }
   function grid() {
     const g = $('upgGrid'); if (!g) return;
@@ -53,18 +76,23 @@
     if (st.tab === 'inv') {
       if (!st.inv.length) { g.innerHTML = '<div class="upg-none">Инвентарь пуст — открой кейс, чтобы было что улучшать</div>'; return; }
       g.innerHTML = st.inv.map(i => `<button class="upg-item r-${i.rarity || 'common'} ${st.sel.includes(i.id) ? 'on' : ''}" data-id="${i.id}">
-        <img src="${i.item_image}" alt="" loading="lazy"><span class="n">${i.item_name}</span><span class="v">${STAR} ${fmt(i.item_value)}</span><i class="chk"></i></button>`).join('');
+        <img src="${esc(i.item_image)}" alt="" loading="lazy"><span class="n">${esc(i.item_name)}</span><span class="v">${STAR} ${fmt(i.item_value)}</span><i class="chk"></i></button>`).join('');
     } else {
       const v = stake();
       const list = st.gifts.filter(x => x.kind !== 'regular' && (!v || (x.value > v && x.value <= v * 100))).sort((a, b) => a.value - b.value);
       g.innerHTML = list.length ? list.map(x => {
         const z = zonesFor(v, x.value);
-        return `<button class="upg-item ${st.target && st.target.id === x.id ? 'on' : ''}" data-gift="${x.id}"><img src="${x.image}" alt="" loading="lazy"><span class="n">${x.name}</span><span class="v">${STAR} ${fmt(x.value)}</span>${v ? `<span class="c">${(z.c * 100).toFixed(1)}%${z.d ? ' 💎' : ''}</span>` : ''}</button>`;
+        return `<button class="upg-item ${st.target && st.target.id === x.id ? 'on' : ''}" data-gift="${x.id}"><img src="${esc(x.image)}" alt="" loading="lazy"><span class="n">${esc(x.name)}</span><span class="v">${STAR} ${fmt(x.value)}</span>${v ? `<span class="c">${pctTxt(z.c)}</span>` : ''}</button>`;
       }).join('') : '<div class="upg-none">Нет подарков дороже ставки</div>';
     }
   }
+  function clearResult() {
+    st.hold = false; if (window.DDFX) DDFX.resetReel($('upgToSlot'));
+    $('upgWheel').classList.remove('win', 'lose', 'dia'); $('upgToSlot').classList.remove('won'); $('upgFromSlot').classList.remove('burn'); drawGold(NOZ, false);
+  }
   function onGrid(e) {
     const b = e.target.closest('.upg-item'); if (!b || st.spinning) return;
+    clearResult();
     if (b.dataset.id) {
       const id = Number(b.dataset.id), k = st.sel.indexOf(id);
       if (k >= 0) st.sel.splice(k, 1); else if (st.sel.length < st.cfg.maxItems) st.sel.push(id); else return showAlert(`Максимум ${st.cfg.maxItems} подарков в ставке`);
@@ -73,74 +101,104 @@
     FX.haptic('light'); paint(); grid();
   }
   function mult(m) {
+    clearResult();
     const v = stake(); if (!v) { st.tab = 'inv'; grid(); return showAlert('Сначала выбери подарки для ставки'); }
-    const want = v * m, cand = st.gifts.filter(x => x.kind !== 'regular' && x.value > v);
+    const want = v * m, cand = st.gifts.filter(x => x.kind !== 'regular' && x.value > v && x.value <= v * 100);
     if (!cand.length) return showAlert('Нет подарков дороже ставки');
     st.target = cand.reduce((a, b) => Math.abs(Math.log(b.value / want)) < Math.abs(Math.log(a.value / want)) ? b : a);
-    document.querySelectorAll('#upgMults button').forEach(b => b.classList.toggle('on', Number(b.dataset.m) === m));
+    document.querySelectorAll('#upgMults button[data-m]').forEach(b => b.classList.toggle('on', Number(b.dataset.m) === m));
     FX.haptic('medium'); paint(); st.tab = 'gifts'; grid();
   }
-
-  // Стрелка делает 5+ оборотов и встаёт ровно на roll (0..1 по кругу от верхней точки).
-  // Звук — как у ленты кейса: щелчок на каждой крупной отметке (через 30°), к концу всё реже, в конце — «тук».
-  // быстрая крутка: 2 оборота за 1.4 с вместо 5 оборотов за 6 с (выбор запоминается)
+  // ---------- прокрутка ----------
+  // Каждый раз свой характер: число оборотов, длительность и «доводка» в конце разные — одна прокрутка быстрее,
+  // другая дольше и ползёт к концу. Стрелка всё равно встаёт ровно на бросок сервера.
   let fast = false; try { fast = localStorage.getItem('dd_fast') === '1'; } catch (e) { }
   function setFast(v) { fast = v; try { localStorage.setItem('dd_fast', v ? '1' : '0'); } catch (e) { } const b = $('upgFast'); if (b) { b.classList.toggle('on', v); b.setAttribute('aria-pressed', v); } }
+  function setSound(on) { if (FX.setMuted) FX.setMuted(!on); const b = $('upgSound'); if (b) { b.classList.toggle('off', !on); b.setAttribute('aria-pressed', on); } }
+  function profile() {
+    if (fast) return { turns: 1 + (Math.random() < .5 ? 1 : 0), dur: 1100 + Math.random() * 800, pow: 3 + Math.random() };
+    const kinds = [{ turns: 3, dur: 3800, pow: 3 }, { turns: 4, dur: 5000, pow: 3.6 }, { turns: 5, dur: 6200, pow: 4.2 }, { turns: 6, dur: 7400, pow: 5 }];
+    const k = kinds[Math.random() * kinds.length | 0];
+    return { turns: k.turns, dur: k.dur * (.9 + Math.random() * .2), pow: k.pow };
+  }
   function spin(roll) {
     return new Promise(res => {
-      const turns = fast ? 2 : 5, dur = fast ? 1400 : 6000;
-      const needle = $('upgNeedle'), from = st.angle % 360, to = from + 360 * turns + ((roll * 360 - from) % 360 + 360) % 360, t0 = performance.now();
+      const p = profile(), needle = $('upgNeedle'), from = st.angle % 360, to = from + 360 * p.turns + ((roll * 360 - from) % 360 + 360) % 360, t0 = performance.now();
       const marks = document.querySelectorAll('#upgTicks .upg-tick-big');
-      let lastTick = Math.floor(from / 30), lit = null;
-      const ease = t => 1 - Math.pow(1 - t, 3.5);
+      let lastTick = Math.floor(from / 30), lastFine = Math.floor(from / 10), lit = null, lastA = from, lastT = t0;
+      const ease = t => 1 - Math.pow(1 - t, p.pow), wh = FX.whirr ? FX.whirr() : null;
       (function f(now) {
-        const k = Math.min(1, (now - t0) / dur), a = from + (to - from) * ease(k);
+        const k = Math.min(1, (now - t0) / p.dur), a = from + (to - from) * ease(k);
         needle.style.transform = `rotate(${a.toFixed(2)}deg)`; st.angle = a;
+        if (wh) wh.set(Math.min(1, (a - lastA) / Math.max(1, now - lastT) * 1000 / 1400));
+        lastA = a; lastT = now;
+        const fk = Math.floor(a / 10); if (fk !== lastFine) { lastFine = fk; FX.tick(); }
         const tk = Math.floor(a / 30);
-        if (tk !== lastTick) {
-          lastTick = tk; FX.tick();
-          if (lit) lit.classList.remove('lit'); lit = marks[((tk % 12) + 12) % 12]; if (lit) lit.classList.add('lit');
-        }
-        if (k < 1) requestAnimationFrame(f); else { if (lit) lit.classList.remove('lit'); FX.stop(0); res(); }
+        if (tk !== lastTick) { lastTick = tk; if (lit) lit.classList.remove('lit'); lit = marks[((tk % 12) + 12) % 12]; if (lit) lit.classList.add('lit'); }
+        if (k < 1) requestAnimationFrame(f); else { if (lit) lit.classList.remove('lit'); if (wh) wh.stop(); FX.stop(0); res(); }
       })(t0);
     });
   }
   async function go() {
-    if (st.spinning || !st.target || !stake()) return;
-    st.spinning = true; paint(); const wheel = $('upgWheel'); wheel.classList.remove('win', 'lose'); wheel.classList.add('spinning');
-    if (window.revealSpinner) revealSpinner(wheel);
+    if (st.spinning) return;
+    if (!(st.target && stake())) return;
+    clearResult(); st.spinning = true; paint();
+    const wheel = $('upgWheel'), body = { inventoryItemIds: st.sel, targetGiftId: st.target.id };
     try {
-      const r = await fetch('/api/upgrade', { method: 'POST', headers: hdr(), body: JSON.stringify({ inventoryItemIds: st.sel, targetGiftId: st.target.id }) });
+      const r = await fetch('/api/upgrade', { method: 'POST', headers: hdr(), body: JSON.stringify(body) });
       const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Ошибка');
-      if (d.zones) { drawZones(d.zones); $('upgArc').setAttribute('stroke-dasharray', `${(C * d.zones.c).toFixed(1)} ${C.toFixed(1)}`); }   // зоны — как посчитал сервер
-      FX.whoosh(); await spin(d.roll);
-      wheel.classList.remove('spinning');
-      if (d.diamond && window.DDDiamond) {
-        // алмаз: колесо кристаллизуется → сцена с барабаном NFT
-        await DDDiamond.hit(wheel, fast);
-        await DDDiamond.scene(d.diamond, st.target, fast);
-        DDDiamond.unhit(wheel);
-        showToast(`${d.diamond.prize.name} теперь в инвентаре`, 'success', { title: 'Алмаз! 💎' });
-      } else {
-        wheel.classList.add(d.win ? 'win' : 'lose');
-        if (d.win) { FX.win('legendary'); FX.confetti('#ffc61a', 160, 0.3); $('upgToSlot').classList.add('won'); showToast(`${st.target.name} теперь в инвентаре`, 'success', { title: 'Залетело! 🔥' }); }
-        else { FX.lose(); $('upgFromSlot').classList.add('burn'); if (!d.cashback) showToast('Подарки сгорели. Попробуй ещё', 'error', { title: 'Не зашло 😅' }); }
-        await new Promise(r2 => setTimeout(r2, fast ? 600 : 1500));
-        if (!d.win && d.cashback) await cashbackCrate(d.cashback);
-      }
-      $('upgToSlot').classList.remove('won'); $('upgFromSlot').classList.remove('burn'); wheel.classList.remove('win', 'lose');
-      st.sel = []; st.target = null; await loadInv();
-    } catch (e) { showAlert('⚠️ ' + e.message); wheel.classList.remove('spinning'); if (window.DDDiamond) DDDiamond.unhit(wheel); }
-    st.spinning = false; paint(); grid();
+      await playUpgrade(d);
+      st.hold = true; st.sel = []; st.target = null; await loadInv();
+    } catch (e) { showAlert(e.message); clearResult(); }
+    wheel.classList.remove('spinning'); st.spinning = false; paint(); grid();
+    try { if (typeof loadBalance === 'function') loadBalance().then(() => updateBalance && updateBalance()); } catch (e) { }
+  }
+  async function playUpgrade(d) {
+    const wheel = $('upgWheel'), z = d.zones || zones(), target = st.target;
+    drawWin(z.c); wheel.classList.add('spinning');
+    if (d.gold) {   // редкая золотая зона «?»: появляется со вспышкой перед прокруткой
+      drawGold(z, true); burst('gold'); FX.tone(1568, .5, 'sine', .1); FX.tone(2349, .4, 'sine', .06, .06); FX.haptic('medium');
+      await wait(fast ? 350 : 750);
+    }
+    FX.whoosh(); await spin(d.roll);
+    wheel.classList.remove('spinning');
+    if (d.diamond) {
+      wheel.classList.add('win', 'dia'); burst('dia'); $('upgLabel').textContent = 'золото!';
+      const rr = wheel.getBoundingClientRect(); DDFX.shards(rr.left + rr.width / 2, rr.bottom - rr.height * .1, 50, 1.1, 'gold'); DDFX.boom(.28); FX.haptic('heavy');
+      await wait(fast ? 350 : 700);
+      await DDFX.reel($('upgToSlot'), { pool: d.diamond.pool, prize: d.diamond.prize, ref: target.value, fast, kind: 'gold' });
+      showToast(`${d.diamond.prize.name} — в инвентаре`, 'success', { title: 'Золото «?» зашло' });
+    } else if (d.win) {
+      wheel.classList.add('win'); burst('win'); $('upgLabel').textContent = 'победа';
+      FX.win('legendary'); FX.confetti('#ffc61a', 150, .32); $('upgToSlot').classList.add('won');
+      showToast(`${target.name} — в инвентаре`, 'success', { title: 'Залетело' });
+      await wait(fast ? 700 : 1400);
+    } else {
+      wheel.classList.add('lose'); $('upgLabel').textContent = 'мимо';
+      FX.lose(); $('upgFromSlot').classList.add('burn');
+      await wait(fast ? 500 : 1100);
+      if (d.cashback) await playCrate(d.cashback, d.stake);
+      else showToast('Подарки сгорели. Попробуй ещё', 'error', { title: 'Не зашло' });
+    }
+    $('upgFromSlot').classList.remove('burn');
+  }
+  // ---------- кешбек-кейс после слива ----------
+  // основной — 3D-сцена (js/crate3d.js): ящик падает, открывается, крутится лента «Бонус за смелость»;
+  // без WebGL — запасной 2D-ящик ниже
+  let crateMod = null;
+  const loadCrate = () => crateMod || (crateMod = import(new URL('js/crate3d.js?v=2', document.baseURI).href).catch(e => { crateMod = null; throw e; }));
+  async function playCrate(cb, stakeValue) {
+    try { const m = await loadCrate(); await m.play(cb, { fast, stake: stakeValue, gifts: st.gifts, rate: st.cfg.cashbackRate }); }
+    catch (e) { console.warn('3D-кейс не запустился, показываю 2D', e); await cashbackCrate(cb); }
   }
 
-  // ---------- кешбек-кейс после слива: падает коробка, пыль, тряска, вспышка, приз ----------
+  // ---------- запасной 2D-ящик (без WebGL) ----------
   function cashbackCrate(cb) {
     return new Promise(done => {
       const ov = document.createElement('div'); ov.className = 'dd-cb';
       const prize = cb.type === 'gift'
         ? `<img class="dd-cb-gift" src="${cb.image}" alt=""><div class="dd-cb-name">${cb.name}</div><div class="dd-cb-val">${STAR} ${fmt(cb.value)} · в инвентаре</div>`
-        : `<div class="dd-cb-stars">+${fmt(cb.value)} <span>⭐</span></div><div class="dd-cb-val">на баланс</div>`;
+        : `<div class="dd-cb-stars">+${fmt(cb.value)} ${STAR}</div><div class="dd-cb-val">на баланс</div>`;
       ov.innerHTML = `<div class="dd-cb-stage">
           <div class="dd-cb-title">Кешбек-кейс</div><div class="dd-cb-hint">слил — держи утешительный дроп</div>
           <div class="dd-cb-floor"></div><canvas class="dd-cb-dust"></canvas>
@@ -195,18 +253,18 @@
     })();
   }
 
-  // «тест алмаза» — только админу: его апгрейды встают в алмаз, чтобы посмотреть анимацию
+  // «тест золота» — только админу: его апгрейды встают в «?», чтобы посмотреть анимацию. На остальных не влияет.
   function testUI() {
     const b = $('upgDiaTest'); if (!b) return; b.hidden = !st.cfg.canTest;
-    b.classList.toggle('on', !!st.cfg.test); b.textContent = `💎 Тест алмаза: ${st.cfg.test ? 'вкл' : 'выкл'}`;
+    b.classList.toggle('on', !!st.cfg.test); b.textContent = `Тест золота «?»: ${st.cfg.test ? 'вкл' : 'выкл'}`;
   }
   async function toggleTest() {
     try {
       const r = await fetch('/api/upgrade/diamond-test', { method: 'POST', headers: hdr(), body: JSON.stringify({ on: !st.cfg.test }) });
       const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Ошибка');
       st.cfg.test = d.test; testUI(); FX.haptic('medium');
-      showToast(d.test ? 'Твои апгрейды встают в алмаз (цель — с алмазной зоной)' : 'Обычные честные броски', 'success', { title: d.test ? 'Тест алмаза включён' : 'Тест выключен' });
-    } catch (e) { showAlert('⚠️ ' + e.message); }
+      showToast(d.test ? 'Твои апгрейды встают в золото «?» (если для цели оно есть)' : 'Снова обычные честные броски', 'success', { title: d.test ? 'Тест золота включён' : 'Тест выключен' });
+    } catch (e) { showAlert(e.message); }
   }
 
   async function loadInv() {
@@ -216,16 +274,17 @@
   }
   let inited = false;
   async function init() {
-    ticks();
+    ticks(); $('upgNeedle').style.transform = `rotate(${st.angle}deg)`;
     if (!inited) {
       inited = true;
       $('upgGrid').addEventListener('click', onGrid);
       document.querySelectorAll('.upg-tab').forEach(b => b.addEventListener('click', () => { st.tab = b.dataset.tab; grid(); }));
-      document.querySelectorAll('#upgMults button').forEach(b => b.addEventListener('click', () => mult(Number(b.dataset.m))));
+      document.querySelectorAll('#upgMults button[data-m]').forEach(b => b.addEventListener('click', () => mult(Number(b.dataset.m))));
       $('upgGo').addEventListener('click', go);
       $('upgFast').addEventListener('click', () => { setFast(!fast); FX.haptic('light'); }); setFast(fast);
-      $('upgFromSlot').addEventListener('click', () => { st.tab = 'inv'; grid(); });
-      $('upgToSlot').addEventListener('click', () => { st.tab = 'gifts'; grid(); });
+      $('upgSound').addEventListener('click', () => { setSound(FX.isMuted()); FX.haptic('light'); }); setSound(!FX.isMuted());
+      $('upgFromSlot').addEventListener('click', () => { if (st.spinning) return; st.tab = 'inv'; grid(); });
+      $('upgToSlot').addEventListener('click', () => { if (st.spinning) return; clearResult(); st.tab = 'gifts'; grid(); });
       $('upgDiaTest').addEventListener('click', toggleTest);
     }
     try {
@@ -233,6 +292,7 @@
       st.gifts = g; st.cfg = Object.assign(st.cfg, c);
     } catch (e) { }
     testUI();
+    setTimeout(() => loadCrate().then(m => m.warm()).catch(() => { }), 1200);   // заранее: three.js и текстуры ящика
     await loadInv(); paint(); grid();
   }
 

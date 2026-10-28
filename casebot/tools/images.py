@@ -123,7 +123,15 @@ MKT = {  # скрин: [ряды сверху вниз по полностью �
       ['astral-shards', 'scared-cats', 'nail-bracelets'], ['mighty-arms', 'durov-s-glasses', 'heroic-helmets']],
  29: [['swiss-watches', 'low-riders', 'sharp-tongues'], ['neko-helmets', 'bling-binkies', 'electric-skulls'],
       ['bonded-rings', 'gem-signets', 'perfume-bottles'], ['genie-lamps', 'kissed-frogs', 'loot-bags']],
+ 47: [['ice-creams', 'liberty-figures', None], ['snoop-doggs', None, 'lol-pops']],
+ 48: [['swag-bags', None, 'lunar-snakes'], [None, 'candy-canes', 'clover-pins']],
+ 49: [['jester-hats', 'cookie-hearts', 'b-day-candles'], ['spring-baskets', None, None], ['light-swords', None, None], [None, None, 'desk-calendars']],
+ 50: [[None, 'surge-boards', 'holiday-drinks'], [None, None, None], ['easter-eggs', None, None], [None, None, 'money-pots']],
+ 51: [['bow-ties', 'star-notepads', None], ['winter-wreaths', None, None]],
+ 58: [[None, 'moon-pendants', 'stellar-rockets']],
 }
+# верх первых рядов, которые частично под шапкой/уведомлением (автопоиск их не видит)
+MKT_TOPS = {58: [294], 48: [299, 684, 1069, 1454], 49: [312, 697, 1082, 1466], 50: [291, 675, 1060, 1445], 51: [284, 664, 1049, 1434]}
 CARD_BG = (28, 28, 30)
 
 def mkt_card_tops(img):
@@ -162,7 +170,7 @@ def main(src, out, only=None):
         finish(cutout(upscale(crop), tight=28, soft=70, order=3)).save(f'{out}/{gid}.webp', quality=90, method=6); print('rub', gid)
     for n, rows in MKT.items():          # маркет Telegram — лучшее качество, перезаписывает остальные
         if not os.path.exists(os.path.join(src, f'{n}.jpg')): continue
-        img = shot(n); tops = mkt_card_tops(img)
+        img = shot(n); tops = MKT_TOPS.get(n) or mkt_card_tops(img)
         for top, names in zip(tops, rows):
             for (L, R), gid in zip(MKT_COLS, names):
                 if not gid or (only and gid not in only): continue

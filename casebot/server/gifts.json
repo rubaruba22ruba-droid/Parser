@@ -405,6 +405,24 @@
   "image": "images/gifts/jolly-chimps.webp"
  },
  {
+  "id": "surge-boards",
+  "name": "Surge Boards",
+  "value": 800,
+  "ton": 8,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/surge-boards.webp"
+ },
+ {
+  "id": "desk-calendars",
+  "name": "Desk Calendars",
+  "value": 700,
+  "ton": 7,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/desk-calendars.webp"
+ },
+ {
   "id": "eternal-candles",
   "name": "Eternal Candles",
   "value": 700,
@@ -412,6 +430,15 @@
   "estimated": false,
   "kind": "nft",
   "image": "images/gifts/eternal-candles.webp"
+ },
+ {
+  "id": "light-swords",
+  "name": "Light Swords",
+  "value": 700,
+  "ton": 7,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/light-swords.webp"
  },
  {
   "id": "lush-bouquets",
@@ -423,6 +450,15 @@
   "image": "images/gifts/lush-bouquets.webp"
  },
  {
+  "id": "moon-pendants",
+  "name": "Moon Pendants",
+  "value": 700,
+  "ton": 7,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/moon-pendants.webp"
+ },
+ {
   "id": "snow-globes",
   "name": "Snow Globes",
   "value": 700,
@@ -430,6 +466,24 @@
   "estimated": false,
   "kind": "nft",
   "image": "images/gifts/snow-globes.webp"
+ },
+ {
+  "id": "clover-pins",
+  "name": "Clover Pins",
+  "value": 600,
+  "ton": 6,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/clover-pins.webp"
+ },
+ {
+  "id": "cookie-hearts",
+  "name": "Cookie Hearts",
+  "value": 600,
+  "ton": 6,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/cookie-hearts.webp"
  },
  {
   "id": "fresh-socks",
@@ -459,6 +513,24 @@
   "image": "images/gifts/jacks-in-the-box.webp"
  },
  {
+  "id": "liberty-figures",
+  "name": "Liberty Figures",
+  "value": 600,
+  "ton": 6,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/liberty-figures.webp"
+ },
+ {
+  "id": "money-pots",
+  "name": "Money Pots",
+  "value": 600,
+  "ton": 6,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/money-pots.webp"
+ },
+ {
   "id": "mousse-cakes",
   "name": "Mousse Cakes",
   "value": 600,
@@ -477,6 +549,15 @@
   "image": "images/gifts/party-sparklers.webp"
  },
  {
+  "id": "snoop-doggs",
+  "name": "Snoop Doggs",
+  "value": 600,
+  "ton": 6,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/snoop-doggs.webp"
+ },
+ {
   "id": "spring-baskets",
   "name": "Spring Baskets",
   "value": 600,
@@ -486,6 +567,33 @@
   "image": "images/gifts/spring-baskets.webp"
  },
  {
+  "id": "star-notepads",
+  "name": "Star Notepads",
+  "value": 600,
+  "ton": 6,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/star-notepads.webp"
+ },
+ {
+  "id": "stellar-rockets",
+  "name": "Stellar Rockets",
+  "value": 600,
+  "ton": 6,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/stellar-rockets.webp"
+ },
+ {
+  "id": "swag-bags",
+  "name": "Swag Bags",
+  "value": 600,
+  "ton": 6,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/swag-bags.webp"
+ },
+ {
   "id": "victory-medals",
   "name": "Victory Medals",
   "value": 600,
@@ -493,6 +601,15 @@
   "estimated": false,
   "kind": "nft",
   "image": "images/gifts/victory-medals.webp"
+ },
+ {
+  "id": "winter-wreaths",
+  "name": "Winter Wreaths",
+  "value": 600,
+  "ton": 6,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/winter-wreaths.webp"
  },
  {
   "id": "mirage-lamps",
@@ -513,6 +630,15 @@
   "image": "images/gifts/big-years.webp"
  },
  {
+  "id": "easter-eggs",
+  "name": "Easter Eggs",
+  "value": 500,
+  "ton": 5,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/easter-eggs.webp"
+ },
+ {
   "id": "instant-ramens",
   "name": "Instant Ramens",
   "value": 500,
@@ -520,6 +646,24 @@
   "estimated": false,
   "kind": "nft",
   "image": "images/gifts/instant-ramens.webp"
+ },
+ {
+  "id": "lol-pops",
+  "name": "Lol Pops",
+  "value": 500,
+  "ton": 5,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/lol-pops.webp"
+ },
+ {
+  "id": "lunar-snakes",
+  "name": "Lunar Snakes",
+  "value": 500,
+  "ton": 5,
+  "estimated": false,
+  "kind": "nft",
+  "image": "images/gifts/lunar-snakes.webp"
  },
  {
   "id": "mood-packs",
@@ -594,6 +738,15 @@
   "image": "images/gifts/astral-shards.webp"
  },
  {
+  "id": "b-day-candles",
+  "name": "B-Day Candles",
+  "value": 600,
+  "ton": 6,
+  "estimated": true,
+  "kind": "nft",
+  "image": "images/gifts/b-day-candles.webp"
+ },
+ {
   "id": "berry-boxes",
   "name": "Berry Boxes",
   "value": 500,
@@ -603,6 +756,15 @@
   "image": "images/gifts/berry-boxes.webp"
  },
  {
+  "id": "bow-ties",
+  "name": "Bow Ties",
+  "value": 700,
+  "ton": 7,
+  "estimated": true,
+  "kind": "nft",
+  "image": "images/gifts/bow-ties.webp"
+ },
+ {
   "id": "bunny-muffins",
   "name": "Bunny Muffins",
   "value": 900,
@@ -610,6 +772,15 @@
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/bunny-muffins.webp"
+ },
+ {
+  "id": "candy-canes",
+  "name": "Candy Canes",
+  "value": 500,
+  "ton": 5,
+  "estimated": true,
+  "kind": "nft",
+  "image": "images/gifts/candy-canes.webp"
  },
  {
   "id": "durov-s-caps",
@@ -648,6 +819,15 @@
   "image": "images/gifts/hex-pots.webp"
  },
  {
+  "id": "holiday-drinks",
+  "name": "Holiday Drinks",
+  "value": 500,
+  "ton": 5,
+  "estimated": true,
+  "kind": "nft",
+  "image": "images/gifts/holiday-drinks.webp"
+ },
+ {
   "id": "homemade-cakes",
   "name": "Homemade Cakes",
   "value": 300,
@@ -666,6 +846,15 @@
   "image": "images/gifts/hypno-lollipops.webp"
  },
  {
+  "id": "ice-creams",
+  "name": "Ice Creams",
+  "value": 500,
+  "ton": 5,
+  "estimated": true,
+  "kind": "nft",
+  "image": "images/gifts/ice-creams.webp"
+ },
+ {
   "id": "input-keys",
   "name": "Input Keys",
   "value": 800,
@@ -682,6 +871,15 @@
   "estimated": true,
   "kind": "nft",
   "image": "images/gifts/jelly-bunnies.webp"
+ },
+ {
+  "id": "jester-hats",
+  "name": "Jester Hats",
+  "value": 500,
+  "ton": 5,
+  "estimated": true,
+  "kind": "nft",
+  "image": "images/gifts/jester-hats.webp"
  },
  {
   "id": "jingle-bells",

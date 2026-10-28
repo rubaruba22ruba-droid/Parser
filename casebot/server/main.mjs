@@ -1,5 +1,6 @@
 import http from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
+import { gzipSync } from 'node:zlib';
 import { extname, resolve, sep } from 'node:path';
 import { cfg } from './config.mjs';
 import { one, run } from './db.mjs';
@@ -11,7 +12,15 @@ import { startBot } from './bot.mjs';
 import { getUser } from './wallet.mjs';
 
 const WEB = resolve(new URL('../webapp/', import.meta.url).pathname) + sep;
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ico': 'image/x-icon' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
+// текст (js/css/html/json/svg) отдаём сжатым — three.js 670 КБ → ~170 КБ; сжатое держим в памяти до изменения файла
+const GZ = new Map(), ZIPPABLE = new Set(['.html', '.js', '.css', '.json', '.svg']);
+async function gzipped(file, data) {
+  const m = (await stat(file)).mtimeMs, hit = GZ.get(file);
+  if (hit && hit.m === m) return hit.z;
+  const z = gzipSync(data, { level: 9 }); GZ.set(file, { m, z }); return z;
+}
+const cacheFor = (p, ext) => p.includes('/vendor/') || ext === '.woff2' ? 'public, max-age=604800' : ['.png', '.svg', '.webp', '.jpg'].includes(ext) ? 'public, max-age=3600' : 'no-cache';
 const json = (res, code, obj) => { res.writeHead(code, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify(obj)); };
 const origin = req => cfg.publicUrl || `https://${req.headers.host}`;
 
@@ -63,8 +72,11 @@ document.querySelectorAll('[data-bot-link]').forEach(function(a){a.href='https:/
     if (!file.startsWith(WEB)) { res.writeHead(403); return res.end(); }
     const data = await readFile(file).catch(() => null);
     if (!data) { res.writeHead(404, { 'content-type': 'text/plain' }); return res.end('not found'); }
-    const ext = extname(file);
-    res.writeHead(200, { 'content-type': MIME[ext] || 'application/octet-stream', 'x-content-type-options': 'nosniff', 'cache-control': ['.png', '.svg', '.webp'].includes(ext) ? 'public, max-age=3600' : 'no-cache' });
+    const ext = extname(file), head = { 'content-type': MIME[ext] || 'application/octet-stream', 'x-content-type-options': 'nosniff', 'cache-control': cacheFor(p, ext), vary: 'accept-encoding' };
+    if (ZIPPABLE.has(ext) && data.length > 1024 && /\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
+      const z = await gzipped(file, data); res.writeHead(200, { ...head, 'content-encoding': 'gzip', 'content-length': z.length }); return res.end(z);
+    }
+    res.writeHead(200, { ...head, 'content-length': data.length });
     res.end(data);
   } catch (e) { console.error(e); res.writeHead(500); res.end('error'); }
 });

@@ -445,7 +445,7 @@ function renderCases() {
     list.forEach(c => renderCaseCard(c, cardIndex++));
   });
 }
-const CASE_GROUPS = [['free', 'Халява 🎁'], ['farm', 'Для разогрева'], ['hot', 'Горяченькое 🔥'], ['theme', 'Тематические'], ['allin', 'ALL IN — без тормозов']];
+const CASE_GROUPS = [['free', 'Халява'], ['farm', 'Для разогрева'], ['hot', 'Горяченькое'], ['theme', 'Тематические'], ['allin', 'ALL IN — без тормозов']];
 
 function addSectionTitle(title, key) {
   const titleDiv = document.createElement('div');
@@ -497,7 +497,7 @@ function renderCaseCard(c, cardIndex) {
 
   card.innerHTML = `
       <div class="card_image">
-          ${c.group === 'theme' ? '<span class="dd-badge">✦ НОВОЕ</span>' : ''}
+          ${c.group === 'theme' ? '<span class="dd-badge">НОВОЕ</span>' : ''}
           <img src="${imagePath}" alt="${c.name}" title="${c.name}" loading="${loadingAttr}">
       </div>
       <div class="case-info">
@@ -569,7 +569,7 @@ async function sellAllItems() {
     await renderInventory();
 
     showAlert(
-      `Продано ${result.soldCount} предметов на сумму ${result.totalValue} ⭐. Средства зачислены на баланс`,
+      `Продано ${result.soldCount} предметов на сумму ${result.totalValue} ★. Средства зачислены на баланс`,
       'success',
       { title: 'Продажа предметов' }
     );
@@ -608,7 +608,7 @@ async function sellFromInventory(itemId) {
     await renderInventory();
 
     showAlert(
-      `Предмет "${itemName}" продан за ${data.itemValue} ⭐. Средства зачислены на баланс`,
+      `Предмет "${itemName}" продан за ${data.itemValue} ★. Средства зачислены на баланс`,
       'success',
       { title: 'Продажа предмета' }
     );
@@ -1018,7 +1018,7 @@ async function startAnimation(promoCode = null) {
   }
 
   if (!isDemoMode && !currentCase.promoOnly && !currentCase.referralOnly && balance < (currentCase.price * openCount)) {
-    showAlert(`❌ Недостаточно Stars! Нужно ещё ${(currentCase.price * openCount) - balance} ⭐`);
+    showAlert(`❌ Недостаточно Stars! Нужно ещё ${(currentCase.price * openCount) - balance} ★`);
     return;
   }
 
@@ -2051,7 +2051,7 @@ function renderRefCases(totalRefs) {
     item.innerHTML = `
       <img src="${c.image}" alt="">
       <div class="ref-case-lock ${unlocked ? 'ref-case-unlocked' : ''}">
-        ${unlocked ? '✅' : lockSvg} ${totalRefs}/${c.need}
+        ${unlocked ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#22c55e" stroke-width="3" style="vertical-align:-2px"><path d="M5 13l4 4L19 7"/></svg>' : lockSvg} ${totalRefs}/${c.need}
       </div>
     `;
     grid.appendChild(item);
@@ -2223,6 +2223,10 @@ function showAlert(message, type = 'info', options = {}) {
 }
 
 function showToast(message, type = 'info', options = {}) {
+  // эмодзи-префиксы старых сообщений → тип тоста (у тоста своя иконка), ⭐ → ★
+  const lead = String(message ?? '').match(/^\s*(✅|❌|❗|⚠️?)\s*/u);
+  message = String(message ?? '').slice(lead ? lead[0].length : 0).replace(/⭐/g, '★');
+  if (lead && type === 'info') type = lead[1] === '✅' ? 'success' : lead[1] === '⚠️' || lead[1] === '⚠' ? 'warning' : 'error';
   if (!document || !document.body) {
     try {
       if (typeof Telegram !== 'undefined' && Telegram.WebApp && Telegram.WebApp.showAlert) {
@@ -2582,7 +2586,7 @@ function setupEventListeners() {
         if (formGroupPromo) formGroupPromo.classList.remove('disabled');
         if (tonDepositBtnWrap) tonDepositBtnWrap.classList.remove('hidden');
       } else {
-        if (tonAmountInput) { tonAmountInput.disabled = true; tonAmountInput.value = ''; if (tonStarsPreview) tonStarsPreview.textContent = '≈0 ⭐'; }
+        if (tonAmountInput) { tonAmountInput.disabled = true; tonAmountInput.value = ''; if (tonStarsPreview) tonStarsPreview.textContent = '≈0 ★'; }
         if (tonPromoInput) { tonPromoInput.disabled = true; }
         if (formGroupAmount) formGroupAmount.classList.add('disabled');
         if (formGroupPromo) formGroupPromo.classList.add('disabled');
@@ -2600,11 +2604,11 @@ function setupEventListeners() {
       var raw = String(tonAmountInput.value || '').trim().replace(',', '.');
       var amount = parseFloat(raw, 10);
       if (!Number.isFinite(amount) || amount < 0) {
-        tonStarsPreview.textContent = '≈0 ⭐';
+        tonStarsPreview.textContent = '≈0 ★';
         return;
       }
       var stars = Math.floor(amount * 100);
-      tonStarsPreview.textContent = '≈' + stars + ' ⭐';
+      tonStarsPreview.textContent = '≈' + stars + ' ★';
     }
 
     function updateTonSubmitState() {
@@ -2763,7 +2767,7 @@ function setupEventListeners() {
       const amountStr = String(tonAmountInput?.value || '').trim().replace(',', '.');
       const amountTon = parseFloat(amountStr, 10);
       if (!Number.isFinite(amountTon) || amountTon <= 0 || amountTon > 500) {
-        showAlert('Укажите сумму от 0.1 до 500 TON (1 TON = 100 ⭐)', 'warning');
+        showAlert('Укажите сумму от 0.1 до 500 TON (1 TON = 100 ★)', 'warning');
         return;
       }
       if (amountTon < 0.1) {
@@ -2848,7 +2852,7 @@ function setupEventListeners() {
                 updateCaseOpenButtonState();
               }
             } catch (_) { }
-            showAlert('Баланс пополнен на ' + checkData.credited + ' ⭐', 'success', { title: 'Пополнение' });
+            showAlert('Баланс пополнен на ' + checkData.credited + ' ★', 'success', { title: 'Пополнение' });
             return;
           }
         }
@@ -2923,7 +2927,7 @@ function setupEventListeners() {
       if (minDeposit > 0) {
         const hasDeposit = await checkRecentDeposit(userId, minDeposit);
         if (!hasDeposit) {
-          showAlert(`❌ Для открытия этого кейса необходимо пополнить минимум ${minDeposit} ⭐ за последние 24 часа`);
+          showAlert(`❌ Для открытия этого кейса необходимо пополнить минимум ${minDeposit} ★ за последние 24 часа`);
           openStarsModal();
           return;
         }
@@ -3532,7 +3536,7 @@ async function loadAdminCases() {
       row.innerHTML = `
         <div>
           <div><strong>${c.name}</strong> (${c.case_id})</div>
-          <div class="admin-muted">Price: ${c.price} ⭐ • Items: ${c.items_count}</div>
+          <div class="admin-muted">Price: ${c.price} ★ • Items: ${c.items_count}</div>
         </div>
         <div style="text-align:right;">
           <div>Order: ${c.display_order}</div>
@@ -3581,13 +3585,13 @@ async function loadAdminCaseDetails(caseId) {
       <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
         <label style="font-size:12px;">Name</label>
         <input id="adminCaseNameInput" type="text" value="${effectiveName}" style="background:#131417;border-radius:8px;border:1px solid #2d2f33;padding:6px 8px;color:#fff;font-size:13px;" />
-        <label style="font-size:12px;">Price ⭐</label>
+        <label style="font-size:12px;">Price ★</label>
         <input id="adminCasePriceInput" type="number" value="${effectivePrice}" style="background:#131417;border-radius:8px;border:1px solid #2d2f33;padding:6px 8px;color:#fff;font-size:13px;" />
         <label style="font-size:12px;">Image URL</label>
         <input id="adminCaseImageInput" type="text" value="${effectiveImage}" style="background:#131417;border-radius:8px;border:1px solid #2d2f33;padding:6px 8px;color:#fff;font-size:13px;" />
         <label style="font-size:12px;">Display order</label>
         <input id="adminCaseOrderInput" type="number" value="${effectiveOrder}" style="background:#131417;border-radius:8px;border:1px solid #2d2f33;padding:6px 8px;color:#fff;font-size:13px;" />
-        <label style="font-size:12px;">Min deposit last 24h ⭐ (for promo)</label>
+        <label style="font-size:12px;">Min deposit last 24h ★ (for promo)</label>
         <input id="adminCaseMinDepInput" type="number" value="${effectiveMinDep || ''}" style="background:#131417;border-radius:8px;border:1px solid #2d2f33;padding:6px 8px;color:#fff;font-size:13px;" />
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
           <input id="adminCasePromoOnlyInput" type="checkbox" ${effectivePromoOnly ? 'checked' : ''} />
@@ -3604,7 +3608,7 @@ async function loadAdminCaseDetails(caseId) {
       <div id="adminCaseItemsList" class="admin-muted" style="max-height:120px;overflow-y:auto;margin-bottom:8px;">
         ${items.length ? items.map(i => `
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-            <span>#${i.id} ${i.name} (${i.value} ⭐)</span>
+            <span>#${i.id} ${i.name} (${i.value} ★)</span>
             <button class="admin-btn-small reject" data-item-id="${i.id}">Delete</button>
           </div>
         `).join('') : 'No custom items (используются дефолтные из конфига).'}
@@ -3613,7 +3617,7 @@ async function loadAdminCaseDetails(caseId) {
         <h4>Add item</h4>
         <div style="display:flex;flex-direction:column;gap:4px;">
           <input id="adminNewItemName" type="text" placeholder="Name" style="background:#131417;border-radius:8px;border:1px solid #2d2f33;padding:6px 8px;color:#fff;font-size:13px;" />
-          <input id="adminNewItemValue" type="number" placeholder="Value ⭐" style="background:#131417;border-radius:8px;border:1px solid #2d2f33;padding:6px 8px;color:#fff;font-size:13px;" />
+          <input id="adminNewItemValue" type="number" placeholder="Value ★" style="background:#131417;border-radius:8px;border:1px solid #2d2f33;padding:6px 8px;color:#fff;font-size:13px;" />
           <input id="adminNewItemImage" type="text" placeholder="Image URL" style="background:#131417;border-radius:8px;border:1px solid #2d2f33;padding:6px 8px;color:#fff;font-size:13px;" />
           <input id="adminNewItemRarity" type="text" placeholder="Rarity (optional)" style="background:#131417;border-radius:8px;border:1px solid #2d2f33;padding:6px 8px;color:#fff;font-size:13px;" />
           <input id="adminNewItemChance" type="text" placeholder="Chance text (optional)" style="background:#131417;border-radius:8px;border:1px solid #2d2f33;padding:6px 8px;color:#fff;font-size:13px;" />
@@ -3778,7 +3782,7 @@ async function loadAdminUsers(search) {
           <div class="admin-muted">ID: ${u.telegram_id}</div>
         </div>
         <div style="text-align:right;">
-          <div>${u.balance} ⭐</div>
+          <div>${u.balance} ★</div>
           <div class="admin-muted">${u.is_banned ? '<span style="color:#ef4444;">BANNED</span>' : ''} ${u.is_admin ? '<span style="color:#3b82f6;">ADMIN</span>' : ''}</div>
         </div>
       `;
@@ -3837,11 +3841,11 @@ async function loadAdminUserDetails(userId) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
         <div style="background:#131417;border-radius:8px;padding:8px 10px;">
           <div class="admin-muted" style="font-size:11px;">Balance</div>
-          <div style="font-size:16px;font-weight:600;">${user.balance} ⭐</div>
+          <div style="font-size:16px;font-weight:600;">${user.balance} ★</div>
         </div>
         <div style="background:#131417;border-radius:8px;padding:8px 10px;">
           <div class="admin-muted" style="font-size:11px;">Total deposits</div>
-          <div style="font-size:16px;font-weight:600;">${totalDeposits} ⭐</div>
+          <div style="font-size:16px;font-weight:600;">${totalDeposits} ★</div>
         </div>
       </div>
       <div style="margin-bottom:10px;">
@@ -3879,13 +3883,13 @@ async function loadAdminUserDetails(userId) {
         <button class="admin-btn-small" data-detail-tab="logs" style="font-size:11px;">Logs (${logs.length})</button>
       </div>
       <div id="userDetailInventory" class="admin-muted" style="max-height:200px;overflow-y:auto;">
-        ${inventory.length ? inventory.map(i => `<div style="padding:3px 0;border-bottom:1px solid #1e2028;">${i.item_name} <span style="opacity:0.6;">(${i.item_value} ⭐) [${i.item_rarity || 'common'}]</span></div>`).join('') : '<p>Empty inventory</p>'}
+        ${inventory.length ? inventory.map(i => `<div style="padding:3px 0;border-bottom:1px solid #1e2028;">${i.item_name} <span style="opacity:0.6;">(${i.item_value} ★) [${i.item_rarity || 'common'}]</span></div>`).join('') : '<p>Empty inventory</p>'}
       </div>
       <div id="userDetailDeposits" class="admin-muted hidden" style="max-height:200px;overflow-y:auto;">
         ${deposits.length ? deposits.map(d => {
       let dt = d.created_at;
       try { dt = new Date(d.created_at + 'Z').toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }); } catch { }
-      return `<div style="padding:3px 0;border-bottom:1px solid #1e2028;"><span style="color:#22c55e;">+${d.amount} ⭐</span> <span style="opacity:0.5;font-size:11px;">${dt}</span></div>`;
+      return `<div style="padding:3px 0;border-bottom:1px solid #1e2028;"><span style="color:#22c55e;">+${d.amount} ★</span> <span style="opacity:0.5;font-size:11px;">${dt}</span></div>`;
     }).join('') : '<p>No deposits</p>'}
       </div>
       <div id="userDetailWithdrawals" class="admin-muted hidden" style="max-height:200px;overflow-y:auto;">
@@ -3893,7 +3897,7 @@ async function loadAdminUserDetails(userId) {
       let dt = w.created_at;
       try { dt = new Date(w.created_at + 'Z').toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }); } catch { }
       const statusColor = w.status === 'completed' ? '#22c55e' : w.status === 'rejected' ? '#ef4444' : '#f59e0b';
-      return `<div style="padding:3px 0;border-bottom:1px solid #1e2028;">${w.item_name} (${w.item_value} ⭐) <span style="color:${statusColor};font-size:11px;">[${w.status}]</span> <span style="opacity:0.5;font-size:11px;">${dt}</span></div>`;
+      return `<div style="padding:3px 0;border-bottom:1px solid #1e2028;">${w.item_name} (${w.item_value} ★) <span style="color:${statusColor};font-size:11px;">[${w.status}]</span> <span style="opacity:0.5;font-size:11px;">${dt}</span></div>`;
     }).join('') : '<p>No withdrawals</p>'}
       </div>
       <div id="userDetailLogs" class="admin-muted hidden" style="max-height:200px;overflow-y:auto;">
@@ -3902,7 +3906,7 @@ async function loadAdminUserDetails(userId) {
       try { details = l.action_details ? JSON.parse(l.action_details) : {}; } catch { details = { raw: l.action_details }; }
       let actionText = l.action_type;
       if (l.action_type === 'case_open_success' || l.action_type === 'case_open') actionText = 'Открытие кейса';
-      else if (l.action_type === 'error') actionText = '❗ Ошибка';
+      else if (l.action_type === 'error') actionText = 'Ошибка';
       else if (l.action_type === 'deposit') actionText = 'Пополнение';
       else if (l.action_type === 'user_created') actionText = 'Новый пользователь';
       else if (l.action_type === 'referral_linked') actionText = 'Реферал привязан';
@@ -3911,12 +3915,12 @@ async function loadAdminUserDetails(userId) {
       let moscowTime = l.created_at;
       try { moscowTime = new Date(l.created_at + 'Z').toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }); } catch { }
       const caseInfo = details.caseName || details.case_id || '';
-      const itemInfo = details.itemName ? details.itemName + (details.itemValue ? ' (' + details.itemValue + ' ⭐)' : '') : (details.item_name ? details.item_name + (details.item_value != null ? ' (' + details.item_value + ' ⭐)' : '') : (details.item || ''));
+      const itemInfo = details.itemName ? details.itemName + (details.itemValue ? ' (' + details.itemValue + ' ★)' : '') : (details.item_name ? details.item_name + (details.item_value != null ? ' (' + details.item_value + ' ★)' : '') : (details.item || ''));
       const stageInfo = details.stage ? 'Этап: ' + details.stage + '. ' : '';
       const errInfo = details.error ? 'Ошибка: ' + details.error : (details.raw || '');
-      const amountInfo = details.amount ? '+' + details.amount + ' ⭐' : '';
+      const amountInfo = details.amount ? '+' + details.amount + ' ★' : '';
       const referrerInfo = details.referrer_id ? 'Реферер ID: ' + details.referrer_id : '';
-      const bulkInfo = details.count != null ? 'Продано: ' + details.count + ' шт., сумма: ' + (details.totalValue ?? '') + ' ⭐' : '';
+      const bulkInfo = details.count != null ? 'Продано: ' + details.count + ' шт., сумма: ' + (details.totalValue ?? '') + ' ★' : '';
       const userCreatedInfo = (details.username || details.first_name) ? (details.username ? '@' + details.username : '') + ' ' + (details.first_name || '') : '';
       const extra = referrerInfo || bulkInfo || userCreatedInfo || '';
       return '<div style="padding:3px 0;border-bottom:1px solid #1e2028;"><strong>' + actionText + '</strong>' + (caseInfo ? ' · ' + caseInfo : '') + (itemInfo ? ' · ' + itemInfo : '') + (amountInfo ? ' · ' + amountInfo : '') + (extra ? ' · ' + extra : '') + '<br><span style="opacity:0.5;font-size:11px;">' + moscowTime + ' ' + stageInfo + errInfo + '</span></div>';
@@ -4104,7 +4108,7 @@ async function loadAdminPromos() {
       } else {
         desc = `Кейс: ${p.case_id || 'case2'}`;
         if (p.min_deposit_last24h != null && p.min_deposit_last24h > 0) {
-          desc += ` · мин ${p.min_deposit_last24h}⭐ за 24ч`;
+          desc += ` · мин ${p.min_deposit_last24h}★ за 24ч`;
         }
       }
 
@@ -4173,7 +4177,7 @@ async function loadAdminWithdrawals() {
       row.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
           <div>
-            <div><strong>#${w.id}</strong> ${w.item_name} (${w.item_value} ⭐)</div>
+            <div><strong>#${w.id}</strong> ${w.item_name} (${w.item_value} ★)</div>
             <div class="admin-muted" style="margin-top:2px;">
               ${w.username
           ? `<a href="https://t.me/${w.username}" target="_blank" rel="noopener" style="color:#3b82f6;text-decoration:underline;">@${w.username}</a>`
@@ -4355,12 +4359,12 @@ async function loadAdminLogs() {
 
       const caseInfo = details.caseName || details.case_id || '';
       const itemInfo = details.itemName
-        ? `${details.itemName}${details.itemValue ? ` (${details.itemValue} ⭐)` : ''}`
-        : (details.item_name ? `${details.item_name}${details.item_value != null ? ` (${details.item_value} ⭐)` : ''}` : (details.item || ''));
-      const amountInfo = details.amount ? `+${details.amount} ⭐` : '';
+        ? `${details.itemName}${details.itemValue ? ` (${details.itemValue} ★)` : ''}`
+        : (details.item_name ? `${details.item_name}${details.item_value != null ? ` (${details.item_value} ★)` : ''}` : (details.item || ''));
+      const amountInfo = details.amount ? `+${details.amount} ★` : '';
       const methodInfo = details.method ? `(${details.method})` : '';
       const referrerInfo = details.referrer_id ? `Реферер ID: ${details.referrer_id}. ` : '';
-      const bulkInfo = details.count != null ? `Продано: ${details.count} шт., сумма: ${details.totalValue ?? ''} ⭐. ` : '';
+      const bulkInfo = details.count != null ? `Продано: ${details.count} шт., сумма: ${details.totalValue ?? ''} ★. ` : '';
       const userCreatedInfo = (details.username || details.first_name) ? `@${details.username || ''} ${details.first_name || ''}. ` : '';
 
       let moscowTime = l.created_at;
@@ -4819,7 +4823,7 @@ window.verifyDailyCaseTasks = verifyDailyCaseTasks;
 window.testToast = function () {
   showToast('Простое уведомление без заголовка', 'info');
   setTimeout(() => showToast('Детальное уведомление с заголовком', 'success', { title: 'Успех!' }), 500);
-  setTimeout(() => showToast('Предмет "Тестовый предмет" продан за 100 ⭐. Средства зачислены на баланс', 'success', { title: 'Продажа предмета' }), 1000);
+  setTimeout(() => showToast('Предмет "Тестовый предмет" продан за 100 ★. Средства зачислены на баланс', 'success', { title: 'Продажа предмета' }), 1000);
   setTimeout(() => showToast('Что-то пошло не так', 'error', { title: 'Ошибка' }), 1500);
   setTimeout(() => showToast('Внимание! Это предупреждение', 'warning', { title: 'Предупреждение' }), 2000);
 };

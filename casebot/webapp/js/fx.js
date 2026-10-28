@@ -73,6 +73,34 @@
     win(best.rarity); confetti(color, ['purple', 'mythic', 'legendary'].includes(best.rarity) ? 190 : 90);
   }
 
+  // гул вращения колеса: шум через полосовой фильтр + низкий «мотор»; set(0..1) — скорость, stop() — плавно глушит
+  let noiseBuf = null;
+  function nbuf(c) { if (!noiseBuf) { noiseBuf = c.createBuffer(1, c.sampleRate * 2, c.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; } return noiseBuf; }
+  // шумовой удар/шорох: полосовой фильтр едет от f0 к f1 (пыль, хлопок, свист)
+  function noise(dur, vol, when, f0, f1, q) {
+    const c = ac(); if (!c || muted) return;
+    const t = c.currentTime + (when || 0), src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = nbuf(c); f.type = 'bandpass'; f.Q.value = q || 1; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.03, dur / 4)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(c.destination); src.start(t, Math.random()); src.stop(t + dur + 0.05);
+  }
+  function whirr() {
+    const c = ac(); if (!c || muted) return null;
+    const t = c.currentTime, out = c.createGain(); out.gain.setValueAtTime(0.0001, t); out.gain.exponentialRampToValueAtTime(1, t + 0.12); out.connect(c.destination);
+    const src = c.createBufferSource(); src.buffer = nbuf(c); src.loop = true;
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.4; bp.frequency.value = 500;
+    const ng = c.createGain(); ng.gain.value = 0; src.connect(bp).connect(ng).connect(out);
+    const osc = c.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = 55;
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 320;
+    const og = c.createGain(); og.gain.value = 0; osc.connect(lp).connect(og).connect(out);
+    src.start(t); osc.start(t);
+    return {
+      set(s) { const n = c.currentTime; bp.frequency.setTargetAtTime(380 + s * 2600, n, 0.05); ng.gain.setTargetAtTime(0.012 + s * 0.085, n, 0.05);
+        osc.frequency.setTargetAtTime(48 + s * 95, n, 0.05); og.gain.setTargetAtTime(0.01 + s * 0.05, n, 0.06); },
+      stop() { const n = c.currentTime; out.gain.setTargetAtTime(0.0001, n, 0.08); src.stop(n + 0.6); osc.stop(n + 0.6); }
+    };
+  }
+
   function setMuted(m) { muted = m; try { localStorage.setItem('dd_muted', m ? '1' : '0'); } catch (e) { } }
-  window.FX = { tick, stop, tone, win, lose, whoosh, haptic, confetti, slotFrame, slotReset, decorateWin, RARITY, setMuted, isMuted: () => muted, ctx: ac };
+  window.FX = { tick, stop, tone, win, lose, whoosh, haptic, confetti, slotFrame, slotReset, decorateWin, RARITY, setMuted, isMuted: () => muted, ctx: ac, whirr, noise };
 })();

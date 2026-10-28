@@ -16,14 +16,17 @@ function state(userId) {
   return r;
 }
 
-// число из [0,1): первые 52 бита HMAC — так же считает проверка в мини-аппе
-export const rollFrom = (serverSeed, clientSeed, nonce) => parseInt(createHmac('sha256', serverSeed).update(`${clientSeed}:${nonce}`).digest('hex').slice(0, 13), 16) / 2 ** 52;
+// числа из [0,1): x — первые 52 бита HMAC, y — следующие 52 (апгрейд: появилось ли золото). Так же считает проверка в мини-аппе
+const hmacHex = (serverSeed, clientSeed, nonce) => createHmac('sha256', serverSeed).update(`${clientSeed}:${nonce}`).digest('hex');
+export const rollFrom = (serverSeed, clientSeed, nonce) => parseInt(hmacHex(serverSeed, clientSeed, nonce).slice(0, 13), 16) / 2 ** 52;
+export const roll2From = (serverSeed, clientSeed, nonce) => { const h = hmacHex(serverSeed, clientSeed, nonce); return [parseInt(h.slice(0, 13), 16) / 2 ** 52, parseInt(h.slice(13, 26), 16) / 2 ** 52]; };
 
 // следующий бросок игрока (вызывать внутри транзакции вместе с записью результата)
 export function nextRoll(userId) {
   const s = state(userId), nonce = s.nonce + 1;
   run('UPDATE fair SET nonce=? WHERE user_id=?', nonce, userId);
-  return { x: rollFrom(s.server_seed, s.client_seed, nonce), nonce, serverSeedHash: sha256(s.server_seed), clientSeed: s.client_seed };
+  const [x, y] = roll2From(s.server_seed, s.client_seed, nonce);
+  return { x, y, nonce, serverSeedHash: sha256(s.server_seed), clientSeed: s.client_seed };
 }
 
 export function publicState(userId) {

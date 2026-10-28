@@ -47,9 +47,9 @@
   <script src="https://unpkg.com/@tonconnect/ui@2.4.1/dist/tonconnect-ui.min.js"></script>
   <link rel="stylesheet" href="css/tailwind.css">
   <link rel="preload" href="fonts/unbounded-cyrillic-900-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="fonts/onest-cyrillic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/drade.css?v=5">
-  <link rel="stylesheet" href="css/diamond.css?v=1">
+  <link rel="preload" href="fonts/exo-2-cyrillic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/drade.css?v=7">
+    <link rel="stylesheet" href="css/upgrade.css?v=4">
   <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/tgs-player.js"></script>
   <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
 </head>
@@ -180,7 +180,7 @@
                   value="">
               </div>
             </div>
-            <p class="deposit-rate deposit-rate-stars">Курс: 1 Telegram Star = 1 ⭐</p>
+            <p class="deposit-rate deposit-rate-stars">Курс: 1 Telegram Star = 1 ★</p>
             <button type="button" id="depositSubmitBtn" class="deposit-submit-btn">Пополнить баланс</button>
           </div>
 
@@ -192,11 +192,11 @@
                   <span class="deposit-field-block-label">Сумма в TON</span>
                   <div class="dd-tp-amount">
                     <input type="text" inputmode="decimal" id="tpAmount" class="deposit-input deposit-input-inblock" placeholder="Например, 5" autocomplete="off">
-                    <span id="tpPreview" class="dd-tp-preview">≈0 ⭐</span>
+                    <span id="tpPreview" class="dd-tp-preview">≈0 ★</span>
                   </div>
                 </div>
                 <div class="dd-tp-quick"><button type="button" data-ton="1">1 TON</button><button type="button" data-ton="5">5 TON</button><button type="button" data-ton="10">10 TON</button><button type="button" data-ton="50">50 TON</button></div>
-                <p class="deposit-rate">Курс: 1 TON = 100 ⭐ · от 0.1 TON</p>
+                <p class="deposit-rate">Курс: 1 TON = 100 ★ · от 0.1 TON</p>
                 <div class="deposit-field-block">
                   <span class="deposit-field-block-label">Промокод (если есть)</span>
                   <input type="text" id="tpPromo" class="deposit-input deposit-input-inblock" placeholder="XX-XX-XX" autocomplete="off">
@@ -277,10 +277,10 @@
                   <input type="text" inputmode="decimal" id="tonAmountInput"
                     class="deposit-input deposit-input-with-ton deposit-input-inline hide-number-spin"
                     placeholder="Введите сумму..." min="0.1" step="0.1" value="" disabled>
-                  <span id="tonStarsPreview" class="ton-stars-preview-inline" aria-live="polite">≈0 ⭐</span>
+                  <span id="tonStarsPreview" class="ton-stars-preview-inline" aria-live="polite">≈0 ★</span>
                 </div>
               </div>
-              <p class="deposit-rate deposit-ton-rate">Курс: 1 TON = 100 ⭐</p>
+              <p class="deposit-rate deposit-ton-rate">Курс: 1 TON = 100 ★</p>
               <div class="deposit-field-block deposit-form-group" id="tonPromoFormGroup">
                 <span class="deposit-field-block-label">Промокод (если есть)</span>
                 <input type="text" id="tonPromoInput" class="deposit-input deposit-input-inblock" placeholder="XX-XX-XX"
@@ -459,7 +459,7 @@
           <button class="dd-prof-btn dd-prof-btn-sm" id="profileInviteBtn">Пригласить</button>
         </div>
 
-        <button class="dd-prof-card dd-prof-rules" type="button" onclick="showFairPage()"><span class="dd-prof-ref-ic">📜</span>
+        <button class="dd-prof-card dd-prof-rules" type="button" onclick="showFairPage()"><span class="dd-prof-ref-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ff9a1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span>
           <span class="dd-prof-ref-txt"><b>Правила и честная игра</b><span>RTP, проверка бросков, конфиденциальность</span></span><span class="dd-prof-go">›</span></button>
 
         <button class="dd-prof-promo" id="profileRefPromoCard" style="display:none;"
@@ -733,7 +733,7 @@
           </div>
           <div id="winAutoSoldMsg" class="text-sm mb-5 hidden"
             style="color: #22c55e; font-weight: 600; font-size: 16px;">
-            Зачислено на баланс +<span id="winCreditedAmount">0</span> ⭐
+            Зачислено на баланс +<span id="winCreditedAmount">0</span> ★
           </div>
           <div class="flex flex-col gap-3">
             <button onclick="closeWinModal()"
@@ -794,49 +794,76 @@
   <section id="upgrade-section" class="hidden upg">
     <div class="upg-head">
       <h2 class="dd-title">Апгрейд</h2>
-      <p>Поставь подарки — забери дороже. Шанс честно на колесе · <a href="#" onclick="showFairPage(); return false;">как проверить</a></p>
+      <a href="#" class="upg-fair" onclick="showFairPage(); return false;">честно?</a>
     </div>
 
+    <!-- колесо: всё везение внизу; за процентами — эмблема -->
     <div class="upg-wheel" id="upgWheel">
-      <svg class="upg-wheel-svg" viewBox="0 0 240 240" aria-hidden="true">
+      <svg class="upg-wheel-svg" viewBox="0 0 300 300" aria-hidden="true">
         <defs>
-          <linearGradient id="upgWin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4ade80"/><stop offset="1" stop-color="#16a34a"/></linearGradient>
-          <linearGradient id="upgTrack" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a2f4a"/><stop offset="1" stop-color="#1a1d30"/></linearGradient>
-          <linearGradient id="upgDia" gradientUnits="userSpaceOnUse" x1="60" y1="0" x2="180" y2="0" spreadMethod="reflect">
-            <stop offset="0" stop-color="#7df4ff"/><stop offset=".35" stop-color="#ffffff"/><stop offset=".6" stop-color="#5fd8ff"/><stop offset="1" stop-color="#a98bff"/>
-            <animate attributeName="x1" values="60;140;60" dur="2.4s" repeatCount="indefinite"/><animate attributeName="x2" values="180;260;180" dur="2.4s" repeatCount="indefinite"/>
-          </linearGradient>
-          <linearGradient id="upgIce" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#173a57"/><stop offset=".5" stop-color="#4fc9f0"/><stop offset="1" stop-color="#6b4fe0"/></linearGradient>
-          <filter id="upgGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.4"/></filter>
+          <linearGradient id="upgWin" gradientUnits="userSpaceOnUse" x1="0" y1="40" x2="0" y2="290"><stop offset="0" stop-color="#ffd84d"/><stop offset=".55" stop-color="#ff9900"/><stop offset="1" stop-color="#ff5a14"/></linearGradient>
+          <linearGradient id="upgWinOk" gradientUnits="userSpaceOnUse" x1="0" y1="40" x2="0" y2="290"><stop offset="0" stop-color="#7dffb0"/><stop offset="1" stop-color="#1fb866"/></linearGradient>
+          <radialGradient id="upgDisk" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#26262b"/><stop offset="1" stop-color="#0f0f11"/></radialGradient>
+          <linearGradient id="upgEmb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffcf3a"/><stop offset=".55" stop-color="#ff9100"/><stop offset="1" stop-color="#ff5a14"/></linearGradient>
+          <filter id="upgGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>
         </defs>
-        <circle cx="120" cy="120" r="104" fill="none" stroke="url(#upgTrack)" stroke-width="18"/>
-        <circle id="upgArc" cx="120" cy="120" r="104" fill="none" stroke="url(#upgWin)" stroke-width="18" stroke-linecap="butt"
-          stroke-dasharray="0 654" transform="rotate(-90 120 120)"/>
-        <circle id="upgDiaGlow" cx="120" cy="120" r="104" fill="none" stroke="#8ff2ff" stroke-width="26" stroke-dasharray="0 654" transform="rotate(-90 120 120)" filter="url(#upgGlow)"/>
-        <circle id="upgDiaArc" cx="120" cy="120" r="104" fill="none" stroke="url(#upgDia)" stroke-width="18" stroke-dasharray="0 654" transform="rotate(-90 120 120)"/>
+        <circle cx="150" cy="150" r="143" class="upg-rim"/>
         <g id="upgTicks"></g>
+        <text x="150" y="21" class="upg-num">100</text><text x="14" y="154" class="upg-num">50</text><text x="286" y="154" class="upg-num">50</text>
+        <circle cx="150" cy="150" r="112" class="upg-track"/>
+        <circle id="upgArcGlow" cx="150" cy="150" r="112" class="upg-band-glow" stroke-dasharray="0 704" transform="rotate(-90 150 150)" filter="url(#upgGlow)"/>
+        <circle id="upgArc" cx="150" cy="150" r="112" class="upg-band" stroke-dasharray="0 704" transform="rotate(-90 150 150)"/>
+        <circle cx="150" cy="150" r="129" class="upg-edge"/><circle cx="150" cy="150" r="95" class="upg-edge"/>
+        <circle cx="150" cy="150" r="93" fill="url(#upgDisk)"/>
+        <!-- эмблема Drade Drop: шестигранник с двумя шевронами «вверх» -->
+        <g class="upg-emb" transform="translate(150 150)">
+          <polygon points="0,-74 64,-37 64,37 0,74 -64,37 -64,-37" fill="rgba(255,145,0,.07)" stroke="url(#upgEmb)" stroke-width="5" stroke-linejoin="round"/>
+          <polygon points="0,-60 52,-30 52,30 0,60 -52,30 -52,-30" fill="none" stroke="#ff9100" stroke-opacity=".28" stroke-width="2"/>
+          <path d="M-40 6 L0 -26 L40 6 L40 24 L0 -8 L-40 24 Z" fill="url(#upgEmb)"/>
+          <path d="M-40 38 L0 6 L40 38 L40 52 L0 22 L-40 52 Z" fill="url(#upgEmb)" opacity=".55"/>
+        </g>
       </svg>
-      <div class="upg-dia" id="upgDiaBadge" hidden><i class="upg-dia-ring"></i><img src="images/gifts/diamond-100.webp" alt="Алмаз"><b class="upg-dia-glint"></b></div>
-      <div class="upg-needle" id="upgNeedle"><span></span></div>
+      <div class="upg-burst" id="upgBurst"><i></i></div>
+      <!-- золотая зона «?»: тёмный сегмент кольца с золотой кромкой и знаком — ровно та область, куда должна встать стрелка -->
+      <svg class="upg-gold" id="upgGold" viewBox="0 0 300 300" aria-hidden="true" hidden>
+        <defs>
+          <linearGradient id="ugFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b2510"/><stop offset=".55" stop-color="#14120a"/><stop offset="1" stop-color="#0a0905"/></linearGradient>
+          <linearGradient id="ugRim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".4" stop-color="#ffc53a"/><stop offset="1" stop-color="#a86400"/></linearGradient>
+          <linearGradient id="ugQg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbe0"/><stop offset=".45" stop-color="#ffd24a"/><stop offset="1" stop-color="#e09000"/></linearGradient>
+          <filter id="ugBloom" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="ugSoft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>
+        </defs>
+        <g class="upg-gold-g">
+          <path id="ugGlow" fill="#ffc23a" opacity=".75" filter="url(#ugSoft)"/>
+          <path id="ugSeg" fill="url(#ugFill)" stroke="url(#ugRim)" stroke-width="2.2" stroke-linejoin="round"/>
+          <path id="ugEdge" fill="none" stroke="#fff6c8" stroke-width="1.6" stroke-linecap="round" opacity=".9" filter="url(#ugBloom)"/>
+          <text id="ugQ" text-anchor="middle" dominant-baseline="central" fill="url(#ugQg)" filter="url(#ugBloom)">?</text>
+        </g>
+      </svg>
+      <div class="upg-needle" id="upgNeedle"><svg viewBox="0 0 40 34" aria-hidden="true"><defs><linearGradient id="upgPtr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd84d"/><stop offset="1" stop-color="#ff6a00"/></linearGradient></defs><path d="M20 33 L2 4 Q1 1 4 1 L20 10 L36 1 Q39 1 38 4 Z" fill="url(#upgPtr)" stroke="#2a1300" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
       <div class="upg-center">
-        <div class="upg-pct" id="upgPct">0%</div>
-        <div class="upg-label" id="upgLabel">шанс апгрейда</div>
-        <div class="upg-dia-pct" id="upgDiaPct"></div>
+        <div class="upg-pct" id="upgPct">0.00%</div>
+        <div class="upg-label" id="upgLabel">выбери цель</div>
       </div>
     </div>
-    <button class="upg-dtest" id="upgDiaTest" type="button" hidden>💎 Тест алмаза: выкл</button>
+
+    <div class="upg-go-row">
+      <button class="upg-ic" id="upgFast" type="button" aria-pressed="false" title="Быстрая прокрутка"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></button>
+      <button class="upg-ic" id="upgSound" type="button" aria-pressed="true" title="Звук"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="w" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg></button>
+      <button class="upg-go" id="upgGo" disabled>Апгрейд</button>
+    </div>
 
     <div class="upg-pair">
       <div class="upg-slot" id="upgFromSlot">
         <div class="upg-slot-cap">Ставка</div>
-        <div class="upg-slot-body" id="upgFromBody"><div class="upg-empty">Выбери подарки<br>из инвентаря ↓</div></div>
+        <div class="upg-slot-body" id="upgFromBody"><div class="upg-empty">Выбери подарки ↓</div></div>
         <div class="upg-slot-val" id="upgFromVal"></div>
       </div>
-      <div class="upg-arrow">➜</div>
       <div class="upg-slot upg-slot-target" id="upgToSlot">
-        <div class="upg-slot-cap">Цель</div>
-        <div class="upg-slot-body" id="upgToBody"><div class="upg-empty">Выбери<br>подарок ↓</div></div>
+        <div class="upg-slot-cap" id="upgToCap">Цель</div>
+        <div class="upg-slot-body" id="upgToBody"><div class="upg-empty">Выбери цель ↓</div></div>
         <div class="upg-slot-val" id="upgToVal"></div>
+        <div class="upg-reel" id="upgReel" hidden></div>
       </div>
     </div>
 
@@ -844,10 +871,8 @@
       <button data-m="1.5">x1.5</button><button data-m="2">x2</button><button data-m="3">x3</button>
       <button data-m="5">x5</button><button data-m="10">x10</button><button data-m="20">x20</button>
     </div>
-    <div class="upg-go-row">
-      <button class="upg-go" id="upgGo" disabled>Улучшить</button>
-      <button class="upg-fast" id="upgFast" type="button" aria-pressed="false" title="Быстрая крутка">⚡<span>Быстро</span></button>
-    </div>
+
+    <button class="upg-dtest" id="upgDiaTest" type="button" hidden>Тест золота: выкл</button>
 
     <div class="upg-tabs">
       <button class="upg-tab active" data-tab="inv">Мои подарки</button>
@@ -1018,12 +1043,12 @@
   </div>
 
   <script src="/config.js"></script>
-  <script src="js/fx.js?v=4"></script>
-  <script src="js/app.js?v=5"></script>
-  <script src="js/diamond.js?v=1"></script>
-  <script src="js/upgrade.js?v=6"></script>
-  <script src="js/tonpay.js?v=1"></script>
-  <script src="js/fair.js?v=1"></script>
+  <script src="js/fx.js?v=5"></script>
+  <script src="js/app.js?v=6"></script>
+  <script src="js/diamond.js?v=3"></script>
+  <script src="js/upgrade.js?v=9"></script>
+  <script src="js/tonpay.js?v=2"></script>
+  <script src="js/fair.js?v=2"></script>
 </body>
 
 </html>

@@ -10,7 +10,7 @@
   const amount = () => { const v = parseFloat(String($('tpAmount').value || '').replace(',', '.')); return Number.isFinite(v) ? v : 0; };
   function refresh() {
     const a = amount();
-    $('tpPreview').textContent = '≈' + Math.floor(a * RATE).toLocaleString('ru-RU') + ' ⭐';
+    $('tpPreview').textContent = '≈' + Math.floor(a * RATE).toLocaleString('ru-RU') + ' ★';
     $('tpPay').disabled = !(a >= MIN && a <= MAX);
   }
   const tkLink = d => `https://app.tonkeeper.com/transfer/${d.walletAddress}?amount=${d.amountNano}&text=${encodeURIComponent(d.comment)}`;
@@ -35,7 +35,7 @@
         stop(); cur = null; show(false); $('tpAmount').value = ''; $('tpPromo').value = ''; refresh();
         try { await loadBalance(); updateBalance(); } catch (e) { }
         if (window.FX) FX.win('legendary');
-        if (window.showAlert) showAlert(`Баланс пополнен на ${Number(d.credited || 0).toLocaleString('ru-RU')} ⭐`, 'success', { title: 'Пополнение' });
+        if (window.showAlert) showAlert(`Баланс пополнен на ${Number(d.credited || 0).toLocaleString('ru-RU')} ★`, 'success', { title: 'Пополнение' });
         return;
       }
     } catch (e) { }

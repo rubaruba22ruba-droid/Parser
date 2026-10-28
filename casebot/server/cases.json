@@ -124,7 +124,8 @@
     "mousse-cakes",
     "ginger-cookies",
     "bunny-muffins",
-    "love-candles"
+    "love-candles",
+    "ice-creams"
    ]
   },
   {
@@ -164,7 +165,8 @@
     "joyful-bundles",
     "record-players",
     "crystal-balls",
-    "love-potions"
+    "love-potions",
+    "surge-boards"
    ]
   },
   {
@@ -292,6 +294,109 @@
    ]
   },
   {
+   "id": "case22",
+   "name": "Удача",
+   "price": 590,
+   "group": "theme",
+   "image": "images/cases/case22.webp",
+   "theme": [
+    "#22c55e",
+    "#052e16",
+    "#bbf7d0"
+   ],
+   "art": [
+    "money-pots",
+    "clover-pins",
+    "genie-lamps",
+    "liberty-figures",
+    "lol-pops"
+   ],
+   "items": [
+    "trophy-100",
+    "diamond-100",
+    "clover-pins",
+    "money-pots",
+    "lol-pops",
+    "easter-eggs",
+    "jester-hats",
+    "liberty-figures",
+    "lunar-snakes",
+    "evil-eyes",
+    "hanging-stars",
+    "crystal-balls",
+    "genie-lamps"
+   ]
+  },
+  {
+   "id": "case20",
+   "name": "День рождения",
+   "price": 690,
+   "group": "theme",
+   "image": "images/cases/case20.webp",
+   "theme": [
+    "#f472b6",
+    "#4a0d2e",
+    "#fbcfe8"
+   ],
+   "art": [
+    "b-day-candles",
+    "homemade-cakes",
+    "party-sparklers",
+    "cookie-hearts",
+    "bow-ties"
+   ],
+   "items": [
+    "cake-50",
+    "trophy-100",
+    "diamond-100",
+    "homemade-cakes",
+    "b-day-candles",
+    "cookie-hearts",
+    "party-sparklers",
+    "desk-calendars",
+    "bow-ties",
+    "jacks-in-the-box",
+    "joyful-bundles",
+    "record-players",
+    "love-potions",
+    "toy-bears"
+   ]
+  },
+  {
+   "id": "case23",
+   "name": "Новый год",
+   "price": 790,
+   "group": "theme",
+   "image": "images/cases/case23.webp",
+   "theme": [
+    "#ef4444",
+    "#3a0808",
+    "#fde68a"
+   ],
+   "art": [
+    "winter-wreaths",
+    "candy-canes",
+    "holiday-drinks",
+    "sleigh-bells",
+    "santa-hats"
+   ],
+   "items": [
+    "trophy-100",
+    "diamond-100",
+    "santa-hats",
+    "spiced-wines",
+    "candy-canes",
+    "holiday-drinks",
+    "winter-wreaths",
+    "ginger-cookies",
+    "snow-globes",
+    "snow-mittens",
+    "sleigh-bells",
+    "jingle-bells",
+    "toy-bears"
+   ]
+  },
+  {
    "id": "case15",
    "name": "Зима",
    "price": 990,
@@ -324,6 +429,72 @@
     "eternal-roses",
     "diamond-rings",
     "toy-bears"
+   ]
+  },
+  {
+   "id": "case19",
+   "name": "Снуп Догг",
+   "price": 1290,
+   "group": "theme",
+   "image": "images/cases/case19.webp",
+   "theme": [
+    "#a855f7",
+    "#1e0b3a",
+    "#fde68a"
+   ],
+   "art": [
+    "snoop-doggs",
+    "westside-signs",
+    "swag-bags",
+    "snoop-cigars",
+    "record-players"
+   ],
+   "items": [
+    "trophy-100",
+    "diamond-100",
+    "snoop-doggs",
+    "swag-bags",
+    "fresh-socks",
+    "top-hats",
+    "record-players",
+    "snoop-cigars",
+    "bling-binkies",
+    "vintage-cigars",
+    "low-riders",
+    "westside-signs"
+   ]
+  },
+  {
+   "id": "case21",
+   "name": "Космос",
+   "price": 1490,
+   "group": "theme",
+   "image": "images/cases/case21.webp",
+   "theme": [
+    "#818cf8",
+    "#0c0a3e",
+    "#c7d2fe"
+   ],
+   "art": [
+    "astral-shards",
+    "stellar-rockets",
+    "moon-pendants",
+    "light-swords",
+    "star-notepads"
+   ],
+   "items": [
+    "trophy-100",
+    "diamond-100",
+    "stellar-rockets",
+    "moon-pendants",
+    "star-notepads",
+    "light-swords",
+    "surge-boards",
+    "hanging-stars",
+    "crystal-balls",
+    "electric-skulls",
+    "ion-gems",
+    "astral-shards"
    ]
   },
   {
