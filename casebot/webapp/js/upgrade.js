@@ -123,7 +123,7 @@
     const k = kinds[Math.random() * kinds.length | 0];
     return { turns: k.turns, dur: k.dur * (.9 + Math.random() * .2), pow: k.pow };
   }
-  // hook = { at: 0…1, fn } — вызвать один раз, когда прокрутка пройдёт эту долю времени (так золото появляется на ходу)
+  // hook = { ms, fn } — вызвать один раз через ms после старта прокрутки (так золото появляется на ходу)
   function spin(roll, hook) {
     return new Promise(res => {
       const p = profile(), needle = $('upgNeedle'), from = st.angle % 360, to = from + 360 * p.turns + ((roll * 360 - from) % 360 + 360) % 360, t0 = performance.now();
@@ -136,7 +136,7 @@
         if (wh) wh.set(Math.min(1, (a - lastA) / Math.max(1, now - lastT) * 1000 / 1400));
         lastA = a; lastT = now;
         const fk = Math.floor(a / 10); if (fk !== lastFine) { lastFine = fk; if (now - tickT > 55) { tickT = now; FX.tick(); } }   // на разгоне не трещит
-        if (hook && !hook.done && k >= hook.at) { hook.done = true; hook.fn(); }
+        if (hook && !hook.done && now - t0 >= hook.ms) { hook.done = true; hook.fn(); }
         const tk = Math.floor(a / 30);
         if (tk !== lastTick) { lastTick = tk; if (lit) lit.classList.remove('lit'); lit = marks[((tk % 12) + 12) % 12]; if (lit) lit.classList.add('lit'); }
         if (k < 1) requestAnimationFrame(f); else { if (lit) lit.classList.remove('lit'); if (wh) wh.stop(); FX.stop(0); res(); }
@@ -160,8 +160,8 @@
   async function playUpgrade(d) {
     const wheel = $('upgWheel'), z = d.zones || zones(), target = st.target;
     drawWin(z.c); wheel.classList.add('spinning');
-    // редкая золотая зона «?» ловится уже на ходу: стрелка крутится, и через треть прокрутки внизу вспыхивает золото
-    const gold = d.gold ? { at: (fast ? .18 : .22) + Math.random() * .16, fn() { drawGold(z, true); burst('gold'); FX.tone(1568, .5, 'sine', .07); FX.tone(2349, .4, 'sine', .04, .06); FX.haptic('medium'); } } : null;
+    // редкая золотая зона «?» ловится уже на ходу: стрелка разгоняется, и примерно через секунду внизу вспыхивает золото
+    const gold = d.gold ? { ms: fast ? 300 + Math.random() * 200 : 800 + Math.random() * 400, fn() { drawGold(z, true); burst('gold'); FX.tone(1568, .5, 'sine', .07); FX.tone(2349, .4, 'sine', .04, .06); FX.haptic('medium'); } } : null;
     await spin(d.roll, gold);
     wheel.classList.remove('spinning');
     if (d.diamond) {
